@@ -3,7 +3,7 @@
  *  It can be easily configured to run on any precision,
  *  just change the defines below.
  *
- *  $Id: fixmath.h,v 1.2 1996/05/06 22:29:39 jj Exp $
+ *  $Id: fixmath.h,v 1.3 1996/05/08 00:06:08 jj Exp $
  *
  *  The fixed point type is always signed. Must be 32 bits.
  */
@@ -62,27 +62,28 @@ typedef signed long fixed;
  *    BUG: The division loses some decimals...
  */
 
-#define FIXMUL(a,b)         ((a*b) >> FIX_SHIFT)
-#define FIXDIV(a,b)         ((a/b) << FIX_SHIFT)
+#define FIXMUL(a,b)         (((a)*(b)) >> FIX_SHIFT)
+#define FIXDIV(a,b)         (((a) << FIX_SHIFT/2)/((b)) << FIX_SHIFT/2)
 
 
 /*
  *  Some mathematical operations
+ *  BUG: FIXFRAC() does not work properly for negative numbers
  */
 
-#define FIXFRAC(a)          ( a & FIX_INTMASK )
-#define FIXFLOOR(a)         ( a & ~FIX_INTMASK )
-#define FIXCEIL(a)          ( (a+FIX_ONE-FIX_EPSILON) & ~FIX_INTMASK )
+#define FIXFRAC(a)          ( (a) & ~FIX_INTMASK )
+#define FIXFLOOR(a)         ( (a) & FIX_INTMASK )
+#define FIXCEIL(a)          ( ((a) + FIX_ONE-FIX_EPSILON) & FIX_INTMASK )
 
 /*
  *  Type conversions
  */
 
-#define FIX2INT(a)          (a >> FIX_SHIFT)
-#define INT2FIX(i)          (i << FIX_SHIFT)
+#define FIX2INT(a)          ((a) >> FIX_SHIFT)
+#define INT2FIX(i)          ((i) << FIX_SHIFT)
 
 #define FIX2FLOAT(a)        ( (float)(a) / FIX_DIVISOR )
-#define FLOAT2FIX(f)        ( (fixed)(f * FIX_DIVISOR) )
+#define FLOAT2FIX(f)        ( (fixed)((f) * FIX_DIVISOR) )
 
 #endif /* FIXMATH_H */
 
