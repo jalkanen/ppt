@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.108 1999/03/17 23:08:14 jj Exp $
+    $Id: main.c,v 1.109 1999/03/31 13:27:54 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -629,9 +629,15 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
          */
 
         case MID_QUIT:
+        case MID_QUIT_NO_SAVE:
             if( !DOCONFIRM || Req(win, GetStr(MSG_YESNO_GAD), GetStr(MSG_QUIT)) ) {
                 D(bug("\nUser wishes to quit\n"));
                 result = HANDLER_QUIT;
+                if( rc == MID_QUIT ) {
+                    if(SavePrefs( globals, NULL ) != PERR_OK ) {
+                       Req(NEGNUL,NULL,GetStr(mCOULDNT_SAVE_PREFERENCES) );
+                    }
+                }
             }
             break;
 
@@ -1759,6 +1765,8 @@ int HandlePrefsIDCMP( ULONG rc )
             tmpprefs.colorpreview = tmp ? TRUE : FALSE;
             GetAttr( GA_Selected, prefsw.DitherPreview, &tmp );
             tmpprefs.ditherpreview = tmp ? TRUE : FALSE;
+            GetAttr( GA_Selected, prefsw.EnableTips, &tmp );
+            tmpprefs.tipnumber = tmp ? DEFAULT_TIPNUMBER : -1;
 
             /*
              *  If there was a change in display, try to close the display
@@ -3429,6 +3437,8 @@ int main(int argc, char **argv)
     if( IsListEmpty( &globals->effects ) ) {
         Req(NEGNUL,GetStr(mWHOOPS),GetStr(mCOULD_NOT_LOCATE_ANY_EFFECTS) );
     }
+
+    if( globals->userprefs->tipnumber != -1 ) ShowTip();
 
     /*
      *  Open windows, release the main window and enter the handler loop.
