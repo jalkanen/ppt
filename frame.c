@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.7 1997/05/02 17:02:20 jj Exp $
+    $Id: frame.c,v 2.8 1997/05/06 00:08:52 jj Exp $
 
     This contains frame handling routines
 
@@ -274,6 +274,7 @@ PERROR AddFrame( FRAME *frame )
 void DeleteFrame( FRAME *f )
 {
     APTR entry;
+    REXXARGS *ra;
 
     D(bug("DeleteFrame( frame = %08X )...",f));
 
@@ -283,6 +284,16 @@ void DeleteFrame( FRAME *f )
     if(f) {
 
         LOCK(f);
+
+        /*
+         *  Remove REXX
+         */
+
+        if(ra = FindRexxWaitItemFrame(f)) {
+            ra->rc = -20;
+            ra->rc2 = (long)"Frame deleted";
+            ReplyRexxWaitItem(ra);
+        }
 
         entry = (APTR)FirstEntry(framew.Frames);
         while( entry && (strcmp(entry,f->nd.ln_Name) != 0) )
