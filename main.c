@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.103 1999/02/14 19:39:53 jj Exp $
+    $Id: main.c,v 1.104 1999/02/20 15:28:11 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2727,7 +2727,7 @@ int HandleDispPrefsWindowIDCMP( FRAME *frame, ULONG rc )
                 }
 
                 GetAttr( CYC_Active, dpw->GO_Dither, &tmp );
-                d->dither = (tmp == 1) ? DITHER_FLOYD : DITHER_NONE;
+                d->dither = tmp;
                 D(bug("New dither mode is %lu\n",tmp));
                 GetAttr( GA_Selected, dpw->GO_ForceBW, &tmp );
                 d->forcebw = (BOOL)tmp;
