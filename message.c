@@ -2,7 +2,9 @@
     PROJECT: ppt
     MODULE : message.c
 
-    This module contains info about message handling routines.
+    $Id: message.c,v 1.2 1995/08/29 00:02:22 jj Exp $
+
+    This module contains code about message handling routines.
 */
 
 #include <defs.h>
