@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.9 1996/09/17 20:30:10 jj Exp $
+    $Id: ppt_real.h,v 1.10 1996/09/22 18:11:07 jj Exp $
 
     Main definitions for PPT.
 
@@ -425,6 +425,9 @@ typedef struct {
 
     UBYTE           modulepath[MAXPATHLEN]; /* All the modules reside here. */
 
+    BOOL            expungelibs;    /* TRUE, if all modules should be expunged
+                                       after use. */
+
 } PREFS;
 
 
@@ -475,7 +478,7 @@ typedef struct {
     GLOBALS         *g;             /* Pointer to PPT global variables */
     struct MsgPort  *mport;         /* Your own message port */
     struct ExecBase *lb_Sys;        /* Exec.library */
-    struct Library  *lb_Intuition;
+    struct IntuitionBase *lb_Intuition;
     struct Library  *lb_Utility;
     struct Library  *lb_Gfx;        /* Graphics.library */
     struct DosLibrary *lb_DOS;
