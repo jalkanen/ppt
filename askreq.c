@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.27 1998/02/26 19:52:12 jj Exp $
+    $Id: askreq.c,v 1.28 1998/06/28 23:12:15 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -79,7 +79,7 @@ struct RealObject {
 /*----------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype ASM int      AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
+Prototype ASM PERROR AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -983,7 +983,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                 aum.MethodID    = ARM_UPDATE;
                 arm.MethodID    = ARM_RENDER;
                 aum.aum_Frame   = arm.arm_Frame     = tempframe;
-                aum.aum_ExtBase = arm.arm_ExtBase   = ExtBase;
+                aum.aum_PPTBase = arm.arm_PPTBase   = ExtBase;
                 aum.aum_RPort   = arm.arm_RPort     = win->RPort;
                 GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
                 aum.aum_Area    = arm.arm_Area      = *ibox;
