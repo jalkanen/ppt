@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: embedfile.c,v 1.3 1998/12/10 21:44:51 jj Exp $
+    $Id: embedfile.c,v 1.4 2000/11/17 03:13:05 jalkanen Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -68,7 +68,7 @@ const struct TagItem MyTagArray[] = {
      *  Other tags go here. These are not required, but very useful to have.
      */
 
-    PPTX_Author,        (ULONG)"Janne Jalkanen 1998",
+    PPTX_Author,        (ULONG)"Janne Jalkanen 1998-1999",
     PPTX_InfoTxt,       (ULONG)infoblurb,
 
     PPTX_RexxTemplate,  (ULONG)"FILE/A,PASSPHRASE/K",
@@ -78,6 +78,8 @@ const struct TagItem MyTagArray[] = {
 #ifdef _PPC
     PPTX_CPU,           (ULONG)AFF_PPC,
 #endif
+
+    PPTX_SupportsGetArgs, FALSE,
     TAG_END, 0L
 };
 
@@ -391,6 +393,25 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, struct PPTB
     return res;
 }
 
+VOID
+SetDefaults(FRAME *frame, struct Values *v, struct PPTBase *PPTBase)
+{
+    struct Values *opt;
+
+    if( opt = GetOptions(MYNAME) ) {
+        *v = *opt;
+    }
+
+    strcpy(v->filename,"");
+}
+
+PERROR
+ParseRexxArgs(struct Values *v, ULONG *args, STRPTR passphrase, struct PPTBase *PPTBase)
+{
+    strncpy( v->filename, (STRPTR)args[0], 255 );
+    if( args[1] ) strncpy( passphrase, (STRPTR) args[1], 255 );
+}
+
 EFFECTEXEC(frame,tags,PPTBase,EffectBase)
 {
     struct Library *BGUIBase = PPTBase->lb_BGUI;
@@ -398,19 +419,16 @@ EFFECTEXEC(frame,tags,PPTBase,EffectBase)
     struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     ULONG *args;
     PERROR res = PERR_OK;
-    struct Values *opt, v = {""};
+    struct Values *opt, v;
     UBYTE passphrase[256] = "";
 
     D(bug(MYNAME));
 
-    if( opt = GetOptions(MYNAME) ) {
-        v = *opt;
-    }
+    SetDefaults( frame, &v, PPTBase );
 
     args = (ULONG *)TagData( PPTX_RexxArgs, tags );
     if( args ) {
-        strncpy( v.filename, (STRPTR)args[0], 255 );
-        if( args[1] ) strncpy( passphrase, (STRPTR) args[1], 255 );
+        ParseRexxArgs( &v, args, passphrase, PPTBase );
     } else {
         Object *freq;
         char tfile[256], *s;
@@ -458,6 +476,14 @@ EFFECTEXEC(frame,tags,PPTBase,EffectBase)
     return frame;
 }
 
+EFFECTGETARGS(frame,tags,PPTBase,EffectBase)
+{
+    ULONG *args;
+    PERROR res = PERR_OK;
+    struct Values *opt, v = {""};
+
+
+}
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
