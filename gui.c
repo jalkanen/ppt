@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.64 1999/02/21 20:32:51 jj Exp $
+    $Id: gui.c,v 1.65 1999/03/13 17:33:22 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -561,6 +561,8 @@ GimmeSaveWindow( FRAME *frame, EXTBASE *ExtBase, struct SaveWin *gads )
     gads->Frq = MyFileReqObject,
         ASLFR_InitialDrawer, frame->path,
         ASLFR_InitialFile,   initialfile,
+        ASLFR_InitialPattern, "#?",
+        ASLFR_DoPatterns,    TRUE,
         ASLFR_DoSaveMode, TRUE,
         ASLFR_Screen, MAINSCR,
     EndObject;
