@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.4 1995/10/01 22:18:08 jj Exp $
+    $Id: infowin.c,v 1.5 1996/01/08 23:40:30 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -39,7 +39,7 @@ Prototype VOID          CloseInfoWindow( INFOWIN *iw, EXTBASE *xd );
          of the window object.
 */
 
-PERROR AllocInfoWindow( FRAME *frame, EXTBASE *xd )
+PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
 {
     INFOWIN *iw;
 
@@ -51,17 +51,17 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *xd )
         D(bug("Object does not exist, creating...\n"));
         iw = pmalloc( sizeof( INFOWIN ) );
         if(!iw) {
-            Req(NEGNUL,NULL,"Unable to allocate info window");
+            Req(NEGNUL,NULL,XGetStr(MSG_COULD_NOT_ALLOC_INFOWINDOW));
             return PERR_OUTOFMEMORY;
         }
 
         bzero(iw, sizeof(INFOWIN) );
         iw->myframe = frame;
         frame->mywin = iw;
-        if(GimmeInfoWindow( xd, iw ) == NULL) {
+        if(GimmeInfoWindow( ExtBase, iw ) == NULL) {
             frame->mywin = NULL;
             pfree(iw);
-            Req(NEGNUL,NULL,"Unable to create info window");
+            Req(NEGNUL,NULL,XGetStr(MSG_COULD_NOT_ALLOC_INFOWINDOW));
             return PERR_WINDOWOPEN;
         }
     }
@@ -72,7 +72,7 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *xd )
     Open an info window. Will ignore NULL args.
 */
 
-PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *xd )
+PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     PERROR res = PERR_OK;
 
@@ -95,7 +95,7 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *xd )
     Closes an info window. Will ignore NULL args.
 */
 
-VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *xd )
+VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     D(bug("CloseInfoWindow(%08X)\n",iw));
 
@@ -115,10 +115,10 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *xd )
     from the parent frame. Safe to call with NULL iw
 */
 
-void DeleteInfoWindow( INFOWIN *iw, EXTBASE *xd )
+void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     FRAME *frame;
-    APTR   IntuitionBase = xd->lb_Intuition;
+    APTR   IntuitionBase = ExtBase->lb_Intuition;
 
     D(bug("DeleteInfoWindow( %08X )\n",iw));
     if(iw) {
@@ -149,6 +149,7 @@ void DeleteInfoWindow( INFOWIN *iw, EXTBASE *xd )
 Object *
 GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
 {
+    EXTBASE *ExtBase = xd; /* BUG */
     FRAME *f;
     APTR BGUIBase = xd->lb_BGUI, SysBase = xd->lb_Sys, IntuitionBase = xd->lb_Intuition;
     struct Screen *scr;
@@ -203,14 +204,14 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                     MyVGroupObject, HOffset(4), VOffset(4), Spacing(4),
                         StartMember,
                             iw->GO_status = MyInfoObject,
-                                LAB_Label,"Status:", LAB_Place, PLACE_LEFT,
+                                // LAB_Label,"Status:", LAB_Place, PLACE_LEFT,
                                 ButtonFrame, FRM_Flags, FRF_RECESSED,
-                                INFO_TextFormat, "«idle»",
+                                INFO_TextFormat, XGetStr(MSG_IDLE_GAD),
                             EndObject,
                         EndMember,
                         StartMember,
                             iw->GO_progress = MyProgressObject,
-                                Label("Done:"), Place(PLACE_LEFT),
+                                Label(""), Place(PLACE_LEFT),
                                 ButtonFrame, FRM_Flags, FRF_RECESSED,
                                 PROGRESS_Min, MINPROGRESS,
                                 PROGRESS_Max, MAXPROGRESS,
@@ -219,10 +220,12 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                         EndMember,
                         StartMember,
                             MyHGroupObject, Spacing(4),
+                                VarSpace(50),
                                 StartMember,
-                                    iw->GO_Break=MyGenericButton("_Break",GID_IW_BREAK),
+                                    iw->GO_Break=MyGenericButton(XGetStr(MSG_BREAK_GAD),GID_IW_BREAK),
                                 EndMember,
-                            EndObject, /* Vgroup */
+                                VarSpace(50),
+                            EndObject, Weight(1),
                         EndMember,
                     EndObject, /* Master Vgroup */
                 EndObject; /* WindowObject */
@@ -256,13 +259,13 @@ void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
 }
 
 /*
-    This routine is supposed to update the selectbox display, but currently
-    it is not used.
+    This routine updates the toolbox area display.
+    It is not used at the moment.
 */
 
 void UpdateIWSelbox( FRAME *f )
 {
-    /* NO CODE */
+
 }
 
 

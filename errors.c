@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.2 1995/12/06 22:35:10 jj Exp $
+    $Id: errors.c,v 1.3 1996/01/08 23:38:03 jj Exp $
 
     Error handling routines.
 */
@@ -17,10 +17,11 @@
 
 Prototype VOID        SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error );
 Prototype VOID        SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error );
-Prototype VOID        ShowError( REG(A0) FRAME *frame );
-Prototype UBYTE      *GetErrorMsg( FRAME * );
+Prototype VOID        ShowError( REG(A0) FRAME *frame, REG(A6) EXTBASE * );
+Prototype UBYTE      *GetErrorMsg( FRAME *, EXTBASE * );
 Prototype VOID        ClearError( FRAME * );
 Prototype VOID        CopyError( FRAME *, FRAME * );
+Prototype REG(D0) UBYTE *ErrorMsg( REG(D0) ULONG, REG(A6) EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -29,41 +30,41 @@ Prototype VOID        CopyError( FRAME *, FRAME * );
     This returns a pointer to an error message.
 */
 
-__D0 UBYTE *ErrorMsg( __D0 ULONG code )
+REG(D0) UBYTE *ErrorMsg( REG(D0) ULONG code, REG(A6) EXTBASE *ExtBase )
 {
     switch(code) {
         case PERR_UNKNOWNTYPE:
-            return "Unknown type!";
+            return XGetStr(MSG_PERR_UNKNOWNTYPE);
         case PERR_INUSE:
-            return "Object is in use.";
+            return XGetStr(MSG_PERR_INUSE);
         case PERR_INITFAILED:
-            return "Initialization phase failed.";
+            return XGetStr(MSG_PERR_INITFAILED);
         case PERR_CANCELED:
-            return "Cancelled operation";
+            return XGetStr(MSG_PERR_CANCELED);
         case PERR_OUTOFMEMORY:
-            return "Out of memory!";
+            return XGetStr(MSG_PERR_OUTOFMEMORY);
         case PERR_BREAK:
-            return "User break.";
+            return XGetStr(MSG_PERR_BREAK);
         case PERR_WONTOPEN:
-            return "Cannot open resource!";
+            return XGetStr(MSG_PERR_WONTOPEN);
         case PERR_FAILED:
-            return "A generic error occurred";
+            return XGetStr(MSG_PERR_FAILED);
         case PERR_MISSINGCODE:
-            return "No code?!";
+            return XGetStr(MSG_PERR_MISSINGCODE);
         case PERR_INVALIDARGS:
-            return "Invalid arguments!";
+            return XGetStr(MSG_PERR_INVALIDARGS);
         case PERR_WINDOWOPEN:
-            return "Couldn't open window";
+            return XGetStr(MSG_PERR_WINDOWOPEN);
         case PERR_FILEOPEN:
-            return "Couldn't open file";
+            return XGetStr(MSG_PERR_FILEOPEN);
         case PERR_FILEREAD:
-            return "File read error";
+            return XGetStr(MSG_PERR_FILEREAD);
         case PERR_FILEWRITE:
-            return "Error while writing file";
+            return XGetStr(MSG_PERR_FILEWRITE);
         case PERR_FILECLOSE:
-            return "Error while closing file";
+            return XGetStr(MSG_PERR_FILECLOSE);
         case PERR_OK:
-            return "Soft Error: Everything was really OK?!";
+            return XGetStr(MSG_PERR_OK);
         default:
             return "Unknown Error Code";
     }
@@ -75,7 +76,7 @@ __D0 UBYTE *ErrorMsg( __D0 ULONG code )
     the difference between error codes and strings.
 */
 
-UBYTE *GetErrorMsg( FRAME *frame )
+UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *ExtBase )
 {
     UBYTE *msg = "";
 
@@ -83,7 +84,7 @@ UBYTE *GetErrorMsg( FRAME *frame )
         if( strlen( frame->errormsg ) != 0 )
             msg = frame->errormsg;
         else
-            msg = ErrorMsg( frame->errorcode );
+            msg = ErrorMsg( frame->errorcode, ExtBase );
     }
 
     return msg;
@@ -219,12 +220,12 @@ SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
 /*
     BUG: Not yet complete
 */
-SAVEDS ASM VOID ShowError( REG(A0) FRAME *frame )
+SAVEDS ASM VOID ShowError( REG(A0) FRAME *frame, REG(A6) EXTBASE *ExtBase )
 {
     D(bug("ShowError()\n"));
 
     if( frame ) {
-        XReq(NEGNUL,NULL,ISEQ_C"%s\n", GetErrorMsg( frame ) );
+        XReq(NEGNUL,NULL,ISEQ_C"%s\n", GetErrorMsg( frame, ExtBase) );
         ClearError( frame );
     }
 }
