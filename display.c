@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.63 1999/05/30 18:12:30 jj Exp $
+    $Id: display.c,v 1.64 1999/09/08 22:46:26 jj Exp $
 
     Contains display routines.
 
@@ -1214,7 +1214,7 @@ PERROR HideDisplayWindow( FRAME *frame )
     if( frame->disp ) {
         if( frame->disp->win ) {
             UndisplayFrame( frame );
-            frame->selstatus = 0;
+            frame->selection.selstatus = 0;
             frame->disp->keephidden = TRUE;
             res = PERR_OK;
         }
@@ -1365,10 +1365,12 @@ ULONG QuickDisplayFrame( FRAME *frame )
     AwakenAllWindows(globxd);
 
     /*
-     *  Make sure there is a select box visible
+     *  Make sure there is a selection area visible.  The rendering
+     *  above will destroy the window contents, including the selection
+     *  area.
      */
 
-    frame->selstatus &= ~SELF_RECTANGLE;
+    frame->selection.selstatus &= ~SELF_DRAWN;
     DrawSelection( frame, 0L );
 
     return rc;
