@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.7 $
-        $Date: 1999/01/13 22:54:38 $
+    $Revision: 6.0 $
+        $Date: 1999/11/28 18:16:34 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -66,6 +66,13 @@ struct EffectMessage {
 #define PPTMSG_LOADDONE         (PPTMSGF_DONE + 0x02)
 #define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
 #define PPTMSG_SAVEDONE         (PPTMSGF_DONE + 0x04)
+#define PPTMSG_GETARGSDONE      (PPTMSGF_DONE + 0x05)
+
+struct GetArgsMessage {
+    struct PPTMessage   gam_PMsg;
+    PERROR              gam_Error;          /* Standard error code */
+    UBYTE               gam_Result[1023];   /* Contains result from the external module */
+};
 
 /*!!PUBLIC*/
 
@@ -75,6 +82,8 @@ struct EffectMessage {
 #define PPTMSG_LASSO_CIRCLE     0x13L
 
 /*!!PRIVATE*/
+
+#define PPTMSG_LASSO_FREE       0x14L
 
 #define PPTMSG_STOP_INPUT       0x100L
 #define PPTMSG_START_INPUT      0x101L
@@ -108,6 +117,9 @@ struct ProgressMsg {
 #define GINP_PICK_POINT      1
 #define GINP_FIXED_RECT      2
 #define GINP_LASSO_CIRCLE    3
+/*!!PRIVATE*/
+#define GINP_LASSO_FREE      4
+/*!!PUBLIC*/
 
 /*
  *  These messages are sent to you after you have called
