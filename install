@@ -1,8 +1,8 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.8 $
-;      $Date: 1999/02/21 21:06:07 $
+;  $Revision: 1.9 $
+;      $Date: 1999/02/21 21:08:53 $
 ;
 
 (welcome "This is the PPT Installation utility."
@@ -140,12 +140,12 @@
 (copyfiles
     (prompt "Installing miscallaneous stuff")
     (source "")
-    (choices "README" "HISTORY" "ReleaseNotes" "ppt.asc" "ModuleInfo" "GUI")
+    (choices "README" "HISTORY" "ReleaseNotes" "ppt.asc" "ModuleInfo" "GUI" "Contrib")
     (dest @default-dest)
     (help (cat "Choose which additional files you wish to install. "
                "Again, I recommend you to install these all, as these "
                "contain the release notes, the ModuleInfo utility, "
-               "and the icons\n\n"
+               "the icons, and contributed stuff.\n\n"
                @copyfiles-help) )
     (infos)
     (confirm)
