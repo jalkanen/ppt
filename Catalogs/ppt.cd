@@ -1,44 +1,129 @@
 ;
 ;  This is a base for the locale file for PPT
 ;
-;  $Id: ppt.cd,v 1.1 1996/08/28 18:41:42 jj Exp $
+;  $Id: ppt.cd,v 1.2 1998/07/01 22:21:14 jj Exp $
 ;
 ;
 ;
-MSG_ABOUT (//)
-\ec\nPPT is (C) by Janne Jalkanen 1995-1996\n\
-This is V%s, release %s\n\
-(Compiled on %s)\
-%s\
-\nYou can reach me via the Internet at\n\
-Janne.Jalkanen@hut.fi\n\n\
-Free Chip:%ld bytes\n\
-Free Fast:%ld bytes\n\
+;  main.c
+;
+#language english
+#version 1
+;
+MSG_ABOUT (1//)
+\ec\nPPT is %s\n\
+This is V%s, release %s, compiled on %s\
+%s\n\
+PPT support on the Internet is available via WWW at\n\
+http://www.iki.fi/~jalkanen/PPT.html\n\
+or e-mail: Janne.Jalkanen@iki.fi\n\
 \nFrames: %ld,  Threads: %ld\n\
 \n\eb\euIMPORTANT!\n\en\
-This program is in pre-Alpha stage\n\
-and thus may not be spread without\n\
-express permission from the author\n\
+This program is in Beta stage and thus may not be\n\
+spread without express permission from the author\n\
 \n\eiAll hail the Drummer Bunny!\n
 ;
 MSG_QUIT (//)
 \nDo you \033ireally\033n wish to quit?\n
 ;
 MSG_DELETE (//)
-\033c\nAre you sure you wish to \033bdelete\033n frame\n\
+\033c\nAre you sure you wish to \033bclose\033n frame\n\
 '%s'?\n
+;
+mALPHA_COMPOSITE_CANCEL (//)
+Alpha|Composite|Cancel
+;
+mFRAMEDROPPED (//)
+\nWhat should I do with the item you dropped?\n\
+     a) Add As Alpha Channel\n\
+     b) Composite it to the image\n
+;
+mPLEASE_ENTER_NEW_NAME (//)
+\033c\nPlease enter the new project name:\n
+;
+mLOADERS (//)
+Loaders
+;
+mEFFECTS (//)
+Effects
+;
+mGO (//)
+Go!
+;
+mSCRIPTS (//)
+Scripts
+;
+mCGX_HI_AND_TRUECOLOR_SCREENS (//)
+\033c\nHi- and Truecolor CyberGFX screens are\n\
+always used to their full potential.  So,\n\
+I am using a %ld -bit depth, even if you\n\
+specified otherwise\n
+;
+mSOME_SETTINGS_CANT_BE_USED (//)
+\nNOTE: Some of the settings cannot\n\
+be used until PPT is next started.\n\n
+;
+mTRY_A_SMALLER_SCREEN (//)
+\033c\033b\nERROR!\n\n\033n\
+I couldn't open the screen you specified.\n\
+Try again, but this time try a different\n\
+screenmode or a smaller screen.\n
+;
+mCOULDNT_SAVE_PREFERENCES (//)
+\nWARNING: Couldn't save preferences!\n
+;
+mFAILED_TO_START_SCRIPT (//)
+\nFailed to start REXX script!\n
+;
+mEXTENSION_EMPTY (//)
+«Empty»
+;
+mEXTENSION_NEW (//)
+«New»
+;
+mSURE_TO_REMOVE_EXTENSION (//)
+\033c\nAre you sure you wish to remove extension\n\
+called '%s'?\n
+;
+mEXTENSION_UNEDITABLE (//)
+«uneditable»
+;
+mSELECT_SCREEN_MODE (//)
+Select screen mode
+;
+mLOADING_IO_MODULES (//)
+Loading I/O modules...
+;
+mLOADING_EFFECTS (//)
+Loading effects...
+;
+mLOADING_SCRIPTS (//)
+Loadings scripts...
+;
+mCOULD_NOT_LOCATE_ANY_LOADERS (//)
+\n033c\033b\033d8WARNING!\n\n\033n\033d2\
+I could not locate any I/O modules.  It may be\n\
+that the module directory is lost or\n\
+the internal paths are set wrong.\n
+;
+mCOULD_NOT_LOCATE_ANY_EFFECTS (//)
+\n033c\033b\033d8WARNING!\n\n\033n\033d2\
+I could not locate any effects.  It may be\n\
+that the module directory is lost or\n\
+the internal paths are set wrong.\n
+;
 ;----------------------------------------------------------------------
 ;
 ;   Simple gadgets.
 ;
-MSG_YESNO_GAD (//)
+MSG_YESNO_GAD (100//)
 Yes|No
 ;
 MSG_OK_GAD (//)
 OK
 ;
 MSG_LOAD_GAD (//)
-Load
+Open
 ;
 MSG_CANCEL_GAD (//)
 Cancel
@@ -63,19 +148,21 @@ Pick a Frame
 ;
 MSG_MAINWIN_INFO (//)
 %ldx%ld %s data\n\
-%ld bits/channel\n\
-Alpha: %s
-;
-MSG_NO_ALPHA (//)
-No Alpha Channel
+%ld bits/channel
 ;
 MSG_MAIN_NOFRAME (//)
 \033cNo frame\nselected
 ;
-;-------------------------------------------------
-; Save window
+mREMOVE_CANCEL (//)
+Remove|Cancel
 ;
-MSG_PICK_SAVE_FORMAT_LAB (//)
+mWHOOPS (//)
+Whoops
+;
+;-------------------------------------------------
+; save.c
+;
+MSG_PICK_SAVE_FORMAT_LAB (200//)
 Pick format
 ;
 MSG_PICK_SAVE_MODE_LAB (//)
@@ -85,11 +172,11 @@ Save Mode
 ;
 ; DispPrefs window
 ;
-MSG_DISPLAY_PREFERENCES_LAB (//)
+MSG_DISPLAY_PREFERENCES_LAB (300//)
 \033c\033bDisplay Preferences
 ;
 MSG_SCREENMODE_LAB (//)
-Screen Mode
+_Screen Mode:
 ;
 MSG_DITHER_LAB (//)
 Dither:
@@ -107,7 +194,7 @@ Palette
 ;
 ; FX window
 ;
-MSG_EFFECTS_LIST_LAB (//)
+MSG_EFFECTS_LIST_LAB (400//)
 Pick effect
 ;
 MSG_EXECUTE_GAD (//)
@@ -123,21 +210,21 @@ Break
 ;
 ;  Infowindow
 ;
-MSG_COULD_NOT_ALLOC_INFOWINDOW (//)
+MSG_COULD_NOT_ALLOC_INFOWINDOW (500//)
 \nUnable to allocate info window\n
 ;
 ;-----------------------------------------------------------------------
 ;
 ; Windows
 ;
-MSG_MAIN_WINDOW (//)
+MSG_MAIN_WINDOW (600//)
 List of frames currently in memory
 ;
 MSG_TOOLBAR_WINDOW (//)
 Toolbar
 ;
 MSG_LOADAS_WINDOW (//)
-Load As
+Open As
 ;
 MSG_SAVEAS_WINDOW (//)
 Save frame
@@ -146,7 +233,7 @@ Save frame
 ;
 ;  ReqA()
 ;
-MSG_PPT_REQUEST (//)
+MSG_PPT_REQUEST (700//)
 PPT Request
 ;
 MSG_PPT_INFORMATION (//)
@@ -155,7 +242,7 @@ PPT Information
 ;
 ;  Informational messages
 ;
-MSG_NO_AREA_SELECTED (//)
+MSG_NO_AREA_SELECTED (800//)
 \033cNo area has been selected!\n\
 \n\
 (Use the mouse or the menu to mark the area\n\
@@ -182,7 +269,7 @@ MSG_CANNOT_OPEN_PREFSWINDOW (//)
 \nCannot open Preferences window!\n
 ;
 MSG_CANNOT_OPEN_LOADASWINDOW (//)
-\nCannot open Load-As -window!\n
+\nCannot open Open-As -window!\n
 ;
 MSG_CANNOT_OPEN_DISPPREFSWINDOW (//)
 \nCannot open Display preferences window!\n
@@ -193,20 +280,21 @@ MSG_NO_CURRENT_PROCESS (//)
 ;
 ; Displays
 ;
-MSG_FRAME_SCREEN_TITLE (//50)
+MSG_FRAME_SCREEN_TITLE (900//50)
 PPT: '%s' %lux%lux%lu %s image (%lu bytes)
+;
 ;---------------------------------------------------------------------------
 ;
 ; Tool tips
 ;
-MSG_MOUSECOORDS_TT (//)
+MSG_MOUSECOORDS_TT (1000//)
 The current mouse location within the image
 ;
 ;---------------------------------------------------------------------------
 ;
 ;  Errors
 ;
-MSG_PERR_UNKNOWNTYPE (//)
+MSG_PERR_UNKNOWNTYPE (1100//)
 Unknown type!
 ;
 MSG_PERR_INUSE (//)
@@ -251,6 +339,9 @@ Error while writing to file!
 MSG_PERR_FILECLOSE (//)
 Error while closing file!
 ;
+MSG_PERR_NO_NEW_PROCESS (//)
+\nCould not start a new process!\n
+;
 MSG_PERR_OK (//)
 Soft Error: Everything was really OK?!?\n\
 (If you see this message, there's a bug in PPT\n\
@@ -260,7 +351,7 @@ which needs to be reported!\n
 ;
 ; Miscallaneous
 ;
-MSG_UNKNOWN (//)
+MSG_UNKNOWN (1200//)
 Unknown
 ;
 MSG_SELECT_VALUES (//)
@@ -271,3 +362,249 @@ MSG_AR_WEIRDOBJECT (//)
 ;
 MSG_AR_UNKNOWNTYPE (//)
 \nUnknown object type %08X specified in AskReq()\n
+;
+;---------------------------------------------------------------------------
+;
+;  frame.c
+;
+MSG_FRAME_REPLACE_CURRENT_ALPHA (1300//)
+\nReplace current alpha channel\n'with '%s'?\n
+;
+MSG_FRAME_ALPHA_CHANNELS_NOT (//)
+\nAlpha channels on others than\nRGB images are not allowed (yet)\n
+;
+MSG_NO_MORE_UNDO_LEVELS (//)
+\nThere are no more Undo levels!\n
+;
+MSG_BUILDING_NEW_FRAME (//)
+Building new frame...
+;
+MSG_CANNOT_ATTACH_TO_ITSELF (//)
+\nYou cannot attach a frame to itself!\n
+;
+;---------------------------------------------------------------------
+;
+;  display.c
+MSG_UNKNOWN_DISPLAY_ID (1400//)
+Unknown display ID
+;
+MSG_BUSY (//)
+Busy
+;
+MSG_OPENSCREEN_ERROR (//)
+\033c\nGot error code %lu while opening screen:\n\n\033i%s\n\n
+;
+MSG_UNKNOWN_REASON (//)
+Unknown reason
+;
+MSG_RETRY (//)
+Retry
+;
+MSG_CLOSE_ALL_WINDOWS (//)
+\nThere are windows I cannot close on this\n\
+screen.  Please close all windows you can\n\
+and try again!\n
+;
+MSG_STILL_PROCESSES_LEFT (//)
+\nCannot close main screen!\n\
+Please make sure there is no processing,\n\
+loading, saving and/or rendering going on\n\
+and try again.\n
+;
+;--------------------------------------------------------------------------
+;
+; palette.c
+;
+MSG_BUILDING_HISTOGRAMS (1500//)
+Building histograms...
+;
+MSG_SELECTING_PALETTE (//)
+Selecting palette...
+;
+MSG_PALETTE_FORCE_ON_RGB (//)
+\033c\nPalette can be forced only onto\nRGB or ARGB images!\n"
+;
+;--------------------------------------------------------------------------
+;
+;  palette_edit.c
+;
+mKEEP_DISCARD_COLORS (1600//)
+Keep extra colors|Discard extra colors
+;
+mDIFFERENT_AMOUNT_OF_COLORS (//)
+\033c\nIt would seem that the palette you just loaded\n\
+contained a different amount of colors than you\n\
+have rendered the image with.  What would you like\n\
+me to do about it?\n\n
+;
+mLOADING_PALETTE (//)
+Loading palette...
+;
+mNO_COLORMAP (//)
+\nThis file contains no colormap information!\n
+;
+mNO_ILBM_FILE (//)
+\nThis file is not a proper ILBM file!\n
+;
+mSAVING_PALETTE (//)
+Saving palette...
+;
+mCANNOT_OPEN_IFF_FILE (//)
+\nCannot open IFF file!\n
+;
+;---------------------------------------------------------------------------
+;
+;  rendermod.c
+;
+mFAILED_TO_START_RENDER (1700//)
+\033cERROR: Failed to start rendering due to:\n%s
+;
+mINITIALIZING_RENDER (//)
+Initializing render...
+;
+mRENDERING (//)
+Rendering...
+;
+;--------------------------------------------------------------------------------
+;
+;  debug.c
+;
+mPPT_SOFT_ERROR (1800//)
+\033c\033bPPT Soft Error:   \n\n\033n\
+File '%s', line %ld.\n\n\
+%s\n\n\
+\033c\033iThere is really no way of telling how badly\n\
+the system is damaged.  If the software still\n\
+works after this, you should quit as soon as\n\
+you can and restart.  If you can duplicate this\n\
+error, then please submit a bug report!\n
+;
+; mPPT_MEMORY_ERROR
+;
+;
+;-----------------------------------------------------------------------------
+;
+;  dither.c   1900->
+;
+;--------------------------------------------------------------------------------
+;
+;  edit.c     2000->
+;
+;---------------------------------------------------------------------------------------
+;
+;  external.c 2100->
+;
+mEXTERNAL_INFO_FORMAT (2100//)
+\033c\033b%s v%ld.%ld\n\n\
+\033n%s\n\n\
+\033c\033iAuthor: %s\n
+;
+mAUTHOR_UNKNOWN (//)
+Unknown
+;
+mNO_OBJECT_CODE (//)
+\033c\nCould not load '%s':\nIt probably is not even object code...\n
+;
+mNOT_A_PPT_MODULE (//)
+\033c\033b\n'%s' is not a recognized module.\n\n\
+This might also occur because the module\n\
+could not open all of its own resources.\n\
+Use SnoopDOS to figure out what is missing.\n
+;
+mREQUIRES_OS_X (//)
+\nExternal %s requires at least OS %ld+\n
+;
+mREQUIRES_PPT_X (//)
+\nExternal %s requires at least PPT v%ld+\n
+;
+;-----------------------------------------------------------------------
+;
+;  filter.c     2200->
+;
+mEXECUTING_EASYEXEC (2200//)
+Executing %s...
+;
+mFILTER_INCORRECT_ARGS (//)
+Filter(): Incorrect ARGS received.\n\
+If you were running a REXX script, check that all\n\
+your quotes are in correct places.\n
+;
+mUNKNOWN_EFFECT (//)
+Unknown effect '%s'
+;
+mCOULDNT_OPEN_EFFECT_WINDOW (//)
+\nUnable to open effect window!\n
+;
+mEFFECT_DOESNT_SUPPORT_CSPACE (//)
+\033c\nEffect '%s' does not have support for\n\
+the %s colorspace!\n\n\
+\033n\033i(You should change the colorspace using a suitable effect)\n
+;
+mINVALID_ARGS_EXPECTED_X (//)
+Invalid args: Expected '%s'.
+;
+mEFFECT_REPORTS_ERROR (//)
+\nEffect %s reports error while processing frame\n\033c'%s'\n\n%s
+;
+;-------------------------------------------------------------------------
+;
+; vm.c          2300->
+;
+mVM_NO_SWAP_FILE (2300//)
+\nCouldn't open swap file!\n\nPlease check VM settings and directory\n
+;
+mVM_CANNOT_CREATE_FILE (//)
+\n\033cUnable to create virtual memory!\nYou're probably low on disk space\n\
+I need %lu bytes free.\n
+;
+;----------------------------------------------------------------------------
+;
+;   rexx.c      2400->
+;
+mRX_REQUEST (2400//)
+REXX Request
+;
+mRX_ERROR_ON_LINE (//)
+\033c\non line %ld.\n
+;
+mRX_SHOWERROR_TEXT (//)
+REXX SCRIPT ERROR
+;
+;--------------------------------------------------------------------------
+;
+;   prefs.c     2500->
+;
+mPREFS_EXTSTACK_LOW (2500//)
+\nYou have specified a stack size less than %lu bytes\n\
+in your preferences file.  Unfortunately, that might\n\
+prevent PPT modules to work correctly, so I have set it\n\
+back to the minimum.\n
+;
+;--------------------------------------------------------------------------
+;
+;   initexit.c  2600->
+;
+mRETRY_IGNORE (2600//)
+Retry|Ignore
+;
+mEXTERNAL_DIDNT_DIE (//)
+\033c\033bWARNING\n\
+\n\
+\033nExternal '%s' refused to die...\n\
+\n\
+\033iThis either means that the thread has hanged\n\
+and you should reboot the machine, OR the external module\n\
+simply hasn't gotten around to checking the break signal\n\
+yet.\n
+;
+mINITBLURB1 (//)
+\033c\033b\033d8Welcome to PPT!
+;
+mINITBLURB2 (//)
+\033c\033d2Release %s (v%s, %s)\n\
+%s\n\n\
+\033iPPT is starting... Please wait!
+;
+mINITBLURB3 (//)
+Initializing...
+;
