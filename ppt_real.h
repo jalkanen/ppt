@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.3 1995/08/20 18:35:43 jj Exp $
+    $Id: ppt_real.h,v 1.4 1995/09/06 23:41:01 jj Exp $
 
     Main definitions for PPT.
 
@@ -256,6 +256,8 @@ typedef struct {
 
 #define RENDER_QUICK        0
 #define RENDER_NORMAL       1
+#define RENDER_HAM          2
+#define RENDER_HAM8         3
 
 /* Types  */
 
@@ -546,8 +548,7 @@ typedef struct {
 #define PERR_INUSE          4 /* Someone is using the object */
 #define PERR_INITFAILED     5 /* Cannot initialize our values.
                                  Used (mainly) by L_Init() */
-#define PERR_GENERAL        6 /* A pretty general error message */
-#define PERR_ERROR          PERR_GENERAL
+#define PERR_FAILED         6 /* A general failure */
 #define PERR_BREAK          7 /* A break signal (CTRL-C) was received */
 #define PERR_MISSINGCODE    8 /* If the loader/etc misses code. */
 #define PERR_CANCELED       9 /* If the user canceled */
@@ -558,6 +559,9 @@ typedef struct {
 #define PERR_FILEREAD      13
 #define PERR_FILEWRITE     14
 #define PERR_FILECLOSE     15
+
+#define PERR_GENERAL       PERR_FAILED  /* Obsolete */
+#define PERR_ERROR         PERR_FAILED  /* Obsolete */
 
 /*------------------------------------------------------------------*/
 /* Flags */
