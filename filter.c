@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.24 1998/06/28 23:13:24 jj Exp $
+    $Id: filter.c,v 1.25 1998/06/29 22:31:28 jj Exp $
 
     Code containing effects stuff.
 
@@ -366,7 +366,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
     struct Window *win;
     EFFECT *effect = NULL;
     struct PPTMessage *msg;
-    UBYTE *filname=NULL,*args= NULL;
+    UBYTE *filname=NULL,*args = NULL;
     BOOL rexx=FALSE;
 
     D(bug("Filter()\n"));
