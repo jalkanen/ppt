@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.54 1998/11/08 00:44:24 jj Exp $
+    $Id: gui.c,v 1.55 1998/12/05 00:02:44 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1189,7 +1189,7 @@ Object *GimmePrefsWindow( VOID )
                                                     HGroupObject, NarrowSpacing,
                                                         StartMember,
                                                             prefsw.PageSize = StringObject,
-                                                                ULabel("_Page size (kB):"), GA_ID, GID_PW_VMBUFSIZE,
+                                                                ULabel("_Page size (kB)"), GA_ID, GID_PW_VMBUFSIZE,
                                                                 STRINGA_LongVal, args[5],
                                                                 STRINGA_MaxChars, 5,
                                                                 STRINGA_IntegerMin, MIN_VMBUFSIZ,
@@ -1212,7 +1212,7 @@ Object *GimmePrefsWindow( VOID )
                                                     HGroupObject, NarrowSpacing,
                                                         StartMember,
                                                             prefsw.ExtStackSize = StringObject,
-                                                                ULabel("_External Stack:"),
+                                                                ULabel("_External Stack"),
                                                                 GA_ID, GID_PW_EXTSTACKSIZE,
                                                                 STRINGA_LongVal, globals->userprefs->extstacksize,
                                                                 STRINGA_MaxChars, 6,
@@ -1225,6 +1225,7 @@ Object *GimmePrefsWindow( VOID )
                                                         StartMember,
                                                             InfoObject,
                                                                 INFO_TextFormat, " bytes",
+                                                                NoFrame,
                                                             EndObject,
                                                         EndMember,
                                                     EndObject, FixMinHeight,
@@ -1260,7 +1261,7 @@ Object *GimmePrefsWindow( VOID )
                                                         GA_Disabled, !FindPort(EXECUTIVEAPI_PORTNAME),
                                                         StartMember,
                                                             prefsw.ExtNiceVal = SliderObject,
-                                                                ULabel("External _Nice:"),
+                                                                ULabel("External _Nice"),
                                                                 GA_ID, GID_PW_EXTNICEVAL,
                                                                 SLIDER_Level, globals->userprefs->extniceval,
                                                                 SLIDER_Min,   -20,
@@ -1277,6 +1278,7 @@ Object *GimmePrefsWindow( VOID )
                                                                 INDIC_Justification, IDJ_RIGHT,
                                                                 INDIC_FormatString,"%ld",
                                                                 ButtonFrame, FRM_Flags, FRF_RECESSED,
+                                                                NoFrame,
                                                             EndObject, Weight(1),
                                                         EndMember,
                                                     EndObject,
@@ -1305,7 +1307,7 @@ Object *GimmePrefsWindow( VOID )
                                                 HGroupObject, NarrowSpacing,
                                                     StartMember,
                                                         prefsw.MainFont = InfoObject, GA_ID, GID_PW_FONT,
-                                                            ULabel( "_Main font:" ),
+                                                            ULabel( "_Main font" ),
                                                             ButtonFrame, FRM_Flags, FRF_RECESSED,
                                                             BT_HelpHook, &HelpHook,
                                                             BT_HelpNode, "PPT.guide/Fonts",
@@ -1328,7 +1330,7 @@ Object *GimmePrefsWindow( VOID )
                                                 HGroupObject, NarrowSpacing,
                                                     StartMember,
                                                         prefsw.ListFont = InfoObject, GA_ID, GID_PW_LISTFONT,
-                                                            ULabel( "_List font:" ),
+                                                            ULabel( "_List font" ),
                                                             ButtonFrame, FRM_Flags, FRF_RECESSED,
                                                             BT_HelpHook, &HelpHook,
                                                             BT_HelpNode, "PPT.guide/Fonts",
@@ -1418,7 +1420,7 @@ Object *GimmePrefsWindow( VOID )
                                         VarSpace(50),
                                         StartMember,
                                             prefsw.MaxUndo = StringObject, GA_ID, GID_PW_MAXUNDO,
-                                                ULabel("Max _Undo levels:"),
+                                                ULabel("Max _Undo levels"),
                                                 StringFrame,
                                                 STRINGA_LongVal,  args[6],
                                                 STRINGA_MaxChars, 3,
