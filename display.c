@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.58 1998/12/12 13:37:06 jj Exp $
+    $Id: display.c,v 1.59 1999/02/14 19:38:24 jj Exp $
 
     Contains display routines.
 
@@ -54,6 +54,15 @@
 #define FLASHING_DISPRECT    /* Use IDCMP_INTUITICKS? */
 
 #undef NO_WINDOW_BORDERS   /* Forget window border gadgets? */
+
+/*
+ *  Which way do you want the colormap to be built?
+ *  0 = Use constant space division
+ *  1 = Use frame
+ *  2 = Read from file
+ */
+
+#define QUICK_COLORMAP      0
 
 /*----------------------------------------------------------------------*/
 /* Global variables */
@@ -465,7 +474,88 @@ VOID SetUpStandardColors( UBYTE depth, COLORMAP *cm )
 
 /// BuildQuick*Colormap()
 
-#if 0
+#if (QUICK_COLORMAP == 0)
+
+Local
+VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
+{
+    int nR, nG, nB, r, g, b, i;
+    int nColors;
+    extern UBYTE QuickRemapTable_Color[];
+    struct ColorMap *cmp = NULL;
+
+    if( scr && GFXV39 )
+        cmp = scr->ViewPort.ColorMap;
+
+    switch( depth ) {
+        case 5:
+            nR = 3; nG = 4; nB = 2; /* Total of 24 colors */
+            break;
+        case 6:
+            nR = 3; nG = 6; nB = 3; /* Total of 54 colors */
+            break;
+        case 7:
+            nR = 5; nG = 6; nB = 4; /* Total of 120 colors */
+            break;
+        case 8:
+            nR = 5; nG = 9; nB = 5; /* Total of 225 colors */
+            break;
+        default:
+            InternalError( "Wrong depth specified" );
+            return;
+            break;
+    }
+
+    nColors = 8 + nR * nG * nB;
+
+    SetUpStandardColors( depth, cm );
+
+    i = 0;
+    for( r = 0; r < nR; r++ ) {
+        for( g = 0; g < nG; g++ ) {
+            for( b = 0; b < nB; b++ ) {
+                if( i >= 0 && i <= 3 ) i = 4;
+                if( i >= 17 && i <= 20 ) i = 21;
+                cm[i].r = 255 * r / nR;
+                cm[i].g = 255 * g / nG;
+                cm[i].b = 255 * b / nB;
+                i++;
+            }
+        }
+    }
+
+    if( scr ) LoadRGB8( &scr->ViewPort, cm, nColors, globxd);
+
+    for( i = 0; i < 16; i++ ) {
+        int j;
+
+        for( j = 0; j < 16; j++ ) {
+            int k;
+
+            for( k = 0; k < 16; k++ ) {
+                int offset;
+                /*
+                 *  If this is V39+, we'll use colormap sharing
+                 */
+
+                offset = (i<<8)+(j<<4)+k;
+
+                QuickRemapTable_Color[offset] =
+                        BestMatchPen8( cm, nColors,
+                                      (UBYTE)(i << 4),
+                                      (UBYTE)(j << 4),
+                                      (UBYTE)(k << 4));
+
+                if( cmp )
+                    ObtainPen( cmp, QuickRemapTable_Color[offset], 0,0,0, PEN_NO_SETCOLOR );
+
+            }
+        }
+    }
+}
+
+#elif (QUICK_COLORMAP == 1 )
+
 /*
  *  Create a color map for the main display if a colormapped screen is requested.
  *  Colors 0-3 are as standard Intuition
@@ -614,7 +704,7 @@ VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
     }
 }
 
-#else
+#elif (QUICK_COLORMAP == 2)
 Local
 VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
 {
@@ -1425,7 +1515,7 @@ struct Screen *OpenMainScreen( DISPLAY *d )
          *  Set colortable.  In color mode, we'll build a color map.
          */
 
-        globals->maindisp->colortable = pmalloc((1<<d->depth)*sizeof(COLORMAP));
+        globals->maindisp->colortable = pmalloc(256*sizeof(COLORMAP));
 
         if( (globals->userprefs->colorpreview) && (d->depth >= 5) ) {
             BuildQuickColorColormap( MAINSCR, d->depth, globals->maindisp->colortable );
@@ -1433,6 +1523,7 @@ struct Screen *OpenMainScreen( DISPLAY *d )
             BuildQuickColormap( MAINSCR, d->depth, globals->maindisp->colortable );
             globals->userprefs->colorpreview = FALSE;
         }
+        QuickRenderInit();
     }
 
     /* Read useful data for caching */
@@ -1519,6 +1610,8 @@ PERROR CloseMainScreen( void )
                 Req( NEGNUL, GetStr(MSG_RETRY), GetStr(MSG_CLOSE_ALL_WINDOWS) );
             }
         }
+
+        QuickRenderExit();
     }
     return res;
 }
