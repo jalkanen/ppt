@@ -28,19 +28,19 @@ extern "C" {
 
 typedef void (*OutputFuncPtr)(char *);
 
-void * STDARGS Fortify_malloc(size_t size, char *file, unsigned long line);
-void * STDARGS Fortify_realloc(void *ptr, size_t new_size, char *file, unsigned long line);
-void * STDARGS Fortify_calloc(size_t num, size_t size, char *file, unsigned long line);
-void  STDARGS  Fortify_free(void *uptr, char *file, unsigned long line);
+void * STDARGS Fortify_malloc(size_t size, const char *file, unsigned long line);
+void * STDARGS Fortify_realloc(void *ptr, size_t new_size, const char *file, unsigned long line);
+void * STDARGS Fortify_calloc(size_t num, size_t size, const char *file, unsigned long line);
+void  STDARGS  Fortify_free(void *uptr, const char *file, unsigned long line);
 
-int STDARGS Fortify_OutputAllMemory(char *file, unsigned long line);
-int STDARGS Fortify_CheckAllMemory(char *file, unsigned long line);
-int STDARGS Fortify_CheckPointer(void *uptr, char *file, unsigned long line);
-int STDARGS Fortify_Disable(char *file, unsigned long line);
+int STDARGS Fortify_OutputAllMemory(const char *file, unsigned long line);
+int STDARGS Fortify_CheckAllMemory(const char *file, unsigned long line);
+int STDARGS Fortify_CheckPointer(void *uptr, const char *file, unsigned long line);
+int STDARGS Fortify_Disable(const char *file, unsigned long line);
 int STDARGS Fortify_SetMallocFailRate(int Percent);
-int STDARGS Fortify_EnterScope(char *file, unsigned long line);
-int STDARGS Fortify_LeaveScope(char *file, unsigned long line);
-int STDARGS Fortify_DumpAllMemory(int scope, char *file, unsigned long line);
+int STDARGS Fortify_EnterScope(const char *file, unsigned long line);
+int STDARGS Fortify_LeaveScope(const char *file, unsigned long line);
+int STDARGS Fortify_DumpAllMemory(int scope, const char *file, unsigned long line);
 
 typedef void (*Fortify_OutputFuncPtr)(const char *);
 Fortify_OutputFuncPtr Fortify_SetOutputFunc(Fortify_OutputFuncPtr Output);
