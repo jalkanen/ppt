@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.3 1995/10/02 19:37:19 jj Exp $
+    $Id: external.c,v 1.4 1996/09/17 01:01:15 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -12,9 +12,9 @@
 /*-------------------------------------------------------------------------*/
 /* Includes */
 
-#include <defs.h>
-#include <gui.h>
-#include <misc.h>
+#include "defs.h"
+#include "gui.h"
+#include "misc.h"
 
 
 #ifndef CLIB_UTILITY_PROTOS_H
@@ -22,18 +22,24 @@
 #endif
 
 #ifndef PRAGMAS_INTUITION_PRAGMAS_H
-#include <pragma/intuition_pragmas.h>
+#include <pragmas/intuition_pragmas.h>
 #endif
 
+#ifndef PRAGMAS_LOCALE_PRAGMAS_H
+#include <pragmas/locale_pragmas.h>
+#endif
+
+#include "proto/module.h"
+#include "proto/effect.h"
 
 
 /*-------------------------------------------------------------------------*/
 /* Prototypes*/
 
-Prototype int           AddExtEntries( EXTDATA *, struct Window *, Object *, UBYTE, ULONG );
-Prototype void          ShowExtInfo( EXTDATA *, EXTERNAL *, struct Window * );
+Prototype int           AddExtEntries( EXTBASE *, struct Window *, Object *, UBYTE, ULONG );
+Prototype void          ShowExtInfo( EXTBASE *, EXTERNAL *, struct Window * );
 Prototype int           PurgeExternal( EXTERNAL *, BOOL );
-Prototype int           OpenExternal( const char * );
+Prototype PERROR        OpenExternal( const char * );
 Prototype void          RelExtBase( EXTBASE * );
 Prototype EXTBASE       *NewExtBase( BOOL );
 
@@ -43,6 +49,39 @@ Prototype EXTBASE       *NewExtBase( BOOL );
 
 /*-------------------------------------------------------------------------*/
 /* Code */
+
+/*
+    These two will open and close an external module.
+*/
+
+Prototype struct Library *OpenModule( EXTERNAL *, EXTBASE * );
+
+struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
+{
+    char buf[256];
+    struct Library *ModuleBase, *DOSBase = ExtBase->lb_DOS,
+                   *SysBase = ExtBase->lb_Sys;
+
+    // BUG:  should use globals->userprefs->modulepath
+
+    strcpy( buf, "PROGDIR:modules" );
+
+    SHLOCKGLOB();
+    AddPart( buf, x->diskname, 255 );
+    UNLOCKGLOB();
+
+    ModuleBase = OpenLibrary( buf, 0L );
+    return ModuleBase;
+}
+
+Prototype VOID CloseModule( struct Library *, EXTBASE * );
+
+VOID CloseModule( struct Library *ModuleBase, EXTBASE *ExtBase)
+{
+    struct Library *SysBase = ExtBase->lb_Sys;
+
+    if( ModuleBase ) CloseLibrary( ModuleBase );
+}
 
 /*
     This function goes through all external entries, adding them to the listview object
@@ -55,7 +94,7 @@ Prototype EXTBASE       *NewExtBase( BOOL );
 */
 
 
-__geta4 int AddExtEntries( EXTDATA *xd, struct Window *win, Object *lv, UBYTE type, ULONG flags )
+SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE type, ULONG flags )
 {
     struct Node *cn;
     int count = 0;
@@ -109,14 +148,13 @@ __geta4 int AddExtEntries( EXTDATA *xd, struct Window *win, Object *lv, UBYTE ty
     return count;
 }
 
-
 /*
     This function shows info about a given external. The parent window
     is win. If win == NULL, then uses main PPT window.
     This routine is re-entrant.
 */
 
-__geta4 void ShowExtInfo( EXTDATA *xd, EXTERNAL *x, struct Window *win )
+SAVEDS VOID ShowOldExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 {
     int   ver,rev;
     APTR txt, au;
@@ -133,6 +171,39 @@ __geta4 void ShowExtInfo( EXTDATA *xd, EXTERNAL *x, struct Window *win )
 
 }
 
+SAVEDS VOID ShowNewExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
+{
+    struct Library *ModuleBase;
+    int   ver,rev;
+    APTR  txt, au;
+
+    D(bug("ShowNewExtInfo()\n"));
+
+    ModuleBase = OpenModule( x, xd ); // BUG!
+    if(!ModuleBase) return;
+
+    txt  = (APTR)Inquire( PPTX_InfoTxt, xd );
+    au   = (APTR)Inquire( PPTX_Author, xd );
+    ver  = ModuleBase->lib_Version;
+    rev  = ModuleBase->lib_Revision;
+
+    Req(win,NULL, ISEQ_C ISEQ_B "%s V.%ld.%ld\n\n"ISEQ_N"%s\n" ISEQ_N ISEQ_C ISEQ_I "Author: %s\n",
+        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : "Unknown" );
+
+    CloseModule( ModuleBase, xd );
+}
+
+/*
+    An useless stub, I hope, in the future.
+*/
+
+VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
+{
+    if(x->islibrary)
+        ShowNewExtInfo( xd, x, win );
+    else
+        ShowOldExtInfo( xd, x, win );
+}
 
 
 /*
@@ -141,9 +212,9 @@ __geta4 void ShowExtInfo( EXTDATA *xd, EXTERNAL *x, struct Window *win )
     purge is made even if the external is in use.
  */
 
-int PurgeExternal( EXTERNAL *who, BOOL force )
+PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 {
-    static __D0 int (*X_Purge)( __A6 EXTDATA * );
+    static PERROR (* ASM X_Purge)( REG(a6) EXTBASE * );
 
     if(who->usecount && force == FALSE) /* If someone is using us, don't release */
         return PERR_INUSE;
@@ -167,7 +238,111 @@ int PurgeExternal( EXTERNAL *who, BOOL force )
     return PERR_OK;
 }
 
+PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
+{
+    if(who->usecount && force == FALSE) /* If someone is using us, don't release */
+        return PERR_INUSE;
 
+    /* Make sure no-one can find us. */
+
+    LOCKGLOB();
+    Remove( (struct Node *)who );
+    UNLOCKGLOB();
+
+    pfree(who);
+}
+
+PERROR PurgeExternal( EXTERNAL *w, BOOL f )
+{
+    if( w->islibrary )
+        return PurgeNewExternal( w, f );
+    else
+        return PurgeOldExternal( w, f );
+}
+
+PERROR InitNewExternal( const char *who )
+{
+    struct Library *ModuleBase = NULL;
+    UWORD pptver;
+    PERROR res = PERR_OK;
+    STRPTR name;
+    UBYTE type;
+    EXTERNAL *x;
+
+    D(bug("NewOpenExternal(%s)\n",who));
+
+    ModuleBase = OpenLibrary( who,0L );
+    if(!ModuleBase) {
+#if 0
+        D(bug("\tFailed to open library!\n"));
+        Req(NEGNUL,NULL,
+            ISEQ_C"Could not open '%s':\n"
+            "It is probably not a proper module!\n",
+            who);
+        return PERR_WONTOPEN;
+#else
+        D(bug("\tPassing to InitOldExternal()...\n"));
+        return( InitOldExternal( who ) );
+#endif
+    }
+
+    /*
+     *  Determine name
+     */
+
+    name = (STRPTR) Inquire( PPTX_Name, globxd );
+
+    /*
+     *  Determine whether we can use this or not.
+     */
+
+    pptver = (UWORD) Inquire( PPTX_ReqPPTVersion,  globxd );
+
+    if( pptver > VERNUM ) {
+        Req(NEGNUL,NULL,"External %s requires PPT version %d+",name,pptver);
+        res = PERR_WONTOPEN;
+        goto nogood;
+    }
+
+    /*
+     *  Determine type
+     */
+
+    if( strcmp( &who[strlen(who)-7], ".effect" ) == 0 )
+        type = NT_EFFECT;
+    else
+        type = NT_LOADER;
+
+    /*
+     *  Allocate room and put the necessary info into memory.
+     */
+
+    x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+    x->seglist    = 0L;
+    x->tags       = NULL;
+    x->islibrary  = TRUE;
+    x->usecount   = 0;
+    x->nd.ln_Type = type;
+    x->nd.ln_Name = x->realname;
+    x->nd.ln_Pri  = (BYTE)Inquire( PPTX_Priority, globxd );
+    strncpy( x->diskname, FilePart(who), 39 );
+    strncpy( x->realname, name, 39 );
+
+    LOCKGLOB();
+    if(type == NT_LOADER)
+        Enqueue( &globals->loaders, (struct Node *)x );
+    else {
+        Enqueue( &globals->effects, (struct Node *)x );
+    }
+    UNLOCKGLOB();
+
+    D(bug("\tOpened library OK.\n"));
+
+nogood:
+    if(ModuleBase) CloseLibrary( ModuleBase );
+
+    return res;
+}
 
 /*
     This routines opens the given external and then executes
@@ -175,14 +350,14 @@ int PurgeExternal( EXTERNAL *who, BOOL force )
     is then added to the main list.
 */
 
-int OpenExternal( const char *who )
+PERROR InitOldExternal( const char *who )
 {
     struct ModuleInfo *m;
     BPTR seglist;
     int version,revision,res = PERR_OK, type;
     EXTERNAL *x;
     char *name;
-    static __D0 int (*X_Init)( __A6 EXTDATA * );
+    static PERROR (* ASM X_Init)( REG(a6) EXTBASE * );
     UWORD kickver, pptver;
 
 //    DEBUG("OpenExternal()\n");
@@ -222,7 +397,7 @@ int OpenExternal( const char *who )
 
 //    DEBUG("'%s' version:%d.%d.\n",name,version,revision);
 
-    if( kickver > SysBase->lib_Version) {
+    if( kickver > SysBase->LibNode.lib_Version) {
         Req(NEGNUL,NULL,"External %s requires OS %d+",name,kickver);
         goto nogood;
     }
@@ -242,10 +417,12 @@ int OpenExternal( const char *who )
         x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
         x->seglist    = seglist;
         x->tags       = m->tagarray;
+        x->islibrary  = FALSE;
         x->usecount   = 0;
         x->nd.ln_Type = type;
         x->nd.ln_Name = name;
         x->nd.ln_Pri  = (BYTE)GetTagData( PPTX_Priority, 0L, m->tagarray );
+        strncpy( x->diskname, FilePart(who), 39 );
 
         LOCKGLOB();
         if(type == NT_LOADER)
@@ -263,20 +440,32 @@ int OpenExternal( const char *who )
     return PERR_OK;
 }
 
+PERROR OpenExternal( const char *who )
+{
+    return InitNewExternal( who );
+}
+
+
+/*---------------------------------------------------------------------------*/
 
 /*
     Opposite of OpenLibBases().
     Note: This routine has no bugs.
 */
 
-__geta4 void CloseLibBases( __A6 EXTDATA *xd )
+SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
 {
-    struct Library *SysBase;
+    struct Library *SysBase, *LocaleBase;
 
     SysBase = (struct Library *)SYSBASE();
+    LocaleBase = xd->lb_Locale;
 
-    D(bug("CloseLibBases()\n"));
+    // D(bug("\tCloseLibBases()\n"));
 
+    ClosepptCatalog( xd );
+    if(xd->locale)      CloseLocale(xd->locale);
+
+    if(xd->lb_Locale)   CloseLibrary(xd->lb_Locale);
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
     if(xd->lb_Gfx)      CloseLibrary(xd->lb_Gfx);
     if(xd->lb_Utility)  CloseLibrary(xd->lb_Utility);
@@ -293,11 +482,11 @@ __geta4 void CloseLibBases( __A6 EXTDATA *xd )
     BUG: maybe use a flag system to tell which libs to open?
 */
 
-__geta4 __D0 int OpenLibBases( __A6 EXTBASE *xd )
+SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 {
-    struct Library *SysBase;
+    struct Library *SysBase, *LocaleBase;
 
-    D(bug("OpenLibBases()\n"));
+    // D(bug("\tOpenLibBases()\n"));
 
     SysBase = (struct Library *)SYSBASE();
 
@@ -308,11 +497,22 @@ __geta4 __D0 int OpenLibBases( __A6 EXTBASE *xd )
     xd->lb_DOS =        OpenLibrary(DOSNAME,37L);
     xd->lb_Utility =    OpenLibrary("utility.library",37L);
     xd->lb_Intuition =  OpenLibrary("intuition.library",37L);
-    D(bug("\tOpening BGUI..."));
+    // D(bug("\tOpening BGUI..."));
     xd->lb_BGUI =       OpenLibrary(BGUINAME,37L);
-    D(bug("done\n"));
+    // D(bug("done\n"));
     xd->lb_Gfx =        OpenLibrary("graphics.library",37L);
     xd->lb_GadTools =   OpenLibrary("gadtools.library",37L);
+    LocaleBase = xd->lb_Locale = OpenLibrary("locale.library",0L);
+
+    if( xd->lb_Locale ) {
+        xd->locale  = OpenLocale( NULL );
+        OpenpptCatalog( NULL, NULL, xd );
+#if 0
+        if( !xd->catalog ) {
+            D(bug("\tCouldn't open ppt.catalog!\n"));
+        }
+#endif
+    }
 
     if(!xd->lb_GadTools || !xd->lb_DOS || !xd->lb_Utility ||
        !xd->lb_Intuition || !xd->lb_BGUI || !xd->lb_Gfx)
@@ -320,8 +520,6 @@ __geta4 __D0 int OpenLibBases( __A6 EXTBASE *xd )
         CloseLibBases(xd);
         return PERR_GENERAL;
     }
-
-    D(bug("\tLibraries OK\n"));
 
     return PERR_OK;
 }
@@ -332,11 +530,12 @@ __geta4 __D0 int OpenLibBases( __A6 EXTBASE *xd )
     if open == TRUE, calls OpenLibBases to allocate new library bases.
 */
 
-__geta4 EXTBASE *NewExtBase( BOOL open )
+SAVEDS EXTBASE *NewExtBase( BOOL open )
 {
     EXTBASE *ExtBase = NULL;
     APTR    realptr;
     extern  APTR ExtLibData[];
+    APTR    SysBase = SYSBASE();
 
     D(bug("NewExtBase(%d). Allocating %lu bytes...\n",open,EXTSIZE));
 
@@ -346,7 +545,7 @@ __geta4 EXTBASE *NewExtBase( BOOL open )
         ExtBase = (EXTBASE *)( (ULONG)realptr + (EXTSIZE - sizeof(EXTBASE)));
         bzero( realptr, EXTSIZE );
 
-        D(bug("\trealptr = %08X, ExtBase = %08X\n",realptr,ExtBase));
+        // D(bug("\trealptr = %08X, ExtBase = %08X\n",realptr,ExtBase));
 
         if(open) {
             if(OpenLibBases( ExtBase ) != PERR_OK) {
@@ -356,11 +555,11 @@ __geta4 EXTBASE *NewExtBase( BOOL open )
             ExtBase->opened = TRUE;
         }
 
-        D(bug("\tCreating library jump table...\n"));
+        // D(bug("\tCreating library jump table...\n"));
 
         MakeFunctions( ExtBase, ExtLibData, NULL );
 
-        D(bug("\tdone\n"));
+        // D(bug("\tdone\n"));
     }
     return ExtBase;
 }
@@ -369,7 +568,7 @@ __geta4 EXTBASE *NewExtBase( BOOL open )
     Use to release ExtBase allocated in NewExtBase()
 */
 
-__geta4 void RelExtBase( EXTBASE *xb )
+SAVEDS VOID RelExtBase( EXTBASE *xb )
 {
     APTR realptr;
 
