@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.23 1998/01/04 16:38:41 jj Exp $
+    $Id: rexx.c,v 1.24 1998/02/06 19:09:22 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -29,6 +29,13 @@
 
 #define MAX_REXX_ASKREQ_ITEMS       8
 #define MAX_REXX_ASKREQ_CYCLELABELS 20
+
+/*
+ *  This defines the value used in the ASKREQ rexx command for
+ *  AR_FLOAT type objects
+ */
+
+#define RX_DIVISOR                  1000
 
 /*--------------------------------------------------------------------------*/
 /* Private types */
@@ -150,11 +157,16 @@ const char *arnames[] = {
     "STRING",
     "CHECKBOX",
     "CYCLE",
+    "FLOAT",
     NULL
 };
 
 const Tag artags[] = {
-    AR_SliderObject,AR_StringObject,AR_CheckBoxObject,AR_CycleObject
+    AR_SliderObject,
+    AR_StringObject,
+    AR_CheckBoxObject,
+    AR_CycleObject,
+    AR_FloatObject
 };
 
 
@@ -184,6 +196,7 @@ char *RexxVar( struct RexxMsg *rm, const char *name, const char *def )
     RESULT ~= 0, if cancelled.
 */
 
+Local
 LONG rx_FetchLong(struct RexxMsg *rm, char *base, char *extension, LONG def)
 {
     char varbuf[80],*ans;
@@ -198,6 +211,22 @@ LONG rx_FetchLong(struct RexxMsg *rm, char *base, char *extension, LONG def)
     return res;
 }
 
+Local
+FLOAT rx_FetchFloat(struct RexxMsg *rm, char *base, char *extension, FLOAT def)
+{
+    char varbuf[80],*ans;
+    FLOAT res;
+
+    sprintf(varbuf,"%s.%s",base,extension);
+    if(GetRexxVar( rm, varbuf, &ans ) ) {
+        res = def;
+    } else {
+        res = atof( ans );
+    }
+    return res;
+}
+
+Local
 char *rx_FetchString(struct RexxMsg *rm, char *base, char *extension, const char *def)
 {
     char varbuf[80];
@@ -206,7 +235,7 @@ char *rx_FetchString(struct RexxMsg *rm, char *base, char *extension, const char
     return RexxVar(rm,varbuf,def);
 }
 
-PERROR
+Local PERROR
 rx_PutString(struct RexxMsg *rm, char *base, char *extension, const char *val)
 {
     char varbuf[80];
@@ -217,7 +246,7 @@ rx_PutString(struct RexxMsg *rm, char *base, char *extension, const char *val)
     return PERR_OK;
 }
 
-PERROR
+Local PERROR
 rx_PutLong(struct RexxMsg *rm, char *base, char *extension, LONG val)
 {
     char varbuf[80],resbuf[30];
@@ -229,10 +258,23 @@ rx_PutLong(struct RexxMsg *rm, char *base, char *extension, LONG val)
     return PERR_OK;
 }
 
+Local PERROR
+rx_PutFloat(struct RexxMsg *rm, char *base, char *extension, FLOAT val)
+{
+    char varbuf[80],resbuf[30];
+
+    sprintf(varbuf,"%s.%s",base,extension);
+    sprintf(resbuf,"%lf",val);
+    D(bug("\trx_PutLong(%s := %lf)\n",varbuf,val));
+    SetRexxVar( (struct Message *) rm, varbuf, resbuf, strlen(resbuf) );
+    return PERR_OK;
+}
+
 /*
     .TYPE=SLIDER
-    .MAX=0
-    .MIN=100
+    .MAX=100
+    .MIN=0
+    .DEFAULT=0
  */
 Local
 PERROR parse_arslider(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
@@ -245,6 +287,36 @@ PERROR parse_arslider(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
     tags[s+1].ti_Data = rx_FetchLong(rm,name,"MIN",0);
     tags[s+2].ti_Tag = ARSLIDER_Default;
     tags[s+2].ti_Data = rx_FetchLong(rm,name,"DEFAULT",0);
+
+    return PERR_OK;
+}
+
+/*
+    .TYPE=FLOAT
+    .MAX = 100.0
+    .MIN = 0.0
+    .DEFAULT = 0.0
+    .FORMATSTRING = "%.3f"
+ */
+
+#define TO_INTEGER(x) (ULONG)( (x) * RX_DIVISOR)
+#define TO_FLOAT(f)   (FLOAT)((FLOAT)(f) / (FLOAT)RX_DIVISOR)
+
+Local
+PERROR parse_arfloat(struct RexxMsg *rm,struct TagItem *tags,char *name, int s)
+{
+    D(bug("\tARFLOAT\n"));
+
+    tags[s+0].ti_Tag = ARFLOAT_Min;
+    tags[s+0].ti_Data = TO_INTEGER(rx_FetchFloat(rm,name,"MIN",0.0F));
+    tags[s+1].ti_Tag = ARFLOAT_Max;
+    tags[s+1].ti_Data = TO_INTEGER(rx_FetchFloat(rm,name,"MAX",100.0F));
+    tags[s+2].ti_Tag = ARFLOAT_Default;
+    tags[s+2].ti_Data = TO_INTEGER(rx_FetchFloat(rm,name,"DEFAULT",0.0F));
+    tags[s+3].ti_Tag = ARFLOAT_FormatString;
+    tags[s+3].ti_Data = (ULONG)rx_FetchString(rm,name,"FORMATSTRING","%.3f");
+    tags[s+4].ti_Tag = ARFLOAT_Divisor;
+    tags[s+4].ti_Data = RX_DIVISOR;
 
     return PERR_OK;
 }
@@ -416,6 +488,11 @@ void rx_askreq( REXXARGS *ra, struct RexxMsg *rm )
                         res = parse_arcycle(rm,objs[i],base,objstart);
                         break;
 
+                    case AR_FloatObject:
+                        objs[i][1].ti_Data = (ULONG) &(vals[i].value);
+                        res = parse_arfloat(rm,objs[i],base,objstart);
+                        break;
+
                     default:
                         InternalError("Enum out of bounds!");
                         res = PERR_ERROR;
@@ -472,6 +549,11 @@ void rx_askreq( REXXARGS *ra, struct RexxMsg *rm )
             case AR_StringObject:
                 if( res == PERR_OK )
                     rx_PutString(rm,vals[i].name,"VALUE",vals[i].buffer);
+                break;
+
+            case AR_FloatObject:
+                if( res == PERR_OK )
+                    rx_PutFloat(rm,vals[i].name,"VALUE",TO_FLOAT(vals[i].value));
                 break;
 
             default:
@@ -1190,6 +1272,8 @@ void rx_save( REXXARGS *ra, struct RexxMsg *rm )
 
 ///
 
+/// QUIT, PPT_TO_FRONT, PPT_TO_BACK
+
 Local
 void rx_quit( REXXARGS *ra, struct RexxMsg *rm )
 {
@@ -1221,7 +1305,9 @@ void rx_ppt_to_back( REXXARGS *ra, struct RexxMsg *rm )
         ScreenToBack( MAINSCR );
 }
 
+///
 
+/// PROCESS
 
 /*
     Start processing of a frame.
@@ -1257,6 +1343,7 @@ void rx_process( REXXARGS *ra, struct RexxMsg *rm )
 
     UNLOCK(frame);
 }
+///
 
 /// Miscallaneous
 
