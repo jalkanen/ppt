@@ -1,7 +1,7 @@
 /*
     Hand - made prototypes for PPT
 
-    $Id: protos.h,v 1.18 1997/10/24 18:29:53 jj Exp $
+    $Id: protos.h,v 1.19 1998/11/08 00:30:12 jj Exp $
 */
 
 #ifndef PROTOS_H
@@ -53,6 +53,7 @@ extern struct ToolWindow    toolw;
 extern struct FramesWindow  framew;
 extern struct PrefsWindow   prefsw;
 extern struct SelectWindow  selectw;
+extern struct PPTFileRequester gvLoadFileReq, gvPaletteOpenReq, gvPaletteSaveReq;
 
 extern Class                *DropAreaClass, *PaletteClass, *RenderAreaClass;
 
