@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.95 1998/09/20 00:36:57 jj Exp $
+    $Id: main.c,v 1.96 1998/10/25 22:14:52 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -169,6 +169,9 @@ int brk(void) {
 #endif
 
 #ifdef __SASC
+/*
+ * Disable SAS control-C handling
+ */
 void __regargs _CXBRK(void) {}
 void __regargs __chkabort(void) {}
 #endif
@@ -3326,10 +3329,13 @@ int main(int argc, char **argv)
 
     UpdateStartupWindow( GetStr(mLOADING_IO_MODULES) );
     FetchExternals(globals->userprefs->modulepath,NT_LOADER);
+    FetchExternals("Contrib/modules/",NT_LOADER);
     UpdateStartupWindow( GetStr(mLOADING_EFFECTS) );
     FetchExternals(globals->userprefs->modulepath,NT_EFFECT);
+    FetchExternals("Contrib/modules/",NT_EFFECT);
     UpdateStartupWindow( GetStr(mLOADING_SCRIPTS) );
     FetchExternals(globals->userprefs->rexxpath,NT_SCRIPT);
+    FetchExternals("Contrib/Rexx/",NT_SCRIPT);
 
     CloseStartupWindow();
 
