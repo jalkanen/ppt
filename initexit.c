@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.39 1999/02/20 22:38:06 jj Exp $
+    $Id: initexit.c,v 1.40 1999/03/13 17:33:47 jj Exp $
 
     Initialization and exit code.
 */
@@ -633,6 +633,8 @@ int Initialize( void )
     if( NULL == (filereq = AllocAslRequestTags( ASL_FileRequest,
                                                 ASLFR_Screen, MAINSCR,
                                                 ASLFR_InitialDrawer, "PROGDIR:",
+                                                ASLFR_InitialPattern, "#?",
+                                                ASLFR_DoPatterns,   TRUE,
                                                 TAG_DONE ) ))
     {
         Req(NEGNUL,NULL,GetStr(mINIT_NO_ASL_REQUESTER));
@@ -644,6 +646,8 @@ int Initialize( void )
         ASLFR_Locale,       globxd->locale,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
         ASLFR_InitialFile,  globals->userprefs->startupfile,
+        ASLFR_InitialPattern, "#?",
+        ASLFR_DoPatterns,   TRUE,
         ASLFR_InitialTopEdge,   gvLoadFileReq.prefs.initialpos.Top,
         ASLFR_InitialLeftEdge,  gvLoadFileReq.prefs.initialpos.Left,
         ASLFR_InitialWidth, gvLoadFileReq.prefs.initialpos.Width,
@@ -654,6 +658,8 @@ int Initialize( void )
         ASLFR_Screen,       MAINSCR,
         ASLFR_Locale,       globxd->locale,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
+        ASLFR_InitialPattern, "#?",
+        ASLFR_DoPatterns,   TRUE,
         ASLFR_InitialTopEdge,   gvPaletteOpenReq.prefs.initialpos.Top,
         ASLFR_InitialLeftEdge,  gvPaletteOpenReq.prefs.initialpos.Left,
         ASLFR_InitialWidth, gvPaletteOpenReq.prefs.initialpos.Width,
