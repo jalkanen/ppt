@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  toolbar.h
 
-    $Id: toolbar.h,v 1.1 1998/12/20 19:11:07 jj Exp $
+    $Id: toolbar.h,v 1.2 1999/01/02 22:37:40 jj Exp $
 */
 #ifndef TOOLBAR_H
 #define TOOLBAR_H
@@ -31,8 +31,23 @@ struct ToolbarItem {
  *  Tags and methods
  */
 
-#define TBBASE                  (4000)
-#define TOOLBAR_Items           (TBBASE + 0)    /* struct ToolbarItem * */
+#define TBTBASE                 (TAG_USER+0x1900000)
+#define TOOLBAR_Items           (TBTBASE + 0)    /* struct ToolbarItem * */
+
+#define TBMBASE                 (0x1900000)
+#define TOOLM_ADDSINGLE         (TBMBASE + 0)
+#define TOOLM_ADDMULTI          (TBMBASE + 1)
+
+struct toolAddSingle {
+    ULONG               MethodID;
+    struct GadgetInfo   *tas_GInfo;
+    struct ToolbarItem  *tas_Item;
+    LONG                tas_Number;
+    ULONG               flags;
+};
+
+#define TASNUM_FIRST    0       /* Why, of course? */
+#define TASNUM_LAST     -1
 
 /*
  *  Methods
