@@ -4,7 +4,7 @@
 
     Freeform selection routines.
 
-    $Id: freeselect.c,v 6.1 1999/11/28 18:20:10 jj Exp $
+    $Id: freeselect.c,v 6.2 1999/12/15 00:16:54 jj Exp $
 
  */
 
@@ -419,7 +419,9 @@ VOID FreeButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
 
     FreeMakeBoundingBox( frame );
 
+    BusyAllWindows( globxd );
     ScanFill( frame );
+    AwakenAllWindows( globxd );
 
     UpdateIWSelbox( frame, TRUE );
     DrawSelection( frame, 0L );
