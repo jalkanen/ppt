@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.14 $
-        $Date: 1998/12/07 20:23:09 $
+    $Revision: 5.0 $
+        $Date: 1998/12/15 21:21:24 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.14 1998/12/07 20:23:09 jj Exp $
+    $Id: ppt_real.h,v 5.0 1998/12/15 21:21:24 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -836,7 +836,7 @@ struct LocaleString {
 #define PPTX_EasyExec           ( GTAGBASE + 201 ) /* FPTR. OBSOLETE */
 #define PPTX_EasyTitle          ( GTAGBASE + 202 ) /* FPTR. OBSOLETE */
 #define PPTX_NoNewFrame         ( GTAGBASE + 203 ) /* BOOL */
-
+#define PPTX_NoChangeFrame      ( GTAGBASE + 204 ) /* BOOL (V5) */
 
 /*
  *  These tags can be passed to externals upon execution.
