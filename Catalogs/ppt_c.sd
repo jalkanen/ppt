@@ -9,16 +9,16 @@
    This is a special version of the code included in the
    FlexCat package, tuned for PPT performance.
 
-   $Id: ppt_c.sd,v 1.1 1996/08/28 18:40:18 jj Exp $
+   $Id: ppt_c.sd,v 1.2 1996/10/08 20:30:36 jj Exp $
 
 ****************************************************************/
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
 
 #if defined(__SASC)  ||  defined(_DCC)
-#include <pragma/locale_pragmas.h>
+#include <proto/locale.h>
 #elif defined(__GNUC__)
 #include <inline/locale.h>
 #else
@@ -33,7 +33,7 @@ Prototype STRPTR Get%bString( struct LocaleString *, EXTBASE *);
 
 
 static LONG %b_Version = %v;
-static const STRPTR %b_BuiltInLanguage = (STRPTR) %l;
+static const STRPTR %b_BuiltInLanguage = (const STRPTR) %l;
 
 const struct LocaleString %i_LS = { %d, %s };
 
@@ -41,9 +41,9 @@ VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
 {
     struct Library *LocaleBase = ExtBase->lb_Locale;
     struct TagItem tags[] = {
-        OC_BuiltInLanguage, %b_BuiltInLanguage,
+        OC_BuiltInLanguage, 0L,
         TAG_IGNORE, 0L,
-        OC_Version, %b_Version,
+        OC_Version, 0L,
         TAG_DONE
     };
 
@@ -55,6 +55,9 @@ VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
             tags[1].ti_Tag  = OC_Language;
             tags[1].ti_Data = (LONG) language;
         }
+
+        tags[0].ti_Data = (ULONG) %b_BuiltInLanguage;
+        tags[2].ti_Data = %b_Version;
 
         ExtBase->catalog = OpenCatalogA(loc, (STRPTR) "%b.catalog", tags );
 
