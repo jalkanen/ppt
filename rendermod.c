@@ -1,5 +1,5 @@
 /*
-    $Id: rendermod.c,v 1.21 1998/01/04 16:34:37 jj Exp $
+    $Id: rendermod.c,v 1.22 1999/02/20 15:29:16 jj Exp $
 */
 
 #include "defs.h"
@@ -365,8 +365,11 @@ PERROR InitializeDither( struct RenderObject *rdo )
 
     switch( rdo->frame->disp->dither ) {
         case DITHER_NONE:
-        case DITHER_ORDERED:
             res = Dither_NoneI( rdo ); /* Initialize */
+            break;
+
+        case DITHER_ORDERED:
+            res = Dither_OrderedI( rdo );
             break;
 
         case DITHER_FLOYD:
