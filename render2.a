@@ -2,7 +2,7 @@
 ;   PROJECT: ppt
 ;   MODULE : render2.a
 ;
-;   $Id: render2.a,v 1.4 1996/09/29 02:00:02 jj Exp $
+;   $Id: render2.a,v 1.5 1996/09/29 02:13:58 jj Exp $
 ;
 ;   Support functions for renderer. Mainly to fasten things up a bit ;)
 ;
@@ -135,7 +135,7 @@ __bmp8_skip
 
         move.w  D6,D0
 
-        movem.l (A7)+,D3-D7
+        movem.l (A7)+,D2-D7
 
         rts
 
