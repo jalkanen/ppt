@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.5 1999/11/28 18:20:43 jj Exp $
+    $Id: main.c,v 6.6 1999/12/15 00:17:47 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -853,25 +853,13 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             }
             break;
 
-#ifdef DEBUG_MODE
-        /* BUG: This is a very buggy version, causing enforcer hits.
-           Should really call the external module called 'Crop' */
-
-        case MID_CROP: /* Just like da previous, but does not make a new one. */
+        case MID_CROP:
             if( FrameFree( frame ) ) {
-                if(CheckArea(frame)) {
-                    if( newframe = Edit(frame, EDITCMD_CROPFRAME) ) {
-                        ReplaceFrame(frame, newframe);
-                        UpdateInfoWindow( newframe->mywin,globxd);
-                        UpdateMainWindow( newframe );
-                        DisplayFrame( newframe );
-                        CloseRender( newframe,globxd ); /* BUG: Maybe not here? */
-                        result = HANDLER_DELETED;
-                    }
+                if( CheckArea( frame ) ) {
+                    RunFilterCommand( frame, "Crop", NULL );
                 }
             }
             break;
-#endif
 
         case MID_CUT: /* Just plain cut */
             if( FrameFree( frame ) ) {
