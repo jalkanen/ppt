@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.0 1997/01/17 23:38:03 jj Exp $
+    $Id: load.c,v 2.1 1997/02/03 00:27:17 jj Exp $
 
     Code for loaders...
 */
@@ -269,12 +269,14 @@ LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
     IOModuleBase = OpenModule( ld, ExtBase);
 
     if(IOModuleBase) {
+
+        D(bug("\tChecking with '%s'...\n", ld->info.nd.ln_Name));
         Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
         res = IOCheck( fh, INIT_BYTES, init_bytes, ExtBase );
         CloseModule( IOModuleBase, ExtBase );
 
         if(res) {
-            D(bug("\tMatch found by %s\n", ld->info.nd.ln_Name ));
+            D(bug("\t\tMatch found!", ld->info.nd.ln_Name ));
             return 1;
         }
 
@@ -307,10 +309,12 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
 
         ld = (LOADER *)cn;
 
+        D(bug("\t%s...\n", ld->info.realname));
+
         if( ld->postfixpat[0] ) {
             if(ParsePatternNoCase( ld->postfixpat, pattbuf, MAXPATTERNLEN*2+2 ) >= 0 ) {
                 if( MatchPatternNoCase(pattbuf, filename) ) {
-                    D(bug("Probable match found by %s\n", ld->info.realname ));
+                    D(bug("\t\tProbable match found by %s\n", ld->info.realname ));
                     return ld;
                 }
             } else {
@@ -468,6 +472,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
     BOOL res = PERR_OK, nofile;
     PERROR errcode = PERR_OK;
     struct TagItem loadertags[] = {
+        PPTX_FileName, NULL,
         {TAG_END}
     };
     char fullname[MAXPATHLEN];
@@ -512,6 +517,8 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
             AddPart(fullname, name, MAXPATHLEN);
 
             DeleteNameCount( fullname );
+
+            loadertags[0].ti_Data = (ULONG)fullname;
 
             fh = Open( fullname, MODE_OLDFILE );
             if(!fh) {
