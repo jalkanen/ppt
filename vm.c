@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.3 1995/09/06 23:35:32 jj Exp $
+    $Id: vm.c,v 1.4 1996/08/25 16:45:38 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -15,9 +15,17 @@
 #include <defs.h>
 #include <misc.h>
 
+#ifndef PRAGMA_DOS_PRAGMAS_H
 #include <pragma/dos_pragmas.h>
-#include <pragma/bgui_pragmas.h>
+#endif
 
+#ifndef PRAGMA_BGUI_PRAGMAS_H
+#include <pragma/bgui_pragmas.h>
+#endif
+
+#ifndef DOS_DOSTAGS_H
+#include <dos/dostags.h>
+#endif
 
 /*----------------------------------------------------------------------*/
 /* Defines */
@@ -49,6 +57,7 @@ Prototype VMHANDLE *CreateVMData( ULONG, EXTBASE * );
 Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
 Prototype PERROR    FlushVMData( VMHANDLE *, EXTDATA * );
 Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
+Prototype PERROR    CleanVMDirectory( EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -66,6 +75,7 @@ PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG seekpos, bufsiz;
     struct Library *DOSBase = xd->lb_DOS;
+    LONG dir;
 
     V(bug("LoadVMData()\n"));
 
@@ -80,7 +90,16 @@ PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
     else
         seekpos = offset;
 #else
-    seekpos = offset - (bufsiz >> 1); /* BUG! Should do something abt this */
+#if 1
+    dir = offset - vmh->begin; /* > 0, if we're going forward, < 0, if backwards */
+
+    if( dir > 0 )
+        seekpos = offset - (bufsiz >> 2);
+    else
+        seekpos = offset - bufsiz + (bufsiz >> 2);
+#else
+    seekpos = offset - (bufsiz >> 1);
+#endif
 #endif
 
     if(seekpos < 0) seekpos = 0; /* Check for boundaries */
@@ -290,8 +309,8 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
 
     V(bug("SanitizeVMData()\n"));
 
-    if(size > globals->userprefs->vmbufsiz * 1024L )
-        size = globals->userprefs->vmbufsiz * 1024L;
+    if(size > (vmh->end - vmh->begin) )
+        size = vmh->end - vmh->begin;
 
     Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
     vmh->begin = 0;
@@ -299,6 +318,26 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
     LoadVMData( vmh, 0L, xb );
 
     return PERR_OK;
+}
+
+PERROR CleanVMDirectory( EXTBASE *ExtBase )
+{
+    struct Library *DOSBase = ExtBase->lb_DOS;
+    struct TagItem tags[] = {
+        SYS_Input,  Open("NIL:",MODE_NEWFILE),
+        SYS_Output, Open("NIL:",MODE_NEWFILE),
+        TAG_DONE,   0L
+    };
+    char buffer[256] = VM_FILENAME, path[256];
+
+    strcat(buffer,"#?");
+
+    strcpy( path, globals->userprefs->vmdir );
+    AddPart( path, buffer, 256 );
+    sprintf(buffer, "Delete %s QUIET", path );
+
+    D(bug("Emptying VM dir: '%s'\n",buffer));
+    SystemTagList( buffer, tags );
 }
 
 /*----------------------------------------------------------------------*/
