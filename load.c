@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.15 1999/03/17 23:07:32 jj Exp $
+    $Id: load.c,v 6.0 1999/09/05 17:08:20 jj Exp $
 
     Code for loaders...
 
@@ -43,7 +43,6 @@
 /* Prototypes */
 
 Local     PERROR         DoTheLoad( FRAME *, EXTBASE *, char *, char *, char *, BOOL );
-Prototype PERROR         FetchExternals(const char *path, UBYTE type);
 Prototype VOID ASM       LoadPicture( REGDECL(a0,UBYTE *) );
 Prototype FRAME *        RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
 
@@ -606,13 +605,15 @@ errexit:
     a pointer to the path and a const telling which type should be loaded
 */
 
-PERROR FetchExternals(const char *path, UBYTE type)
+Prototype PERROR FetchExternals(const char *path, UBYTE type, STRPTR lead );
+
+PERROR FetchExternals(const char *path, UBYTE type, STRPTR lead )
 {
     struct ExAllControl *eac;
     BPTR lock;
     BOOL more;
     struct ExAllData *ead, *eadorig;
-    char ppcbuf[PPNCBUFSIZE], filename[MAXPATHLEN+1];
+    char ppcbuf[PPNCBUFSIZE], filename[MAXPATHLEN+1], dispbuf[128];
 
     D(bug("FetchExternals(%s,%u)\n",path,type));
 
@@ -635,15 +636,12 @@ PERROR FetchExternals(const char *path, UBYTE type)
     eac->eac_MatchString = ppcbuf;
     eac->eac_LastKey = 0; /* required by DOS */
 
-//    puts("\tAllocDosObject() succeeded");
-
     eadorig = ead = (struct ExAllData *)pmalloc( EXALLBUFSIZE );
     if(!ead) {
         UnLock(lock);
         FreeDosObject(DOS_EXALLCONTROL, NULL);
         return PERR_OUTOFMEMORY;
     }
-//    puts("\tAllocVec() succeeded");
 
     /* Go through all files in given directory, determine if they fit the
        pattern and attempt to load them, if they seem like the given stuff.
@@ -670,6 +668,16 @@ PERROR FetchExternals(const char *path, UBYTE type)
                 strncpy( filename,path, MAXPATHLEN );
                 AddPart( filename, ead->ed_Name, MAXPATHLEN );
                 D(bug("Loading file %s\n",filename));
+
+                /* Update display */
+
+                if( lead ) {
+                    strcpy( dispbuf, lead );
+                    strcat( dispbuf, ead->ed_Name );
+
+                    UpdateStartupWindow( dispbuf );
+                }
+
                 if( OpenExternal(filename,type) != PERR_OK ) {
                     Req(NEGNUL,NULL,"Loading external %s failed!",filename);
                 }
