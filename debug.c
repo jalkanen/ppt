@@ -1,7 +1,7 @@
 /*
     Debugging code.
 
-    $Id: debug.c,v 1.17 1997/12/06 22:49:45 jj Exp $
+    $Id: debug.c,v 1.18 1999/11/25 23:13:06 jj Exp $
 */
 
 #include "defs.h"
@@ -15,8 +15,8 @@ Prototype VOID SetDebugDir( char * );
 /* Globals */
 
 char debugdir[256] = "dtmp:";
-const char *debugfilenames[] = { "load", "save", "effect", "render", "ppt" };
-int debugfilecounters[] = { 0, 0, 0, 0, 0 };
+const char *debugfilenames[] = { "load", "save", "effect", "render", "ppt", "getargs" };
+int debugfilecounters[] = { 0, 0, 0, 0, 0, 0 };
 
 /*------------------------------------------------------------------------*/
 /* General debugging code. */
@@ -209,6 +209,10 @@ SAVEDS APTR StartBench( void )
     CurrentTime( &bt->seconds, &bt->micros );
     return (APTR)bt;
 }
+
+/*
+    BUG: The microseconds printout is wrong.  Oh well...
+ */
 
 SAVEDS void StopBench( APTR bt1 )
 {
