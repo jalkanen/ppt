@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.30 1999/03/17 23:05:17 jj Exp $
+    $Id: askreq.c,v 6.0 1999/09/04 19:55:37 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -189,6 +189,19 @@ struct RealObject {
 *
 *           ARCYCLE_Popup (BOOL) - TRUE, if the cycle object should be
 *               a popup menu variant.  Default is FALSE.
+*
+*           The AROBJ_Value is set upon return to the currently active
+*           selection.
+*
+*       AR_MxObject - Create a mx (radiobutton) object.  Available
+*           attributes are:
+*
+*           ARMX_Labels (STRPTR *) - pointer to a NULL-terminated array
+*               of strings, containing the labels of different choices.
+*
+*           ARMX_Active (LONG) - which one of the choices should be active
+*               upon startup.  Defaults to whatever AROBJ_Value field
+*               is currently pointing at.
 *
 *           The AROBJ_Value is set upon return to the currently active
 *           selection.
@@ -569,6 +582,46 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             break;
         }
 
+        case AR_MxObject: {
+            ULONG active;
+            Object *mx;
+
+            if( t = FindTagItem( ARMX_Active, list ) ) {
+                active = t->ti_Data;
+            } else if (t = FindTagItem( AROBJ_Value, list ) ) {
+                active = *((ULONG *)(t->ti_Data));
+            } else {
+                active = 0; // Default
+            }
+
+            obj = MyHGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                VarSpace(DEFAULT_WEIGHT),
+                StartMember,
+                    mx = MyMxObject, GA_ID, id,
+                        Label( (STRPTR) GetTagData( AROBJ_Label, NULL, list )), Place(PLACE_LEFT),
+                        DefaultFrame,
+                        GROUP_Style, GRSTYLE_VERTICAL,
+                        MX_LabelPlace, PLACE_RIGHT,
+                        MX_Active, active,
+                        MX_Labels, GetTagData( ARMX_Labels, NULL, list ),
+                        helptext ? TAG_IGNORE : TAG_SKIP,1,
+                            BT_HelpText, helptext,
+                        helpnode ? TAG_IGNORE : TAG_SKIP,2,
+                            BT_HelpHook, &HelpHook,
+                            BT_HelpNode, helpnode,
+                    EndObject,
+                EndMember,
+                VarSpace(DEFAULT_WEIGHT),
+            EndObject;
+
+            if( obj ) {
+                realobject->obj = mx;
+                D(bug("\tAdded mx object\n"));
+            }
+
+            break;
+        }
+
         default:
             Req(NEGNUL, NULL, XGetStr(MSG_AR_UNKNOWNTYPE),tag->ti_Tag );
             break;
@@ -609,6 +662,10 @@ void FetchARGadgetValue( struct RealObject *who, ULONG *where, EXTBASE *ExtBase 
 
             case AR_CycleObject:
                 GetAttr( CYC_Active, (APTR)who->obj, where );
+                break;
+
+            case AR_MxObject:
+                GetAttr( MX_Active, (APTR)who->obj, where );
                 break;
 
             case AR_FloatObject:
@@ -1137,7 +1194,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
 #pragma msg 186 ignore
 
-LONG foo2, foo1, foo3, foo4;
+LONG foo2, foo1, foo3, foo4, foo5;
 char foostring[81];
 struct Hook testhook = { 0 };
 
@@ -1191,6 +1248,13 @@ struct TagItem mycycle[] = {
     TAG_DONE
 };
 
+struct TagItem mymx[] = {
+    ARMX_Labels,        (ULONG)names,
+    AROBJ_Value,        (ULONG)&foo5,
+    ARMX_Active,        1,
+    TAG_DONE
+};
+
 struct TagItem mywindow[] = {
     AR_Title, "Test window",
     AR_Text, "Do you wish to?",
@@ -1201,6 +1265,7 @@ struct TagItem mywindow[] = {
     AR_CheckBoxObject, mycheckbox,
     AR_CycleObject, mycycle,
     AR_FloatObject, myfloat,
+    AR_MxObject,    mymx,
     TAG_END
 };
 
@@ -1225,6 +1290,7 @@ void TestAR(void)
         D(bug("String value @ %08X is '%s'\n", foostring, foostring ));
         D(bug("Cycle value @ %08X is %ld\n",&foo3, foo3 ));
         D(bug("Float value @ %08X is %ld\n",&foo4, foo4 ));
+        D(bug("Mx value @ %08X is %ld\n",&foo5, foo5 ));
     } else {
         D(bug("User cancelled or some other mistake\n"));
     }
