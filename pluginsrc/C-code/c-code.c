@@ -4,7 +4,7 @@
 
     A new style loader.
 
-    $Id: c-code.c,v 1.4 1998/12/09 22:49:53 jj Exp $
+    $Id: c-code.c,v 3.0 1999/12/07 14:10:43 jj Exp $
 */
 
 #include <pptplugin.h>
@@ -58,14 +58,16 @@ const struct TagItem MyTagArray[] = {
      *  Other tags go here. These are not required, but very useful to have.
      */
 
-    PPTX_Author,        (ULONG)"Janne Jalkanen 1997-1998",
+    PPTX_Author,        (ULONG)"Janne Jalkanen 1997-1999",
     PPTX_InfoTxt,       (ULONG)infoblurb,
 
-    PPTX_RexxTemplate,  (ULONG)NULL,
+    PPTX_RexxTemplate,  (ULONG)"",
 
     PPTX_ReqPPTVersion, 4,
 
     PPTX_PreferredPostFix,(ULONG)".c",
+
+    PPTX_SupportsGetArgs, TRUE,
 
     TAG_END, 0L
 };
@@ -288,6 +290,11 @@ IOSAVE(fh,format,frame,tags,PPTBase,IOModuleBase)
 
     FinishProgress( frame );
 
+    return PERR_OK;
+}
+
+IOGETARGS(format,frame,tags,PPTBase,IOModuleBase)
+{
     return PERR_OK;
 }
 
