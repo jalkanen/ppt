@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.3 1997/01/12 00:21:58 jj Exp $
+    $Id: frame.c,v 2.4 1997/03/04 23:56:30 jj Exp $
 
     This contains frame handling routines
 
@@ -235,6 +235,7 @@ VOID ResetSharedFrameVars(FRAME *f)
         f->dpw          = NULL;
         f->mywin        = NULL;
         f->parent       = NULL;
+        f->editwin      = NULL;
     }
 }
 
@@ -331,6 +332,10 @@ void DeleteFrame( FRAME *f )
             pfree(f->dpw);
         }
 
+        if(f->editwin) {
+            DeleteEditWindow(f->editwin);
+            FreeEditWindow(f->editwin);
+        }
 
         /*
          *  Remove the structure himself
@@ -482,6 +487,8 @@ PERROR DoReplaceFrame( FRAME *old, FRAME *new )
     new->parent         = NULL;
     new->pw             = old->pw;
     new->zoombox        = old->zoombox;
+    new->editwin        = old->editwin;
+
     if( old->pix->height != new->pix->height || old->pix->width != new->pix->width ) {
         new->zoombox.Height = new->pix->height;
         new->zoombox.Width  = new->pix->width;
@@ -509,6 +516,8 @@ PERROR DoReplaceFrame( FRAME *old, FRAME *new )
     if( new->dpw && new->dpw->WO_Win )
         SetAttrs( new->dpw->WO_Win, WINDOW_Title, new->name, TAG_END );
 
+    if( new->editwin )
+        new->editwin->frame = new;
 
     UNLOCK(old);
     UNLOCK(new);
@@ -755,6 +764,7 @@ VOID UpdateFrameInfo( FRAME *f )
 {
     DISPLAY *d = f->disp;
     PIXINFO *p = f->pix;
+    EDITWIN *e = f->editwin;
     UBYTE   name[SCRTITLELEN+1] = "..."; /* OK, it has some extra */
     long    len;
 
@@ -775,17 +785,25 @@ VOID UpdateFrameInfo( FRAME *f )
             PICSIZE( f->pix ) );
     }
 
+    if(e) {
+        sprintf(e->title,"Edit: %s", f->nd.ln_Name );
+    }
+
     UNLOCK(f);
 }
 
 
 /*
-    Refresh the display.
+    Refresh the display after a frame change.
+
+    This refreshes the window and screen title, as well as makes
+    sure the propgadgets are correct.
 */
 VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
 {
     APTR IntuitionBase = ExtBase->lb_Intuition;
     DISPLAY *d = f->disp;
+    EDITWIN *e = f->editwin;
     struct TagItem tags[] = {
         WINDOW_Title, NULL,
         WINDOW_ScreenTitle, NULL,
@@ -811,6 +829,12 @@ VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
                             PGA_Visible, f->zoombox.Height,
                             PGA_Total, f->pix->height, TAG_END );
         }
+    }
+
+    if(e) {
+        tags[0].ti_Data = (ULONG)e->title;
+        tags[1].ti_Data = (ULONG)std_ppt_blurb;
+        SetAttrsA( e->Win, tags );
     }
 
     UNLOCK(f);
@@ -1020,6 +1044,7 @@ FRAME *FindFrame( REG(d0) ULONG seekid )
 *       pw   : shared
 *       mywin: shared
 *       pix->data : unique
+*       editwin : shared
 *
 *    Shared attributes are released by DeleteFrame() and unique by RemFrame()
 *
@@ -1117,6 +1142,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         f->dpw          = NULL;
         f->mywin        = NULL;
         f->selectport   = NULL;
+        f->editwin      = NULL;
         f->attached     = 0L;
         ClearError( f );
         /* NOTE: Should alpha be copied? */
