@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.25 1998/11/08 00:48:21 jj Exp $
+    $Id: prefs.c,v 1.26 1998/12/07 13:47:08 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -39,9 +39,6 @@
 
 #define PPBUFLEN            256
 
-#define GOID_COMMENT        -1
-#define GOID_UNKNOWN        -2
-
 /*----------------------------------------------------------------------*/
 /* Global variables */
 
@@ -58,7 +55,7 @@ const char prefs_init_blurb[] =
 
 /* The option strings. Must be NULL-terminated. */
 
-const char *optionstrings[] = {
+const char *PrefsOptions[] = {
     "VMDIR",
     "VMBUFSIZ",
     "MAINFONT",
@@ -87,6 +84,7 @@ const char *optionstrings[] = {
     "OPENFILEREQUESTER",
     "OPENPALETTEREQUESTER",
     "SAVEPALETTEREQUESTER",
+    "BEGINTOOLBAR",
     NULL,
 };
 
@@ -118,7 +116,8 @@ typedef enum {
     CONFIRMREQUESTERS,
     OPENFILEREQUESTER,
     OPENPALETTEREQUESTER,
-    SAVEPALETTEREQUESTER
+    SAVEPALETTEREQUESTER,
+    BEGINTOOLBAR
 } Option;
 
 
@@ -141,7 +140,9 @@ Prototype VOID CopyPrefs( PREFS *, PREFS * );
     -2 for irrelevant information (comments, etc.)
 */
 
-Option GetOptID( const char *s )
+Prototype int GetOptID( char *optionstrings[], const char *s );
+
+int GetOptID( char *optionstrings[], const char *s )
 {
     int id;
 
@@ -165,7 +166,7 @@ void WritePrefByID( BPTR fh, Option id, const char *c, ... )
     char buf[PPBUFLEN];
     va_list va;
 
-    sprintf(buf,"%s=",optionstrings[id]);
+    sprintf(buf,"%s=",PrefsOptions[id]);
     va_start(va,c);
     vsprintf( (char *) ((ULONG)buf + strlen(buf)), c, va );
     va_end(va);
@@ -281,7 +282,7 @@ int LoadPrefs( GLOBALS *g, char *pfile )
             s = strtok(buf,"= \t"); /* Skips all whitespaces as well */
             if(s) { /* It was an option! */
                 s = strtok(NULL,"\n"); /* This has the added benefit of removing the CR from the end.*/
-                switch(GetOptID( buf )) {
+                switch(GetOptID( PrefsOptions, buf )) {
                     case SCRMODEID:
                         d->dispid = strtol(s, &tail , 0); /* Interprets HEX values correctly */
                         D(bug("Got display ID %08X\n",d->dispid));
@@ -464,6 +465,10 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                         ReadWindowPrefs( s, &gvPaletteSaveReq.prefs );
                         break;
 
+                    case BEGINTOOLBAR:
+                        ReadToolbarConfig( fh );
+                        break;
+
                     case GOID_UNKNOWN:
                         D(bug("Unknown gobble %s\n",buf));
                         break;
@@ -584,6 +589,8 @@ int SavePrefs( GLOBALS *g, char *pfile )
         WriteASLPrefs( fh, OPENFILEREQUESTER, gvLoadFileReq.Req );
         WriteASLPrefs( fh, OPENPALETTEREQUESTER, gvPaletteOpenReq.Req );
         WriteASLPrefs( fh, SAVEPALETTEREQUESTER, gvPaletteSaveReq.Req );
+
+        WriteToolbarConfig( fh );
 
         Close(fh);
         res = PERR_OK;
