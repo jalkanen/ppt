@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 3.1 1997/02/10 23:16:43 jj Exp $
+    $Id: support.c,v 3.2 1997/02/22 21:44:49 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -118,6 +118,9 @@ APTR ExtLibData[] = {
     StopInput,
 
     GetBackgroundColor,
+
+    GetOptions,
+    PutOptions,
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
 
