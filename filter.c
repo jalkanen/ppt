@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.31 1999/10/02 16:33:07 jj Exp $
+    $Id: filter.c,v 1.32 1999/11/25 23:14:45 jj Exp $
 
     Code containing effects stuff.
 
@@ -72,6 +72,7 @@ Prototype PERROR    ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
 /*----------------------------------------------------------------------*/
 /* Code */
 
+/// RunFilterCommand
 /*
     This routine gives a bit more control than RunFilter().  It starts
     up a given effect with the given args, adding the command to
@@ -100,7 +101,9 @@ RunFilterCommand( FRAME *frame, STRPTR filtername, STRPTR args )
 
     return res;
 }
+///
 
+/// RunFilter()
 /*
     Main routine for effect execution. This is run from within the main
     task and it spawns the subtask to handle the execution. If argstr != NULL
@@ -167,8 +170,9 @@ PERROR RunFilter( FRAME *frame, UBYTE *argstr )
 
     return res;
 }
+///
 
-
+/// ExecEasyFilter
 /*
     This goes through the whole select area and calls
     the execute routine, which may also be the local Cut / Copy / Whatever.
@@ -213,7 +217,8 @@ PERROR ExecEasyFilter( FRAME *frame, FPTR code, EXTBASE *PPTBase )
     }
     return PERR_OK;
 }
-
+///
+/// EasyFilter
 /*
     This is an interface for externals to ExecEasyFilter().
     BUG: Not maybe necessary.
@@ -246,8 +251,9 @@ FRAME *EasyFilter( FRAME *frame, EFFECT *effect, EXTBASE *PPTBase )
 
     return frame;
 }
+///
 
-
+/// HandleFilterIDCMP()
 /*
     Main effect IDCMP control. Returns effect selected or NULL, if nothing
     happened. -1 if the user just wanted to quit...
@@ -345,8 +351,9 @@ EFFECT *HandleFilterIDCMP( EXTBASE *PPTBase, struct EffectWindow *fw, ULONG rc )
 
     return f;
 }
+///
 
-
+/// Filter()
 /*
     This routine will open a new window, in which one can select the
     effect to be applied.
@@ -498,8 +505,8 @@ errorexit:
 
     /* Die. */
 }
-
-
+///
+/// ExecFilter()
 /*
     This will take care of the actual effecting.
 
@@ -527,7 +534,7 @@ FRAME *ExecFilter( EXTBASE *PPTBase, FRAME *frame, EFFECT *effect, char *args, B
      */
 
     if( effect->info.islibrary ) {
-        EffectBase = OpenModule( (EXTERNAL *)effect, PPTBase );
+        EffectBase = OpenModule( (EXTERNAL *)effect, 0L, PPTBase );
         if(!EffectBase) return NULL; // BUG: No error message
         nonewframe  = (BOOL)EffectInquire( PPTX_NoNewFrame, PPTBase );
         nochangeframe=(BOOL)EffectInquire( PPTX_NoChangeFrame, PPTBase );
@@ -687,9 +694,7 @@ errorexit:
     if(argitemarray) FreeDOSArgs( argitemarray, PPTBase );
     return res;
 }
-
-
-
+///
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
