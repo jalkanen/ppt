@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.10 1996/10/19 02:43:27 jj Exp $
+    $Id: colormap.c,v 1.11 1997/07/12 00:52:31 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -51,11 +51,12 @@ ASM UWORD GetColor_EHB( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d
     int i;
 
     if( rdo->EHB_Data == 0 ) {
-        UBYTE *colortable = rdo->colortable;
-        int offset = rdo->ncolors * 3;
+        COLORMAP *colortable = rdo->colortable;
 
-        for( i = 0; i < rdo->ncolors*3; i++ ) {
-            colortable[i+offset] = colortable[i] >> 1;
+        for( i = 0; i < rdo->ncolors; i++ ) {
+            colortable[i+rdo->ncolors].r = colortable[i].r >> 1;
+            colortable[i+rdo->ncolors].g = colortable[i].g >> 1;
+            colortable[i+rdo->ncolors].b = colortable[i].b >> 1;
         }
         rdo->ncolors *= 2;
         rdo->EHB_Data = 1;
@@ -262,7 +263,7 @@ ASM UWORD GetColor_Normal( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, RE
     HGRAM *hgrams = rdo->histograms;
     ULONG haddr;
     UWORD color;
-    UBYTE *colormap = rdo->colortable;
+    COLORMAP *colormap = rdo->colortable;
 
     haddr = HADDR( r >> (8-HGRAM_BITS_RED),
                    g >> (8-HGRAM_BITS_GREEN),
@@ -277,19 +278,16 @@ ASM UWORD GetColor_Normal( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, RE
 
     --color;
 
-    { register ULONG color3;
-        color3 = color * 3;
+    rdo->newr = colormap[color].r;
+    rdo->newg = colormap[color].g;
+    rdo->newb = colormap[color].b;
 
-        rdo->newr = colormap[color3++];
-        rdo->newg = colormap[color3++];
-        rdo->newb = colormap[color3];
-    }
     return color;
 }
 
 ASM UWORD GetColor_NormalGray( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
 {
-    UBYTE *colormap   = rdo->colortable;
+    COLORMAP *colormap = rdo->colortable;
     HGRAM *histograms = rdo->histograms;
     UWORD color;
 
@@ -302,13 +300,9 @@ ASM UWORD GetColor_NormalGray( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r
 
     --color;
 
-    { register ULONG color3;
-        color3 = color * 3;
-
-        rdo->newr = colormap[color3++];
-        rdo->newg = colormap[color3++];
-        rdo->newb = colormap[color3];
-    }
+    rdo->newr = colormap[color].r;
+    rdo->newg = colormap[color].g;
+    rdo->newb = colormap[color].b;
 
     return color;
 }
