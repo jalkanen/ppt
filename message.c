@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 1.7 1996/11/23 00:45:10 jj Exp $
+    $Id: message.c,v 2.0 1997/01/06 18:34:15 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -37,7 +37,7 @@ Prototype VOID              FinishFrameInput( FRAME * );
 Prototype VOID              SetupFrameForInput( struct PPTMessage * );
 Prototype VOID              ClearFrameInput( FRAME * );
 
-Prototype VOID              SendInputMsg(FRAME *, ULONG,  APTR);
+Prototype VOID              SendInputMsg(FRAME *, struct PPTMessage *);
 
 Prototype LONG              EmptyMsgPort( struct MsgPort *, EXTBASE * );
 
@@ -168,10 +168,10 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 *       StartInput - Start up notification
 *
 *   SYNOPSIS
-*       error = StartInput( frame, method, area )
+*       error = StartInput( frame, method, initialmsg )
 *       D0                  A0     D0      A1
 *
-*       PERROR StartInput( FRAME *, ULONG, APTR );
+*       PERROR StartInput( FRAME *, ULONG, struct PPTMessage * );
 *
 *   FUNCTION
 *       This function starts up input handling for a frame. Its main
@@ -183,9 +183,16 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 *
 *       There are several methods at your disposal:
 *
-*       GINP_PICK_POINT -
+*       GINP_PICK_POINT - initialmsg is ignored and may be NULL.
+*           Every time the user clicks the mouse within the image,
+*           you'll get a gPointMessage with the x and y fields
+*           containing image co-ordinates.
 *
-*       GINP_FIXED_RECT -
+*       GINP_FIXED_RECT - initialmsg should be a pointer to
+*           a struct gFixRextMessage, whose field dim should
+*           be initialized to a sensible value.  When the user moves
+*           the cursor in the frame, he'll see a rectangle moving around
+*           and when he places it somewhere, you'll be notified.
 *
 *       You will be notified of input events until the StopInput()
 *       function is called.
@@ -205,10 +212,10 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 *
 *   NOTES
 *       You MUST call StopInput() when you are ready to start up your own
-*       processing on the frame.
+*       processing on the frame.  Otherwise you'll keep getting messages
+*       even when you don't want them and the user might get confused.
 *
 *   BUGS
-*       Is the area really needed?
 *
 *   SEE ALSO
 *       StopInput()
@@ -220,24 +227,41 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 
 SAVEDS ASM
 PERROR StartInput( REG(a0) FRAME *frame,
-                   REG(a1) APTR  area,
+                   REG(a1) struct PPTMessage *initialmsg,
                    REG(d0) ULONG mid,
                    REG(a6) EXTBASE *ExtBase )
 {
-    struct PPTMessage pmsg, *amsg;
+    struct PPTMessage *pmsg, *amsg;
 
-    D(bug("GetInput(f=%08X,a=%08X,m=%ld)\n",frame,area,mid));
+    D(bug("StartInput(f=%08X,i=%08X,m=%ld)\n",frame,initialmsg,mid));
 
-    if(!frame) return FALSE; /* Sanity check */
+    if(!CheckPtr(frame, "StartInput(): invalid frame"))
+        return FALSE; /* Sanity check */
 
     /*
-     *  Initialize the message part
+     *  The type of the message will tell us what size of the message we'll need.
+     *  We'll now allocate and initialize all type-relevant fields.
      */
 
-    bzero( &pmsg, sizeof(struct PPTMessage) );
-    pmsg.msg.mn_Node.ln_Type = NT_MESSAGE;
-    pmsg.msg.mn_Length       = sizeof(struct PPTMessage);
-    pmsg.msg.mn_ReplyPort    = ExtBase->mport;
+    switch(mid) {
+        case GINP_FIXED_RECT:
+            pmsg = AllocPPTMsg( sizeof(struct gFixRectMessage), ExtBase );
+            ((struct gFixRectMessage *)pmsg)->dim = ((struct gFixRectMessage *)initialmsg)->dim;
+            D(bug("\tSending out a gFixRect()\n"));
+            break;
+
+        default:
+            pmsg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+            D(bug("\tIgnored input type %X\n",mid));
+            break;
+    }
+
+    /*
+     *  We could set this one also in the switch() - clause above, but
+     *  since it is quite easy to derive, we'll do it here.
+     */
+
+    pmsg->code  = mid + PPTMSG_LASSO_RECT;
 
     /*
      *  Send the address of the parent frame, if such a beast
@@ -246,24 +270,17 @@ PERROR StartInput( REG(a0) FRAME *frame,
 
     if( frame->parent ) {
         D(bug("\tFrame has a parent @ %08X\n",frame->parent));
-        pmsg.frame = frame->parent;
+        pmsg->frame = frame->parent;
     } else {
-        pmsg.frame = frame;
+        pmsg->frame = frame;
     }
-
-    pmsg.code  = mid + PPTMSG_LASSO_RECT;
-    pmsg.data  = area;
 
     /*
      *  Send the message to main program and return, if it
      *  was succesfull.
      */
 
-    D(bug("\tSending message...\n"));
-
-    Forbid();
-    PutMsg( globxd->mport, (struct Message *) &pmsg );
-    Permit();
+    SendPPTMsg( globxd->mport, pmsg, ExtBase );
 
     /*
      *  Wait for authorization reply from the main task
@@ -287,26 +304,32 @@ PERROR StartInput( REG(a0) FRAME *frame,
 
             /*
              *  We'll listen only to the first message. All others must
-             *  be actual user data.  We need to answer to this message.
+             *  be actual user data.  We'll return right after we've
+             *  gotten the message.
+             *
+             *  In case any messages manage to get this far, we'll
+             *  quietly reply to them.
              */
 
             if( amsg = (struct PPTMessage *)GetMsg(ExtBase->mport) ) {
 
-                if( amsg->code == PPTMSG_ACK_INPUT ) {
-                    if( amsg->data == PERR_OK ) {
-                        D(bug("\tMain task says its OK!\n"));
-                    } else {
-                        D(bug("\tFailed to set up the comm system\n"));
+                if( amsg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
+                    if( amsg->code == PPTMSG_ACK_INPUT ) {
+                        PERROR res;
+
+                        if( (res = (PERROR)amsg->data) == PERR_OK ) {
+                            D(bug("\tMain task says its OK!\n"));
+                        } else {
+                            D(bug("\tFailed to set up the comm system\n"));
+                        }
+
+                        FreePPTMsg( amsg, ExtBase );
+                        return res;
                     }
-                    // ReplyMsg( (struct Message *)amsg );
-                    return (PERROR) (amsg->data);
+                } else {
+                    ReplyMsg( (struct Message *) amsg );
                 }
 
-                /*
-                 *  BUG: Anything else should definitely be an error...
-                 */
-
-                ReplyMsg( (struct Message *)amsg );
             }
         }
     }
@@ -365,7 +388,7 @@ VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
 
     D(bug("StopInput(frame=%08X)\n",frame));
 
-    pmsg = InitPPTMsg();
+    pmsg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
 
     pmsg->code  = PPTMSG_STOP_INPUT;
 
@@ -374,9 +397,11 @@ VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
     else
         pmsg->frame = frame;
 
-    DoPPTMsg( globxd->mport, pmsg );
+    D(bug("Sending to main task\n"));
+    SendPPTMsg( globxd->mport, pmsg, ExtBase );
 
-    PurgePPTMsg( pmsg );
+    D(bug("Waiting for reply\n"));
+    WaitForReply( PPTMSG_STOP_INPUT, ExtBase );
 }
 
 /*--------------------------------------------------------------------*/
@@ -397,13 +422,21 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
     if( !CheckPtr(f, "SFFI()"))
         return;
 
+    LOCK(f);
+
     RemoveSelectBox( f );
 
     f->selectmethod = pmsg->code - PPTMSG_LASSO_RECT;
     f->selectdata   = pmsg->data;
     f->selectport   = pmsg->msg.mn_ReplyPort;
 
+    if( f->selectmethod == GINP_FIXED_RECT ) {
+        f->fixrect = ((struct gFixRectMessage *)pmsg)->dim;
+    }
+
     ChangeBusyStatus( f, BUSY_READONLY );
+
+    UNLOCK(f);
 
     /*
      *  Modify the initial message that main() will ReplyMsg() to.
@@ -415,24 +448,16 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
 
 /*
-    BUG: Should really do queue up the mouse messages.
+    Send one input message to the external process.
 */
 
-VOID SendInputMsg( FRAME *f, ULONG code, APTR msg )
+VOID SendInputMsg( FRAME *f, struct PPTMessage *pmsg )
 {
-    struct PPTMessage *pmsg;
-
     D(bug("Sending frame input\n"));
 
-    pmsg = InitPPTMsg();
-
-    pmsg->data  = msg;
-    pmsg->code  = code;
     pmsg->frame = f;
 
-    DoPPTMsg(f->selectport, pmsg);
-
-    PurgePPTMsg(pmsg);
+    SendPPTMsg( f->selectport, pmsg, globxd );
 }
 
 
@@ -443,14 +468,16 @@ VOID SendInputMsg( FRAME *f, ULONG code, APTR msg )
 VOID ClearFrameInput( FRAME *f )
 {
     struct Library *SysBase = SYSBASE();
+    struct IBox clrrect = {0};
 
     D(bug("ClearFrameInput(%08X)\n",f));
 
-    LOCKGLOB();
+    LOCK(f);
     f->selectmethod = GINP_LASSO_RECT;
     f->selectdata   = NULL;
     f->selectport   = NULL;
-    UNLOCKGLOB();
+    f->fixrect      = clrrect;
+    UNLOCK(f);
 }
 
 /*
@@ -554,13 +581,20 @@ VOID WaitForReply( ULONG code, EXTBASE *ExtBase )
 
         if( sig & SIGBREAKF_CTRL_C ) return;
 
+        D(bug("\tgot some sort of message\n"));
+
         while( msg = GetMsg( mp ) ) {
+            D(bug("\tnew message\n"));
             if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
+                D(bug("\t\tit is a reply message\n"));
                 if( ((struct PPTMessage *)msg)->code == code ) {
+                    D(bug("\t\tto our message, it seems\n"));
                     quit = TRUE;
                 }
+                D(bug("\t\tFreeing message\n"));
                 FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
             } else {
+                D(bug("\t\ta strange message, replying\n"));
                 ReplyMsg( msg );
             }
         }
