@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.47 1997/12/02 02:03:22 jj Exp $
+    $Id: gui.c,v 1.48 1997/12/06 22:52:58 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -176,6 +176,10 @@ const ULONG dpcol_ind2sl[] = { INDIC_Level, SLIDER_Level, TAG_END };
 
 const ULONG dpcol_sl2int[] = { SLIDER_Level, STRINGA_LongVal, TAG_END };
 const ULONG dpcol_int2sl[] = { STRINGA_LongVal, SLIDER_Level, TAG_END };
+
+const ULONG dpcol_sl2fl[] = { SLIDER_Level, FLOAT_LongValue, TAG_END };
+const ULONG dpcol_fl2sl[] = { FLOAT_LongValue, SLIDER_Level, TAG_END };
+
 
 /// Miscallaneous labels
 
