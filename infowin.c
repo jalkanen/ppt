@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.2 1995/08/20 18:39:59 jj Exp $
+    $Id: infowin.c,v 1.3 1995/09/23 22:04:48 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -34,6 +34,9 @@ Prototype VOID          CloseInfoWindow( INFOWIN *iw, EXTBASE *xd );
 /*
     Allocate a new info window. The info window pointer in the
     frame is updated.
+
+    BUG: If the infowindow exists, does not check for the existence
+         of the window object.
 */
 
 PERROR AllocInfoWindow( FRAME *frame, EXTBASE *xd )
@@ -67,21 +70,21 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *xd )
 
 /*
     Open an info window. Will ignore NULL args.
-
-    BUG: Does not fail.
 */
 
 PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *xd )
 {
+    PERROR res = PERR_OK;
 
     D(bug("OpenInfoWindow(%08X)\n",iw));
     if( iw ) {
         /*
          *  Are the window object and window pointer OK?
+         *  BUG: Should create the infowindow, if it does not exist
          */
         if( iw->WO_win && !iw->win ) {
-            if( iw->win = WindowOpen( iw->WO_win )) {
-                /* NULL CODE */
+            if( (iw->win = WindowOpen( iw->WO_win )) == NULL) {
+                res = PERR_WINDOWOPEN;
             }
         }
     }
@@ -189,7 +192,7 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                 WINDOW_ScreenTitle, std_ppt_blurb,
                 WINDOW_SizeGadget, TRUE,
                 WINDOW_MenuStrip, PPTMenus,
-                WINDOW_ScaleWidth, 25,
+                WINDOW_ScaleWidth, 40,
                 WINDOW_Font, globals->userprefs->mainfont,
                 WINDOW_Screen, scr,
                 WINDOW_SharedPort, MAINWIN->UserPort,
@@ -231,6 +234,10 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
 }
 ///
 
+/*
+    Updates the infowindow attributes. Currently does not do anything more
+    than update the window/screen titles.
+*/
 void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
 {
     APTR IntuitionBase = xd->lb_Intuition;
@@ -246,52 +253,16 @@ void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
         tags[1].ti_Data = f->disp->scrtitle;
         SetAttrsA( iw->WO_win, tags );
     }
-
-#if 0
-    ULONG args[6];
-    FRAME *f;
-    APTR IntuitionBase = xd->lb_Intuition;
-
-    if(iw == NULL)
-        return;
-
-    if(!CheckPtr( iw, "UpdateInfoWindow: IW" ))
-        return;
-
-    f = (FRAME *)iw->myframe;
-    args[0] = (ULONG) f->pix->width;
-    args[1] = (ULONG) f->pix->height;
-    args[2] = (ULONG) f->pix->origdepth;
-    if(f->origtype)
-        args[3] = (ULONG) f->origtype->info.nd.ln_Name;
-    else
-        args[3] = (ULONG) "Unknown";
-    args[4] = (ULONG) PICSIZE( f->pix);
-
-    args[5] = (ULONG) f->fullname;
-
-    XSetGadgetAttrs(xd, (struct Gadget *)iw->GO_File, iw->win, NULL, INFO_Args, &args[5], TAG_END );
-    XSetGadgetAttrs(xd, (struct Gadget *)iw->GO_Info, iw->win, NULL, INFO_Args, &args[0], TAG_END );
-#endif
 }
+
+/*
+    This routine is supposed to update the selectbox display, but currently
+    it is not used.
+*/
 
 void UpdateIWSelbox( FRAME *f )
 {
-#if 0
-    ULONG args[6];
-    INFOWIN *iw = f->mywin;
-
-    if(iw) {
-        args[0] = (ULONG)f->selbox.MinX;
-        args[1] = (ULONG)f->selbox.MinY;
-        args[2] = (ULONG)f->selbox.MaxX;
-        args[3] = (ULONG)f->selbox.MaxY;
-        args[4] = (ULONG)f->selbox.MinX;
-        args[5] = (ULONG)f->selbox.MinX;
-
-        SetGadgetAttrs( (struct Gadget *)iw->GO_Selbox, iw->win, NULL, INFO_Args, &args[0], TAG_END );
-    }
-#endif
+    /* NO CODE */
 }
 
 
