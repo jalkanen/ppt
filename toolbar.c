@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.8 1999/08/01 16:50:31 jj Exp $
+    $Id: toolbar.c,v 6.0 1999/09/19 18:27:48 jj Exp $
 
     Grumble...
 
@@ -57,7 +57,7 @@
 /// Globals & type definitions
 
 Class *ToolbarClass, *ToolItemClass = NULL, *BGUIBitmapClass = NULL;
-struct Library *BGUIBitmapBase = NULL;
+static struct Library *BGUIBitmapBase = NULL;
 
 /*
  *  This list contains the actual toolbar.
@@ -282,8 +282,6 @@ Prototype Class *InitToolItemClass(VOID);
 
 Class *InitToolItemClass(VOID)
 {
-    struct Library *BGUIBitmapBase;
-
     if( BGUIBitmapBase = OpenLibrary("gadgets/bgui_bitmap.image",0L) ) {
         BGUIBitmapClass = GetBitmapClassPtr();
     } else {
