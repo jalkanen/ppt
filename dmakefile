@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.11 1997/02/23 15:14:59 jj Exp $
+#       $Id: dmakefile,v 1.12 1997/07/12 21:59:07 jj Exp $
 #
 #####################################################################
 #
@@ -23,6 +23,9 @@ BACKUPDIR = data:backup/
 #   directory of a device.
 DISTDIR   = TMP:PPT
 
+#   This is where the developer stuff is compiled
+DEVDIR    = $(DISTDIR)_dev
+
 #   The directory in which the distribution archive will be
 #   put.
 ARCHIVEDIR= RAM:
@@ -37,16 +40,20 @@ EXTSRCDIR = $(MAINDIR)/externals/src
 #   ROD is for the release version with no debug code.
 OD        = dtmp:pptscd
 ROD       = dtmp:pptsc
+R2OD      = $(ROD)_020
 
 # GST files for SAS/C
 GST   = defs.gst
 RGST  = rdefs.gst
+R2GST = $(RGST)
 
 # Main executables
 MAIN   = pptd
 MFILE  = T:defs.m
 RMAIN  = ppt
 RMFILE = T:rdefs.m
+R2MFILE= T:r2defs.m
+R2MAIN = ppt020
 
 #   Example files. These are currently scanned for autodoc
 #   entries
@@ -64,7 +71,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
 COPTS  = IGNORE=104 NOICONS IDIR=dinclude:pd IDIR=include \
-         CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304
+         CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT
 
 # a68k makes erroneous code!
 #AS     = das
@@ -104,9 +111,16 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #  NB:  If compiling for 020+, then remove utillib from the command line
 #
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
-RCOPTS  = cpu=68000 UTILLIB OPT OPTSCHED DEBUG=LINE STRCON PARMS=R UTILLIB \
-          GST=include:all.gst OPTINLOCAL
+RCOPTS  = OPT OPTSCHED DEBUG=LINE STRCON PARMS=R CPU=000 UTILLIB \
+          OPTINLOCAL GST=include:all.gst
+
+R2COPTS = OPT OPTSCHED DEBUG=LINE STRCON PARMS=R CPU=020 NOUTILLIB \
+          OPTINLOCAL GST=include:all.gst
+
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+
+R2LDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
 
 #
@@ -139,7 +153,7 @@ LINKTO  = TO
 
 SRCS = initexit.c debug.c load.c edit.c frame.c main.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
-       render.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
+       render.c preview.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
        ppt_cat.c askreq.c gui.c extensions.c
 
@@ -160,7 +174,7 @@ HDRS = ppt_real.h defs.h
 # header files.
 
 MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
-        render.h rexx.h ppt_cat.h gui.h include/askreq.h
+        render.h rexx.h ppt_cat.h gui.h include/askreq.h pptmessage.h
 
 # These files version on version & gfx information
 
@@ -202,6 +216,18 @@ RSLOWOBJS=
 ROBJS   = $(RCOBJS) $(AOBJS) $(FORTLITEOBJS) $(RSLOWOBJS)
 RVOBJS  = $(VSRCS:"*.c":"$(ROD)/*.o")
 
+#
+#   020 Optimized, release version
+#
+
+R2CFLAGS = $(COPTS) $(R2COPTS) $(FORTCOPTS)
+R2COBJS  = $(SRCS:"*.c":"$(R2OD)/*.o")
+#RSLOWOBJS= $(SLOWSRCS:"*.c":"$(R2OD)/*.o")
+R2SLOWOBJS=
+R2OBJS   = $(R2COBJS) $(AOBJS) $(FORTLITEOBJS) $(R2SLOWOBJS)
+R2VOBJS  = $(VSRCS:"*.c":"$(R2OD)/*.o")
+
+
 #####################################################################
 #
 #   End of configuration, now begins the compiler stuff
@@ -216,10 +242,18 @@ release : $(ROD) $(RMFILE) $(RMAIN) externals
         @List $(RMAIN) NOHEAD
         @beep
 
+release020 : $(R2OD) $(R2MFILE) $(R2MAIN) externals
+        @List $(R2MAIN) NOHEAD
+        @beep
+
+
 $(OD) : $(OD)
         Makedir %(left)
 
 $(ROD) : $(ROD)
+        Makedir %(left)
+
+$(R2OD): $(R2OD)
         Makedir %(left)
 
 # Link phase
@@ -229,6 +263,9 @@ $(MAIN) : $(OBJS) $(VOBJS)
 
 $(RMAIN) : $(ROBJS)
         $(LINK) $(ROBJS) $(LINKTO) %(left) $(RLDFLAGS)
+
+$(R2MAIN) : $(R2OBJS)
+        $(LINK) $(R2OBJS) $(LINKTO) %(left) $(R2LDFLAGS)
 
 #
 # Compile phase
@@ -267,6 +304,22 @@ $(ROD)/rexx.o :: rexx.h
 
 $(ROD)/external.o :: misc.h
 
+## 020
+
+$(R2COBJS) : $(SRCS)
+        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
+
+#$(R2SLOWOBJS) : $(SLOWSRCS)
+#        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
+
+$(R2COBJS) :: $(HDRS)
+
+$(R2VOBJS) :: version.h gui.h
+
+$(R2OD)/rexx.o :: rexx.h
+
+$(R2OD)/external.o :: misc.h
+
 
 # Externals
 
@@ -288,7 +341,11 @@ $(RGST) : $(MHDRS)
         Delete $(RGST) >NIL:
         SC MAKEGST=$(RGST) $(COPTS) gst.c IGNORE=105
 
-gst : $(GST) $(RGST)
+$(R2GST) : $(MHDRS)
+        Delete $(R2GST) >NIL:
+        SC MAKEGST=$(R2GST) $(COPTS) gst.c IGNORE=105
+
+gst : $(GST) $(RGST) $(R2GST)
 
 ext :
         cd $(EXTSRCDIR)
@@ -313,6 +370,7 @@ rcs :
 # This makes a distribution
 
 dist : all release $(DISTDIR) docs
+        Copy $(RMAIN) $(RMAIN).debug
         $(STRIP)
         Copy $(RMAIN).strip $(RMAIN)
         Delete $(RMAIN).strip
@@ -320,9 +378,13 @@ dist : all release $(DISTDIR) docs
         Cd $(DISTDIR)
         Copy $(MAINDIR)/ppt_dir.info /PPT.info
         lha -r u $(ARCHIVEDIR)PPT_dist.lha $(DISTDIR)/#? /PPT.info
+        Cd $(MAINDIR)
+        Copy $(ARCHIVEDIR)PPT_dist.lha tmp:pptarchive/pptdist.lha
+        lha u tmp:pptarchive/pptdist.lha $(RMAIN).debug
         @beep
 
 strip :
+        Copy $(RMAIN) $(RMAIN).debug
         $(STRIP)
         Copy $(RMAIN).strip $(RMAIN)
         Delete $(RMAIN).strip
@@ -346,6 +408,7 @@ pragmas:
         fd2pragma fd/module_lib.fd  TO pragmas/module_pragmas.h  MODE=3
         fd2pragma fd/effect_lib.fd  TO pragmas/effect_pragmas.h  MODE=3
         fd2pragma fd/iomod_lib.fd   TO pragmas/iomod_pragmas.h   MODE=3
+        @cd /
 
 # This will build the ppt catalog strings
 
@@ -383,6 +446,14 @@ ModuleInfo/moduleinfo : ppt_real.h
         cd ModuleInfo
         @dmake install
         @cd /
+
+#
+# Developer archive
+#
+
+devarc : devdocs pragmas
+        dupdate $(MAINDIR) $(DEVDIR) FORCE DISTFILE .DistFiles_dev
+        lha -r u $(ARCHIVEDIR)PPT_dev.lha $(DEVDIR)/#?
 
 # This can be used to force recompile
 
