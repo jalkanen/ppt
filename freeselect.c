@@ -4,7 +4,7 @@
 
     Freeform selection routines.
 
-    $Id: freeselect.c,v 6.2 1999/12/15 00:16:54 jj Exp $
+    $Id: freeselect.c,v 6.3 1999/12/27 21:58:02 jj Exp $
 
  */
 
@@ -378,12 +378,28 @@ VOID FreeMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
 
             EraseSelection( frame );
 
+            if( selection->nVertices >= selection->nMaxVertices ) {
+                Point *newarray;
+
+                D(bug("\tAllocating more space for vertices (new space = %lu points)\n",
+                       selection->nMaxVertices * 2 ));
+
+                newarray = smalloc( sizeof(Point) * selection->nMaxVertices * 2 );
+
+                if(!newarray) return;
+
+                memcpy( newarray, selection->vertices, selection->nMaxVertices*sizeof(Point) );
+
+                sfree( selection->vertices );
+                selection->vertices = newarray;
+                selection->nMaxVertices *= 2;
+            }
+
             selection->vertices[selection->nVertices].x = xloc;
             selection->vertices[selection->nVertices].y = yloc;
 
             selection->nVertices++;
 
-            // BUG: should alloc more space, if running out.
 
             D(bug("Vertex %d: (%d,%d)\n", selection->nVertices-1, xloc, yloc ));
 
@@ -529,6 +545,7 @@ PERROR InitFreeSelection( FRAME *frame )
         if( NULL == (selection->vertices = smalloc( sizeof(Point) * 1024 ))) {
             Panic( "Can't alloc vertices!!!" );
         }
+        selection->nMaxVertices = 1024;
     }
 
     selection->ButtonDown        = FreeButtonDown;
