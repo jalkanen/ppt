@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.13 1996/10/28 13:12:16 jj Exp $
+    $Id: ppt_real.h,v 1.14 1996/11/04 19:28:43 jj Exp $
 
     Main definitions for PPT.
 
@@ -268,6 +268,8 @@ typedef struct {
     UBYTE           palettepath[MAXPATHLEN]; /* Keeps the pointer at the palette */
     BOOL            forcebw;    /* TRUE, if Force Black/White is enabled */
 
+    ULONG           selpt;      /* Draw selection pattern for SetDrPt() */
+
 } DISPLAY;
 
 /* Dithering methods. FS only currently implemented. */
@@ -345,11 +347,14 @@ typedef struct Frame_t {
     struct PaletteWindow *pw;       /* Palette window. May be NULL */
     INFOWIN         *mywin;         /* This frame's infowindow. NULL, if not yet created */
     APTR            renderobject;   /* see render.h */
+
     UBYTE           selstatus;      /* see defs.h */
     UBYTE           reqrender;      /* != 0, if a render has been requested but not made */
     BOOL            doerror;        /* TRUE, if the error has not been displayed yet */
+
     PERROR          errorcode;
     UBYTE           errormsg[ERRBUFLEN];
+
     struct Frame_t  *lastframe;     /* The last before modifications. Undo frame. */
     struct Frame_t  *parent;        /* If the frame is a fresh copy, then you can find
                                        it's parent here. */
@@ -375,6 +380,7 @@ typedef struct Frame_t {
     ID              attached;       /* Simple attachment list. End with 0L */
 
     struct EClockVal eclock;
+
 } FRAME;
 
 /*
@@ -435,6 +441,8 @@ typedef struct {
     BOOL            expungelibs;    /* TRUE, if all modules should be expunged
                                        after use. */
     UBYTE           rexxpath[MAXPATHLEN]; /* All scripts reside here */
+
+    struct IBox     initialpos;     /* Main window initial position */
 
 } PREFS;
 
@@ -517,6 +525,7 @@ typedef struct {
 /* PPT hyper-private experimental fields start here. Don't even think about reading. */
 
     struct Device   *lb_Timer;
+    struct timerequest *TimerIO;
 
 } EXTBASE;
 
