@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.14 1998/08/27 18:57:53 jj Exp $
+    $Id: save.c,v 2.15 1998/11/08 00:50:26 jj Exp $
 */
 
 #include "defs.h"
@@ -207,7 +207,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
         sprintf( errorbuf, "Saver module %s does not know how "
                            "to handle a %s colorspace!",
                            ld->info.nd.ln_Name,
-                           ColorSpaceNames[frame->pix->colorspace]);
+                           ColorSpaceName(frame->pix->colorspace));
         SetErrorMsg( frame, errorbuf );
         res = PERR_FAILED;
         delete = TRUE;
