@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.19 1999/07/12 19:57:39 jj Exp $
+#       $Id: dmakefile,v 6.0 1999/09/05 02:25:07 jj Exp $
 #
 #####################################################################
 #
@@ -202,8 +202,8 @@ MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
 
 # These files version on version & gfx information
 
-VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c\
-        display.c others.c toolbar.c
+VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c \
+        display.c others.c toolbar.c rexx.c
 
 #
 #   Object files.
@@ -287,29 +287,35 @@ $(R2OD): $(R2OD)
 # Link phase
 
 $(MAIN) : $(OBJS) $(VOBJS)
-        $(LINK) $(OBJS) $(LINKTO) %(left) $(LDFLAGS)
+        @echo "Linking..." %(left)
+        @$(LINK) $(OBJS) $(LINKTO) %(left) $(LDFLAGS)
 
 $(RMAIN) : $(ROBJS)
-        $(LINK) $(ROBJS) $(LINKTO) %(left) $(RLDFLAGS)
+        @echo "Linking..." %(left)
+        @$(LINK) $(ROBJS) $(LINKTO) %(left) $(RLDFLAGS)
 
 $(R2MAIN) : $(R2OBJS)
-        $(LINK) $(R2OBJS) $(LINKTO) %(left) $(R2LDFLAGS)
+        @echo "Linking..." %(left)
+        @$(LINK) $(R2OBJS) $(LINKTO) %(left) $(R2LDFLAGS)
 
 #
 # Compile phase
 #
 
 $(COBJS) : $(SRCS)
-        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
+        @echo "Compiling" %(right)
+        @$(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
 #$(SLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
 $(PROFOBJS) : $(PROFSRCS)
-        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
+        @echo "Compiling" %(right)
+        @$(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
 $(AOBJS) : $(ASSYS)
-        $(AS) $(ASOPTS) %(right) $(OBJNAME) %(left)
+        @echo "Compiling" %(right)
+        @$(AS) $(ASOPTS) %(right) $(OBJNAME) %(left)
 
 $(VOBJS) :: version.h gui.h
 
@@ -320,13 +326,14 @@ $(OD)/rexx.o :: rexx.h
 $(OD)/external.o :: misc.h
 
 $(RCOBJS) : $(SRCS)
-        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
+        @echo "Compiling" %(right)
+        @$(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
 #$(RSLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
 $(RPROFOBJS) : $(PROFSRCS)
-        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
+        @$(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
 $(COBJS) :: $(HDRS)
 
@@ -341,13 +348,15 @@ $(ROD)/external.o :: misc.h
 ## 020
 
 $(R2COBJS) : $(SRCS)
-        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
+        @echo "Compiling" %(right)
+        @$(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
 #$(R2SLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
 $(R2PROFOBJS) : $(PROFSRCS)
-        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
+        @echo "Compiling" %(right)
+        @$(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
 $(R2COBJS) :: $(HDRS)
 
@@ -371,16 +380,19 @@ $(RMFILE) : $(MHDRS)
         Delete $(RMFILE) > NIL:
 
 $(GST) : $(MHDRS)
-        Delete $(GST) >NIL:
-        SC MAKEGST=$(GST) $(COPTS) $(DCOPTS) gst.c IGNORE=105
+        @echo "Rebuilding GST:" %(left)
+        @Delete $(GST) >NIL:
+        @SC MAKEGST=$(GST) $(COPTS) $(DCOPTS) gst.c IGNORE=105
 
 $(RGST) : $(MHDRS)
-        Delete $(RGST) >NIL:
-        SC MAKEGST=$(RGST) $(COPTS) gst.c IGNORE=105
+        @echo "Rebuilding GST:" %(left)
+        @Delete $(RGST) >NIL:
+        @SC MAKEGST=$(RGST) $(COPTS) gst.c IGNORE=105
 
 $(R2GST) : $(MHDRS)
-        Delete $(R2GST) >NIL:
-        SC MAKEGST=$(R2GST) $(COPTS) gst.c IGNORE=105
+        @echo "Rebuilding GST:" %(left)
+        @Delete $(R2GST) >NIL:
+        @SC MAKEGST=$(R2GST) $(COPTS) gst.c IGNORE=105
 
 gst : $(GST) $(RGST) $(R2GST)
 
