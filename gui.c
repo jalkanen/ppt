@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.62 1999/02/14 19:39:28 jj Exp $
+    $Id: gui.c,v 1.63 1999/02/20 15:27:58 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -211,7 +211,8 @@ const char *palette_labels[4] = { 0 };
 const char *save_mode_labels[3] = { 0 };
 
 const char *dither_labels[] = {
-    NULL,
+    NULL, // Off
+    NULL, // Ordered
     "Floyd-Steinberg",
     NULL,
 };
@@ -286,6 +287,7 @@ PERROR InitGUILocale(VOID)
     save_mode_labels[1] = GetStr( mSAVE_MODE_LABEL_COLORMAP );
 
     dither_labels[0] = GetStr(mRENDER_DITHER_OFF);
+    dither_labels[1] = GetStr(mRENDER_DITHER_ORDERED);
 
     palette_labels[0] = GetStr(mRENDER_PALETTE_MEDIAN_CUT);
     palette_labels[1] = GetStr(mRENDER_PALETTE_POPULARITY);
