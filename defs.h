@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.31 1999/05/30 18:11:09 jj Exp $
+    $Id: defs.h,v 1.32 1999/08/01 16:44:15 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -277,6 +277,8 @@ enum DebugFile_T {
 #define SELF_BUTTONDOWN     0x02
 #define SELF_CONTROLDOWN    0x04
 
+#define SELF_LOCKED         0x80    /* Ignore global selection messages
+                                       and lock to this selection type */
 
 /*
     Flags for AddExtEntries()
