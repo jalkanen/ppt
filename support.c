@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.4 1999/03/17 23:10:58 jj Exp $
+    $Id: support.c,v 5.5 1999/08/01 16:50:04 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -592,13 +592,13 @@ Prototype VOID ASM PutPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a
 VOID SAVEDS ASM PutPixelRow( REGPARAM(a0,FRAME *,frame),
                              REGPARAM(d0,WORD,row),
                              REGPARAM(a1,ROWPTR,data),
-                             REGPARAM(a6,EXTBASE *,xd) )
+                             REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     ROWPTR dest;
     PIXINFO *p = frame->pix;
     VMHANDLE *vmh = p->vmh;
     ULONG offset;
-
+    WORD col;
 
 #ifdef TMPBUF_SUPPORTED
     if( !data ) return;
@@ -669,6 +669,32 @@ VOID SAVEDS ASM PutPixelRow( REGPARAM(a0,FRAME *,frame),
     }
 #else
     vmh->chflag = 1;
+
+    if( frame->parent ) {
+        if( p->colorspace != frame->parent->pix->colorspace ||
+            p->height != frame->parent->pix->height ||
+            p->width  != frame->parent->pix->width )
+        {
+            /* Skip this, since size, or something else has changed */
+        } else {
+            ROWPTR pcp;
+            int components = p->components;
+
+            pcp = GetPixelRow( frame->parent, row, PPTBase );
+
+            for( col = 0; col < p->width; col++ ) {
+                if( !IsInArea( frame, row, col ) ) {
+                    int color;
+
+                    for( color = 0; color < components; color++ ) {
+                        data[color] = pcp[color];
+                    }
+                }
+                pcp  += components;
+                data += components;
+            }
+        } /* sizechange */
+    } /* frame->parent */
 #endif
 #endif
 
@@ -928,10 +954,13 @@ VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
 {
     ROWPTR cp;
 
-    if(cp = GetPixelRow( f, row, xd )) {
-        cp += column*f->pix->components;
-        memmove( cp, data, f->pix->components );
-        PutPixelRow( f, row, cp, xd );
+    if( IsInArea( f, row, column ) ) {
+        if(cp = GetPixelRow( f, row, xd )) {
+            cp += column*f->pix->components;
+            memmove( cp, data, f->pix->components );
+            f->pix->vmh->chflag = 1;
+            // PutPixelRow( f, row, cp, xd );
+        }
     }
 }
 ///
