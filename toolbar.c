@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.4 1998/12/20 19:14:07 jj Exp $
+    $Id: toolbar.c,v 1.5 1999/01/02 22:36:30 jj Exp $
 
  */
 
@@ -342,19 +342,36 @@ int HandleToolIDCMP( ULONG rc )
 }
 ///
 
-/// AddSingleItem
-BOOL
-AddSingleItem( Object *obj, TD *td, struct ToolbarItem *ti )
+/// TOOLM_ADDSINGLE
+BOOL STATIC ASM
+ToolbarAddSingle( REGPARAM(a0,Class *,cl),
+                  REGPARAM(a2,Object *,obj),
+                  REGPARAM(a1,struct toolAddSingle *,tas) )
 {
-    if(td->td_Toolbar[td->td_NumItems] = smalloc( sizeof( struct ToolbarItem ) )) {
-        if(td->td_Toolbar[td->td_NumItems]->ti_Gadget = ButtonObject,
-            UScoreLabel( ti->ti_Label, '_' ),
-            GA_ID,       ti->ti_GadgetID,
+    struct ToolbarItem *ti = tas->tas_Item;
+    TD *td = (TD*)INST_DATA(cl,obj);
+    int item = td->td_NumItems;
+
+    if(td->td_Toolbar[item] = smalloc( sizeof( struct ToolbarItem ) )) {
+
+        bcopy( ti, td->td_Toolbar[item], sizeof(struct ToolbarItem) );
+
+        /*
+         *  Allocate room for label
+         *  BUG: filename is missing
+         */
+
+        td->td_Toolbar[item]->ti_Label = smalloc( strlen(ti->ti_Label) + 1);
+        strcpy( td->td_Toolbar[item]->ti_Label, ti->ti_Label );
+
+        if(td->td_Toolbar[item]->ti_Gadget = ButtonObject,
+            UScoreLabel( td->td_Toolbar[item]->ti_Label, '_' ),
+            GA_ID,       td->td_Toolbar[item]->ti_GadgetID,
             XenFrame,
-            BT_ToolTip,  ti->ti_Label,
+            BT_ToolTip,  td->td_Toolbar[item]->ti_Label,
             EndObject)
         {
-            DoMethod( obj, GRM_ADDMEMBER, td->td_Toolbar[td->td_NumItems]->ti_Gadget, TAG_DONE );
+            DoMethod( obj, GRM_ADDMEMBER, td->td_Toolbar[item]->ti_Gadget, TAG_DONE );
         } else {
             return FALSE;
         }
@@ -364,12 +381,14 @@ AddSingleItem( Object *obj, TD *td, struct ToolbarItem *ti )
     }
     return TRUE;
 }
+///
 
+/// AddItems()
 BOOL
-AddItems( Object *obj, TD *td, struct ToolbarItem *tb )
+AddItems( Class *cl, Object *obj, TD *td, struct ToolbarItem *tb )
 {
     while( tb->ti_Type != TIT_END ) {
-        if( AddSingleItem( obj, td, tb ) == FALSE ) {
+        if( DoMethod( obj, TOOLM_ADDSINGLE, NULL, tb, -1, 0L ) == FALSE ) {
             return FALSE;
         }
         tb++;
@@ -414,8 +433,8 @@ ToolbarNew( REGPARAM(a0,Class *,cl),
         while( tag = NextTagItem( &tstate ) ) {
             switch( tag->ti_Tag ) {
                 case TOOLBAR_Items:
-                    if( AddItems( rc, td, tag->ti_Data ) == FALSE ) {
-                        CoerceMethod(cl, rc, OM_DISPOSE);
+                    if( AddItems( cl, rc, td, tag->ti_Data ) == FALSE ) {
+                        CoerceMethod(cl, (Object *)rc, OM_DISPOSE);
                         rc = NULL;
                     }
                     break;
@@ -439,7 +458,10 @@ ToolbarDispose( REGPARAM(a0,Class *,cl),
 
     if( td->td_Toolbar ) {
         for( i = 0; i < td->td_NumItems; i++ ) {
-            if( td->td_Toolbar[i]) sfree( td->td_Toolbar[i] );
+            if( td->td_Toolbar[i]) {
+                if( td->td_Toolbar[i]->ti_Label ) sfree( td->td_Toolbar[i]->ti_Label );
+                sfree( td->td_Toolbar[i] );
+            }
         }
         sfree( td->td_Toolbar );
     }
@@ -655,11 +677,14 @@ PERROR WriteToolbarConfig( BPTR fh )
 ///
 
 STATIC DPFUNC ClassFunc[] = {
-    OM_NEW,     (FUNCPTR)ToolbarNew,
-    OM_DISPOSE, (FUNCPTR)ToolbarDispose,
-    0xF00D,     (FUNCPTR)ToolbarNew,
+    OM_NEW,             (FUNCPTR)ToolbarNew,
+    OM_DISPOSE,         (FUNCPTR)ToolbarDispose,
+    TOOLM_ADDSINGLE,    (FUNCPTR)ToolbarAddSingle,
+    0xF00D,             (FUNCPTR)ToolbarNew,
     DF_END
 };
+
+Prototype Class *InitToolbarClass(VOID);
 
 Class *InitToolbarClass(VOID)
 {
@@ -668,6 +693,8 @@ Class *InitToolbarClass(VOID)
                            CLASS_DFTable,        ClassFunc,
                            TAG_DONE );
 }
+
+Prototype BOOL FreeToolbarClass( Class *cl );
 
 BOOL FreeToolbarClass( Class *cl )
 {
