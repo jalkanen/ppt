@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 2.4 $
-        $Date: 1997/01/12 22:35:11 $
+    $Revision: 2.5 $
+        $Date: 1997/01/17 23:36:28 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 2.4 1997/01/12 22:35:11 jj Exp $
+    $Id: ppt_real.h,v 2.5 1997/01/17 23:36:28 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -274,6 +274,7 @@ typedef struct {
    is used ONLY on savers.  PPT processes only in real color, but a color-
    reduced image can be saved. */
 
+#define CSF_NONE            0x00   /* Use this to signify nothing is understood*/
 #define CSF_UNKNOWN         0x01   /* Dummy. Not used. */
 #define CSF_GRAYLEVEL       0x02
 #define CSF_RGB             0x04
