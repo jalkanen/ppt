@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.5 1995/10/26 19:41:07 jj Exp $
+    $Id: colormap.c,v 1.6 1995/11/25 00:06:57 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -10,13 +10,22 @@
         * HAM8
 */
 
+/*--------------------------------------------------------------------*/
+/* Includes */
+
 #include <defs.h>
 #include <render.h>
+
+/*--------------------------------------------------------------------*/
+/* Prototypes */
 
 Prototype __D0 UWORD GetColor_Normal( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
 Prototype __D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *, __D0 UBYTE, __D1 UBYTE, __D2 UBYTE ) ;
 Prototype __D0 UWORD GetColor_HAM( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
 Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE  );
+
+/*--------------------------------------------------------------------*/
+/* Defines */
 
 #define RED 0
 #define GREEN 1
@@ -24,14 +33,23 @@ Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D
 #define PEN 3
 #define ham_color_type int
 
+#undef HAM_DEBUG
+
+/*--------------------------------------------------------------------*/
+/* Code */
+
 /*
-    BUG: Creates artifacts
+    Uses HAM8 but in 16 colors to create an approximation, then
+    converts into HAM6 form.
 */
 __D0 UWORD GetColor_HAM( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
 {
     UWORD pen;
 
     pen = GetColor_HAM8( rdo, r,g,b );
+
+    if( pen <= 16 )
+        return pen;
 
     return (pen >> 2);
 }
@@ -47,8 +65,8 @@ __D0 UWORD GetColor_HAM( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE
 */
 __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
 {
-    WORD oldr,oldg,oldb;
-    WORD penr,peng,penb;
+    UWORD oldr,oldg,oldb;
+    UWORD penr,peng,penb;
     UWORD pen;
     ham_color_type best;
 
@@ -56,9 +74,9 @@ __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYT
      *  Get the old colormap entry
      */
 
-    oldr = (WORD)rdo->newr;
-    oldg = (WORD)rdo->newg;
-    oldb = (WORD)rdo->newb;
+    oldr = (UWORD)rdo->newr;
+    oldg = (UWORD)rdo->newg;
+    oldb = (UWORD)rdo->newb;
 
     // D(bug("Current pixel: R=%d, G=%d, B=%d\n",r,g,b));
     // D(bug("Last pixel: R=%d, G=%d, B=%d\n",oldr,oldg,oldb));
@@ -69,9 +87,9 @@ __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYT
      */
 
     pen  = GetColor_Normal( rdo, r, g, b );
-    penr = (WORD)rdo->newr;
-    peng = (WORD)rdo->newg;
-    penb = (WORD)rdo->newb;
+    penr = (UWORD)rdo->newr;
+    peng = (UWORD)rdo->newg;
+    penb = (UWORD)rdo->newb;
 
     /*
      *  Now, let's calculate the best distances these systems give.
@@ -123,7 +141,7 @@ __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYT
 
         {
             ham_color_type best1, best2;
-            WORD best1val, best2val, bestval;
+            LONG best1val, best2val, bestval;
 
             if( bestred < bestgreen ) {
                 best1 = RED;
@@ -263,3 +281,7 @@ __D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D
 
     return color;
 }
+
+/*--------------------------------------------------------------------*/
+/*                            END OF CODE                             */
+/*--------------------------------------------------------------------*/
