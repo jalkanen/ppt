@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.5 1996/01/08 23:40:30 jj Exp $
+    $Id: infowin.c,v 1.6 1996/05/13 00:14:59 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -28,6 +28,8 @@ Prototype PERROR        AllocInfoWindow( FRAME *, EXTBASE * );
 Prototype void          DeleteInfoWindow( INFOWIN *, EXTBASE * );
 Prototype PERROR        OpenInfoWindow( INFOWIN *iw, EXTBASE *xd );
 Prototype VOID          CloseInfoWindow( INFOWIN *iw, EXTBASE *xd );
+Prototype VOID          EnableInfoWindow( INFOWIN *, EXTBASE * );
+Prototype VOID          DisableInfoWindow( INFOWIN *, EXTBASE * );
 
 /*-------------------------------------------------------------------------*/
 
@@ -64,7 +66,10 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
             Req(NEGNUL,NULL,XGetStr(MSG_COULD_NOT_ALLOC_INFOWINDOW));
             return PERR_WINDOWOPEN;
         }
+    } else {
+        D(bug("Infowindow already existed\n"));
     }
+
     return PERR_OK;
 }
 
@@ -189,17 +194,17 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
     SHLOCKGLOB(); /* We don't want anyone else to muck about here */
     if( iw->WO_win == NULL ) { /* Do we exist yet? */
         iw->WO_win = MyWindowObject,
-                WINDOW_Title, f->nd.ln_Name,
+                WINDOW_Title,       f->nd.ln_Name,
                 WINDOW_ScreenTitle, std_ppt_blurb,
-                WINDOW_SizeGadget, TRUE,
-                WINDOW_MenuStrip, PPTMenus,
-                WINDOW_ScaleWidth, 40,
-                WINDOW_Font, globals->userprefs->mainfont,
-                WINDOW_Screen, scr,
-                WINDOW_SharedPort, MainIDCMPPort,
-                WINDOW_HelpFile, "PROGDIR:docs/ppt.guide",
-                WINDOW_HelpNode, "Infowindow",
-                posntag, posnval, /* Window position */
+                WINDOW_SizeGadget,  TRUE,
+                WINDOW_ScaleWidth,  40,
+                WINDOW_Font,        globals->userprefs->mainfont,
+                WINDOW_Screen,      scr,
+                WINDOW_SharedPort,  MainIDCMPPort,
+                WINDOW_HelpFile,    "PROGDIR:docs/ppt.guide",
+                WINDOW_HelpNode,    "Infowindow",
+                WINDOW_LockHeight,  TRUE,
+                posntag,            posnval, /* Window position */
                 WINDOW_MasterGroup,
                     MyVGroupObject, HOffset(4), VOffset(4), Spacing(4),
                         StartMember,
@@ -211,12 +216,12 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                         EndMember,
                         StartMember,
                             iw->GO_progress = MyProgressObject,
-                                Label(""), Place(PLACE_LEFT),
+                                // Label(""), Place(PLACE_LEFT),
                                 ButtonFrame, FRM_Flags, FRF_RECESSED,
                                 PROGRESS_Min, MINPROGRESS,
                                 PROGRESS_Max, MAXPROGRESS,
                                 PROGRESS_Done, 0L,
-                            EndObject,
+                            EndObject, FixHeight(14),
                         EndMember,
                         StartMember,
                             MyHGroupObject, Spacing(4),
@@ -268,4 +273,38 @@ void UpdateIWSelbox( FRAME *f )
 
 }
 
+/*
+ *  Disables the info window gadgets from accepting input.
+ *  Use with caution!
+ */
+
+VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+{
+    APTR IntuitionBase = ExtBase->lb_Intuition;
+    struct TagItem tags[3] = {
+        GA_Disabled, TRUE,
+        TAG_DONE, 0L
+    };
+
+    if( iw ) {
+        SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
+    }
+}
+
+/*
+ *  Reverses the effect of DisableInfoWindow()
+ */
+
+VOID EnableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+{
+    APTR IntuitionBase = ExtBase->lb_Intuition;
+    struct TagItem tags[3] = {
+        GA_Disabled, FALSE,
+        TAG_DONE, 0L
+    };
+
+    if( iw ) {
+        SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
+    }
+}
 
