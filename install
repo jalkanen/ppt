@@ -1,20 +1,20 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.1 $
-;      $Date: 1996/11/17 19:51:35 $
+;  $Revision: 1.2 $
+;      $Date: 1996/11/24 20:52:47 $
 ;
 
 (message "\n"
-	 "IMPORTANT!\n"
-	 "\n"
-	 "This is a pre-release version of PPT and\n"
-	 "\n"
-	 "NOT TO BE DISTRIBUTED\n"
-	 "\n"
-	 "without the written permission of the author"
-	 (all)
-	 )
+         "IMPORTANT!\n"
+         "\n"
+         "This is a pre-release version of PPT and\n"
+         "\n"
+         "NOT TO BE DISTRIBUTED\n"
+         "\n"
+         "without the written permission of the author"
+         (all)
+         )
 
 (welcome "This is the PPT Installation utility."
          "Thank you for choosing to test it.")
@@ -31,17 +31,17 @@
 
 ; If user-level is expert, ask which versions to install.
 
-(if (= @user-level 2) 
-    (set ##use020
-	 (askbool
-	  (prompt "\n"
-		  "Do you wish to use the 68020+ optimized\n"
-		  "versions of the BGUI library and PPT?")
-	  (help @askbool-help)
-	  (default ##use020)
-	  )
-	 )
-  )
+;(if (= @user-level 2)
+;    (set ##use020
+;         (askbool
+;          (prompt "\n"
+;                  "Do you wish to use the 68020+ optimized\n"
+;                  "versions of the BGUI library and PPT?")
+;          (help @askbool-help)
+;          (default ##use020)
+;          )
+;         )
+;  )
 
 (debug "Use020 : " ##use020)
 
@@ -93,23 +93,57 @@
 ;   Install libraries
 ;
 
-(copylib
-    (prompt "Copying BGUI library")
-    (confirm)
-    (source (if (= ##cpu020 1) ("libs/bgui.library_e") ("libs/bgui.library") ))
-    (dest   "libs:")
-    (newname "bgui.library")
-    (help   @copylib-help)
+(message "\nNow make sure you have BGUI 41.7 installed")
+
+;(copylib
+;    (prompt "Copying BGUI library")
+;    (confirm)
+;    (source (if (= ##cpu020 1) ("libs/bgui.library_e") ("libs/bgui.library")))
+;    (dest   "libs:")
+;    (newname "bgui.library")
+;    (help   @copylib-help)
+;)
+
+;(copylib
+;    (prompt "Copying BGUI support gadgets")
+;    (confirm)
+;    (source "libs/bgui_palette.gadget")
+;    (dest   "SYS:Classes/Gadgets")
+;    (help   @copylib-help)
+;)
+
+;
+;   Make assigns
+;
+
+(set ##jpegdir
+    (askdir
+        (prompt "You must now choose a place for any "
+                "temporary JPEG files to be put in. "
+                "(See Help for more info)"
+        )
+        (help   "The JPEG loader needs a JPEGTMP: assign "
+                "in order to handle really large progressive "
+                "or multi-scan files.  If you already happen "
+                "to have this assign, just say 'Skip This Phase'. "
+                "If not, then you should pick up a hard drive "
+                "directory with plenty of space."
+        )
+        (default ##installdir)
+    )
 )
 
-(copylib
-    (prompt "Copying BGUI support gadgets")
-    (confirm)
-    (source "libs/bgui_palette.gadget")
-    (dest   "SYS:Classes/Gadgets")
-    (help   @copylib-help)
-)
+(makeassign "JPEGTMP" ##jpegdir)
 
+(set ##jpegassign ("Assign >NIL: JPEGTMP: %s" ##jpegdir))
+
+(startup "PPT JPEG loader"
+    (prompt ( "\nI shall now add the following line\nto your S:User-Startup:\n\n%s"
+               ##jpegassign)
+            )
+    (command ##jpegassign )
+    (help @startup-help)
+)
 
 ;
 ;   The END.
