@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  toolbar.h
 
-    $Id: toolbar.h,v 1.3 1999/01/13 22:54:56 jj Exp $
+    $Id: toolbar.h,v 1.4 1999/02/21 20:32:00 jj Exp $
 */
 #ifndef TOOLBAR_H
 #define TOOLBAR_H
@@ -27,6 +27,7 @@ typedef enum {
 struct ToolbarItem {
     ULONG               ti_GadgetID;
     ToolbarItemType     ti_Type;
+    const STRPTR        ti_DefaultFileName;
     STRPTR              ti_FileName;
     STRPTR              ti_Label;
     Object              *ti_Gadget;
