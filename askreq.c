@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.24 1998/01/04 16:32:48 jj Exp $
+    $Id: askreq.c,v 1.25 1998/02/06 19:09:45 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -152,7 +152,11 @@ Prototype ASM int      AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a
 *           ARSLIDER_Max - Minimum and maximum value for the slider. Defaults
 *               are 0 and 100, respectively.
 *
-*           ARSLIDER_Default - Default value. Default is 50.
+*           ARSLIDER_Default - Starting value. Default is 50.  If this tag
+*               does not exist, the default is taken from wherever
+*               AROBJ_Value happens to be pointing at.
+*
+*           The AROBJ_Value field will contain the slider value on return.
 *
 *       AR_StringObject - Create a string gadget. Available attributes
 *           are:
@@ -296,11 +300,10 @@ Prototype ASM int      AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a
 *       The varargs version AskReq() can be found in pptsupp.lib. Please
 *       note that it really does require the ExtBase in stack, since the
 *       pointer cannot be declared global.  Unless you're running SAS/C
-*       of course, in which case you can use the #pragma tagcall.
+*       of course, in which case the compiler uses the #pragma tagcall
+*       and you can stop worrying.
 *
 *   BUGS
-*       Still under heavy development.
-*       Does not support as many gadgets as I'd like.
 *
 *   SEE ALSO
 *
@@ -321,7 +324,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
                      EXTBASE *xd )
 {
     Object *obj = NULL;
-    struct TagItem *list = (struct TagItem *)(tag->ti_Data);
+    struct TagItem *list = (struct TagItem *)(tag->ti_Data), *t;
     APTR UtilityBase = xd->lb_Utility;
     EXTBASE *ExtBase = xd; /* BUG! */
     struct Hook *hook;
@@ -339,9 +342,21 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
         case AR_SliderObject: {
             Object *Slider, *Integer;
             ULONG min,max,level;
+
+            /*
+             *  Fetch limits and current value. Default value is preferred
+             *  over whatever is found in the Value field at the time.
+             */
+
             min = GetTagData( ARSLIDER_Min, 0, list );
             max = GetTagData( ARSLIDER_Max, 100, list );
-            level = GetTagData( ARSLIDER_Default, 50, list );
+            if( t = FindTagItem( ARSLIDER_Default, list ) ) {
+                level = t->ti_Data;
+            } else if (t = FindTagItem( AROBJ_Value, list ) ) {
+                level = *((LONG *)(t->ti_Data));
+            } else {
+                level = 50; // Default
+            }
 
             obj = MyHGroupObject, Spacing(4),
                 GROUP_EqualHeight, TRUE,
@@ -401,11 +416,19 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             min     = (LONG)GetTagData( ARFLOAT_Min, -100, list );
             max     = (LONG)GetTagData( ARFLOAT_Max, 100, list );
             level   = (LONG)GetTagData( ARFLOAT_Default, 0, list );
-            div     = (LONG)GetTagData( ARFLOAT_Divisor, 1, list );
+            div     = (LONG)GetTagData( ARFLOAT_Divisor, 100, list );
             format  = (STRPTR)GetTagData( ARFLOAT_FormatString, (ULONG)"%.3f", list );
 
+            D(bug("\tFloat: min=%ld, max=%ld, def=%ld, div=%ld, format=%s\n",
+                    min,max,level,div,format));
+
+            /*
+             *  Calculate the width that the given format string requires.
+             *  Add two bytes for sign and the cursor.
+             */
+
             sprintf(tmpbuf,format,PI);
-            mcv = strlen(tmpbuf);
+            mcv = strlen(tmpbuf)+2;
 
             obj = MyHGroupObject, Spacing(4),
                 GROUP_EqualHeight, TRUE,
@@ -426,7 +449,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
                     Float = NewObject( xd->FloatClass, NULL,
                         GA_ID, 1000+id, /* BUG */
                         RidgeFrame,
-                        STRINGA_MinCharsVisible,mcv+2,
+                        STRINGA_MinCharsVisible,mcv,
                         STRINGA_MaxChars,       12, /* BUG: Should adjust according to the max/min values. */
                         FLOAT_LongValue,        level,
                         FLOAT_LongMin,          min,
