@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.2 1995/09/06 23:35:32 jj Exp $
+    $Id: external.c,v 1.3 1995/10/02 19:37:19 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -49,7 +49,7 @@ Prototype EXTBASE       *NewExtBase( BOOL );
     given. type controls the list to be selected. Returns the # of items added.
     This routine is re-entrant.
 
-    Flags: AEE_SaversOnly : Add just those loaders able to save.
+    Flags: AEE_*
 
     BUG: Should use some other method of adding entries... now creates a global reference
 */
@@ -74,15 +74,33 @@ __geta4 int AddExtEntries( EXTDATA *xd, struct Window *win, Object *lv, UBYTE ty
     }
 
     for(; cn->ln_Succ; cn = cn->ln_Succ ) {
-        if( flags & AEE_SaversOnly ) {
-            LOADER *ld = (LOADER *)cn;
-            if( !(GetTagData(PPTX_SaveColorMapped, NULL, ld->info.tags) ||
-                  GetTagData(PPTX_SaveTrueColor, NULL, ld->info.tags) ) )
-                  continue; /* Skip this entry */
-        }
-        AddEntry( NULL,lv,cn->ln_Name,LVAP_TAIL );
+        EXTERNAL *ext;
+        BOOL add;
 
-        count++;
+        ext = (EXTERNAL *)cn;
+        add = FALSE;
+
+        if( flags & AEE_SAVECM && !add) {
+            if( GetTagData(PPTX_SaveColorMapped, NULL, ext->tags))
+                add = TRUE;
+        }
+
+        if( flags & AEE_SAVETC && !add) {
+            if( GetTagData(PPTX_SaveTrueColor, NULL, ext->tags))
+                add = TRUE;
+        }
+
+        if( flags & AEE_LOAD && !add) {
+            if( GetTagData(PPTX_Load, NULL, ext->tags))
+                add = TRUE;
+        }
+
+        if( type == NT_EFFECT ) add = TRUE; /* These are always added */
+
+        if(add) {
+            AddEntry( NULL,lv,cn->ln_Name,LVAP_TAIL );
+            count++;
+        }
     }
 
     UNLOCKGLOB();
