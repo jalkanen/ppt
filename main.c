@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.104 1999/02/20 15:28:11 jj Exp $
+    $Id: main.c,v 1.105 1999/02/20 22:38:31 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -100,7 +100,7 @@ struct PrefsWindow prefsw = {0};
 
 struct SelectWindow selectw = {0};
 
-struct MsgPort *MainIDCMPPort;
+struct MsgPort *MainIDCMPPort, *AppIconPort = NULL;
 
 BOOL loader_close = TRUE; /* TRUE, if the Loader window should be closed
                              after the first selection. */
@@ -548,10 +548,23 @@ void HandleAppMsg( const struct AppMessage *apm )
 {
     struct WBArg *ap;
     int i;
-    char name[MAXPATHLEN];
+    char name[MAXPATHLEN+1];
+
+    D(bug("HandleAppMsg()\n"));
+
+    /*
+     *  Doubleclick of appicon
+     */
+
+    if( apm->am_NumArgs == 0 ) {
+        ScreenToFront(MAINSCR);
+        return;
+    }
 
     for( ap = apm->am_ArgList, i = 0; i < apm->am_NumArgs; i++, ap++) {
         NameFromLock( ap->wa_Lock, name, MAXPATHLEN );
+        D(bug("\tap->wa_Name = %s, name = %s\n",ap->wa_Name, name));
+        AddPart( name, ap->wa_Name, MAXPATHLEN );
         if(strlen(ap->wa_Name) > 0) { /* Currently, no directories are allowed */
             RunLoad(name,NULL,NULL);
         } else {
@@ -3374,7 +3387,7 @@ exit_frame_main_loop:
 
 int main(int argc, char **argv)
 {
-    ULONG mainmask, appmask, helpmask = 0; /* Signal masks. */
+    ULONG mainmask, appmask, helpmask = 0, appiconmask = 0; /* Signal masks. */
     ULONG sig; /* The received signal */
     ULONG globsigmask;
     struct AppMessage *apm;
@@ -3458,10 +3471,12 @@ int main(int argc, char **argv)
 restart_window:
     GetAttr( WINDOW_SigMask, globals->WO_main, &mainmask );
     GetAttr( WINDOW_AppMask, globals->WO_main, &appmask );
+    appiconmask = (1<<AppIconPort->mp_SigBit);
     helpmask = GetHelpSignal();
     globsigmask = (1 << rxhost->port->mp_SigBit) |
                    mainmask |
                    appmask |
+                   appiconmask |
                    helpmask |
                    SIGBREAKF_CTRL_C |
                    (1 << globals->mport->mp_SigBit); /* Make the global sigmask */
@@ -3503,6 +3518,17 @@ restart_window:
         if( sig & appmask ) {
             D(bug("\tappwin\n"));
             while( apm = GetAppMsg( globals->WO_main ) ) {
+                HandleAppMsg( apm );
+                ReplyMsg( (struct Message *)apm );
+            }
+        }
+
+        /*
+         *  AppIcon msg
+         */
+
+        if( sig & appiconmask ) {
+            while( apm = GetMsg( AppIconPort ) ) {
                 HandleAppMsg( apm );
                 ReplyMsg( (struct Message *)apm );
             }

@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.38 1999/01/13 22:56:59 jj Exp $
+    $Id: initexit.c,v 1.39 1999/02/20 22:38:06 jj Exp $
 
     Initialization and exit code.
 */
@@ -50,6 +50,9 @@
 #include <proto/locale.h>
 #endif
 
+#include <proto/wb.h>
+#include <proto/icon.h>
+
 #include <clib/alib_protos.h>
 
 #include <stdlib.h>
@@ -89,6 +92,8 @@ struct Locale  *MyLocale = NULL;
 struct Catalog *MyCatalog = NULL;
 
 BOOL MasterQuit = FALSE;
+
+struct AppIcon *appicon = NULL;
 
 /*
     The default fonts.
@@ -322,6 +327,7 @@ int Initialize( void )
     PREFS *p;
     struct Screen *pubscr = NULL;
     struct DrawInfo *drinfo = NULL;
+    struct DiskObject *diskobj = NULL;
     struct EasyStruct es = {
         sizeof(struct EasyStruct),0L,"PPT library request",
         "Sorry, but I need %s.library V%ld+","Gotcha"
@@ -684,6 +690,12 @@ int Initialize( void )
      *  Misc stuff
      */
 
+    if( AppIconPort = CreateMsgPort() ) {
+        if(diskobj = GetDiskObject("PROGDIR:PPT")) {
+            appicon = AddAppIcon(0L, 0L, "PPT", AppIconPort, NULL, diskobj, TAG_DONE );
+            FreeDiskObject( diskobj );
+        }
+    }
     InitOptions(); /* BUG: Should check */
 
     /*
@@ -776,6 +788,18 @@ int FreeResources (GLOBALS *g)
     MasterQuit = TRUE;
 
     CloseStartupWindow(); /* Just in case we die during the startup */
+
+    /*
+     *  Appicon stuff
+     */
+
+    if( appicon ) {
+        RemoveAppIcon(appicon);
+    }
+    if( AppIconPort ) {
+        EmptyMsgPort( AppIconPort, globxd );
+        DeleteMsgPort( AppIconPort );
+    }
 
     /* Send break to all active processes.
        BUG: Should really wait until they've told they've quit all */
