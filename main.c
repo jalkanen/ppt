@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.85 1998/01/04 16:35:24 jj Exp $
+    $Id: main.c,v 1.86 1998/06/28 23:22:20 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -141,7 +141,6 @@ Local void              HandleAppMsg( const struct AppMessage * );
 Local int               HandleMainIDCMP( ULONG );
 Local int               HandleInfoIDCMP( INFOWIN *, ULONG );
 Local void              UpdateDispPrefsWindow( FRAME * );
-Local void              ReorientSelbox( struct Rectangle *r );
 #ifdef _DCC
 Local int               wbmain( struct WBStartup * );
 #endif
@@ -407,6 +406,7 @@ VOID UpdateMainWindow( FRAME *frame )
                         INFO_TextFormat, GetStr(MSG_MAINWIN_INFO),
                         INFO_Args, args, TAG_END );
 
+        // EnableMenuItem( MID_SAVE );
         EnableMenuItem( MID_SAVEAS );
         EnableMenuItem( MID_DELETE );
         EnableMenuItem( MID_RENAME );
@@ -449,6 +449,7 @@ VOID UpdateMainWindow( FRAME *frame )
                         INFO_TextFormat, GetStr(MSG_MAIN_NOFRAME),
                         INFO_Args, NULL, TAG_END );
 
+        // DisableMenuItem( MID_SAVE );
         DisableMenuItem( MID_SAVEAS );
         DisableMenuItem( MID_DELETE );
         DisableMenuItem( MID_RENAME );
@@ -731,6 +732,12 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 loader_close = TRUE;
             } else {
                 ActivateWindow( extl.win );
+            }
+            break;
+
+        case MID_SAVE:
+            if( FrameFree( frame ) ) {
+                /* BUG: Still to be done... */
             }
             break;
 
@@ -1365,7 +1372,7 @@ Prototype void UpdateIWSelbox( FRAME *f );
 
 void UpdateIWSelbox( FRAME *f )
 {
-    LONG tl, tr, bl, br;
+    LONG tl, tr, bl, br, cx, cy, cr;
     BOOL  disable;
 
     if( !selectw.win ) return;
@@ -1408,6 +1415,27 @@ void UpdateIWSelbox( FRAME *f )
                     STRINGA_LongVal, abs(br-tr)+1,
                     GA_Disabled, disable, TAG_DONE );
 
+#ifdef DEBUG_MODE
+    if( f ) {
+        cx = f->circlex = ((abs(bl-tl)+1)>>1)+tl;
+        cy = f->circley = ((abs(br-tr)+1)>>1)+tr;
+        cr = f->circleradius = (abs(bl-tl)+1)>>1;
+    } else {
+        cx = cy = cr = 0;
+    }
+
+    SetGadgetAttrs( GAD(selectw.CircleRadius), selectw.win, NULL,
+                    STRINGA_LongVal, cr,
+                    GA_Disabled, disable, TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.CircleX), selectw.win, NULL,
+                    STRINGA_LongVal, cx,
+                    GA_Disabled, disable, TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
+                    STRINGA_LongVal, cy,
+                    GA_Disabled, disable, TAG_DONE );
+#endif
 }
 
 Local
@@ -1525,6 +1553,23 @@ int HandleSelectIDCMP( ULONG rc )
                 UpdateIWSelbox( frame );
             }
 
+            break;
+
+        case GID_SELECT_PAGE:
+            if( frame ) {
+                GetAttr( PAGE_Active, selectw.Page, &t );
+                D(bug("\tNew select method: %lu\n",t));
+                RemoveSelectBox( frame );
+                if( t ) {
+                    D(bug("Changed into circle mode\n"));
+                    frame->selectmethod = GINP_LASSO_CIRCLE;
+                } else {
+                    D(bug("Changed into rectangle mode\n"));
+                    frame->selectmethod = GINP_LASSO_RECT;
+                }
+                DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
+            }
             break;
 
         default:
@@ -1973,8 +2018,14 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
 
 ///
 
-Local
-void ReorientSelbox( struct Rectangle *r )
+/*
+    This function turns the box around so that the top left
+    co-ordinates are the smallest ones.
+ */
+
+Prototype VOID ReorientSelbox( struct Rectangle *r );
+
+VOID ReorientSelbox( struct Rectangle *r )
 {
     WORD t;
 
@@ -1996,7 +2047,8 @@ void ReorientSelbox( struct Rectangle *r )
     is within the image.
  */
 
-Local
+Prototype BOOL CalcMouseCoords( FRAME *, WORD, WORD, WORD *, WORD * );
+
 BOOL CalcMouseCoords( FRAME *frame, WORD mousex, WORD mousey, WORD *x, WORD *y )
 {
     BOOL isin = TRUE;
@@ -2023,345 +2075,6 @@ BOOL CalcMouseCoords( FRAME *frame, WORD mousex, WORD mousey, WORD *x, WORD *y )
 
 
 /// HandleQDispWinIDCMP()
-
-/*
-    Local handlers for HandleQDispWinIDCMP();
-
-    mousex,mousey = mouse location at the moment of the event
-    xloc, yloc    = the image coordinates under the mouse cursor
-*/
-
-Local
-VOID DW_ButtonDown( FRAME *frame, WORD mousex, WORD mousey, WORD xloc, WORD yloc )
-{
-    struct Rectangle *sb = &frame->selbox;
-    struct gPointMessage *gp;
-    UWORD boxsize = 5;
-    struct Rectangle *cb = &frame->disp->handles;
-
-    /*
-     *  Discard this, if the button seems to be already down
-     */
-
-    if( frame->selstatus & SELF_BUTTONDOWN ) {
-        D(bug("Discarded BUTTON_DOWN in panic...\n"));
-        return;
-    }
-
-    switch(frame->selectmethod) {
-
-        case GINP_LASSO_RECT:
-
-            if( IsFrameBusy(frame) ) break;
-
-            /*
-             *  If the window has an old display rectangle visible, remove it.
-             */
-
-            if(sb->MinX != ~0 && (frame->selstatus & SELF_RECTANGLE) ) { /* Delete old. */
-                BOOL corner = FALSE;
-
-                RemoveSelectBox( frame );
-
-                /*
-                 *  Now, if the mouse was on the image handles, we will
-                 *  start resizing the select box.  The box is always
-                 *  in the right orientation here.
-                 */
-
-                if( mousex >= cb->MinX && mousex < cb->MinX+boxsize && mousey >= cb->MinY && mousey < cb->MinY+boxsize ) {
-                    // Top left corner
-                    sb->MinX = sb->MaxX; sb->MinY = sb->MaxY;
-                    corner = TRUE;
-                } else if(mousex >= cb->MinX && mousex < cb->MinX+boxsize && mousey >= cb->MaxY-boxsize && mousey < cb->MaxY ) {
-                    // Top right corner
-                    sb->MinX = sb->MaxX; sb->MinY = sb->MinY;
-                    corner = TRUE;
-                } else if(mousex >= cb->MaxX-boxsize && mousex < cb->MaxX && mousey >= cb->MinY && mousey < cb->MinY+boxsize ) {
-                    // Bottom left corner
-                    sb->MinX = sb->MinX; sb->MinY = sb->MaxY;
-                    corner = TRUE;
-                } else if(mousex >= cb->MaxX-boxsize && mousex < cb->MaxX && mousey >= cb->MaxY-boxsize && mousey < cb->MaxY ) {
-                    // Bottom right corner
-                    corner = TRUE;
-                }
-
-                if( corner ) {
-                    sb->MaxX = xloc; sb->MaxY = yloc;
-                    DrawSelectBox( frame, DSBF_INTERIM );
-                    UpdateIWSelbox(frame);
-                    frame->selstatus |= SELF_BUTTONDOWN;
-                    D(bug("Picked image handle (%d,%d)\n",xloc,yloc));
-                    break;
-                }
-            }
-
-            /*
-             *  Now, if there was no previous selectbox drawn, we will start
-             *  a new area to be drawn.
-             */
-
-            sb->MinX = xloc;
-            sb->MinY = yloc;
-            sb->MaxX = sb->MinX;
-            sb->MaxY = sb->MinY;
-            D(bug("Marked select begin (%d,%d)\n",xloc,yloc));
-
-            frame->selstatus |= SELF_BUTTONDOWN;
-            break;
-
-        case GINP_PICK_POINT:
-
-            /*
-             *  We have a point. Tell the external about the user selection
-             */
-
-            gp = (struct gPointMessage *) AllocPPTMsg(sizeof(struct gPointMessage), globxd);
-            if( gp ) {
-                D(bug("PICKPOINT msg sent: (%d,%d)\n",xloc,yloc));
-                gp->msg.code = PPTMSG_PICK_POINT;
-                gp->x = xloc;
-                gp->y = yloc;
-                SendInputMsg( frame, gp );
-            } else {
-                Panic("Can't alloc gPointMsg\n");
-            }
-            break;
-
-        case GINP_FIXED_RECT:
-            if( mousex >= cb->MinX && mousex <= cb->MaxX && mousey >= cb->MinY && mousey <= cb->MaxY ) {
-
-                frame->fixoffsetx = mousex - cb->MinX;
-                frame->fixoffsety = mousey - cb->MinY;
-
-                frame->selstatus |= SELF_BUTTONDOWN;
-            }
-            break;
-
-        default:
-            D(bug("Unknown method %ld\n"));
-            break;
-    }
-}
-
-Local
-VOID DW_ControlButtonDown( FRAME *frame, WORD mousex, WORD mousey, WORD xloc, WORD yloc )
-{
-    struct Rectangle *sb = &frame->selbox;
-    struct Rectangle *cb = &frame->disp->handles;
-
-    switch( frame->selectmethod ) {
-        case GINP_LASSO_RECT:
-            if (IsFrameBusy(frame)) break;
-
-            if( mousex >= cb->MinX && mousey <= cb->MaxX && mousey >= cb->MinY && mousey <= cb->MaxY ) {
-                /*
-                 *  Yes, it is within the area
-                 */
-
-                RemoveSelectBox( frame );
-                frame->fixoffsetx   = mousex - cb->MinX;
-                frame->fixoffsety   = mousey - cb->MinY;
-                frame->selstatus    |= (SELF_BUTTONDOWN|SELF_CONTROLDOWN);
-            } else {
-                DW_ButtonDown( frame, mousex, mousey, xloc, yloc );
-            }
-            break;
-
-        default:
-            DW_ButtonDown( frame, mousex, mousey, xloc, yloc );
-    }
-}
-
-Local
-VOID DW_ButtonUp( FRAME *frame, WORD xloc, WORD yloc )
-{
-    struct Rectangle *sb = &frame->selbox;
-    struct gFixRectMessage *gfr;
-
-    switch( frame->selectmethod ) {
-
-        case GINP_LASSO_RECT:
-
-            if( IsFrameBusy(frame) ) break;
-
-            if( frame->selstatus & SELF_CONTROLDOWN ) {
-                WORD xx, yy, w, h;
-
-                RemoveSelectBox( frame );
-
-                /*
-                 *  Calculate the rectangle location - redrawing it.
-                 */
-
-                w = sb->MaxX - sb->MinX;
-                h = sb->MaxY - sb->MinY;
-
-                CalcMouseCoords( frame, frame->fixoffsetx, frame->fixoffsety, &xx, &yy );
-
-                if( xloc-xx < 0 ) {
-                    sb->MinX = 0;
-                } else if( xloc-xx+w > frame->pix->width ) {
-                    sb->MinX = frame->pix->width-w;
-                } else {
-                    sb->MinX = xloc-xx;
-                }
-
-                if( yloc-yy < 0 ) {
-                    sb->MinY = 0;
-                } else if( yloc-yy+h > frame->pix->height ) {
-                    sb->MinY = frame->pix->height-h;
-                } else {
-                    sb->MinY = yloc-yy;
-                }
-
-                sb->MaxX = sb->MinX + w;
-                sb->MaxY = sb->MinY + h;
-
-                UpdateIWSelbox( frame );
-                DrawSelectBox( frame, 0L );
-                frame->selstatus &= ~(SELF_BUTTONDOWN|SELF_CONTROLDOWN);
-            } else {
-
-                if(xloc == sb->MinX || yloc == sb->MinY) {
-                    /*
-                     *  Image is too small, so it will be removed.
-                     */
-                    UnselectImage( frame );
-                    UpdateIWSelbox( frame );
-                    frame->selstatus &= ~(SELF_BUTTONDOWN|SELF_RECTANGLE);
-                } else {
-                    /*
-                     *  Remove the old display rectangle, if needed.
-                     */
-
-                    RemoveSelectBox( frame );
-
-                    /*
-                     *  Reorient the rectangle and put up the new one.
-                     */
-
-                    sb->MaxX = xloc;
-                    sb->MaxY = yloc;
-                    ReorientSelbox(sb);
-                    UpdateIWSelbox(frame);
-                    DrawSelectBox( frame, 0L );
-                    frame->selstatus &= ~(SELF_BUTTONDOWN);
-                    D(bug("Marked select end (%d,%d)\n",xloc,yloc));
-                }
-            }
-            break;
-
-        case GINP_FIXED_RECT:
-            gfr = (struct gFixRectMessage *) AllocPPTMsg(sizeof(struct gFixRectMessage), globxd);
-
-            if( gfr ) {
-                WORD xx, yy;
-
-                CalcMouseCoords( frame, frame->fixoffsetx, frame->fixoffsety, &xx, &yy );
-                frame->selstatus &= ~SELF_BUTTONDOWN;
-
-                D(bug("FIXEDRECT msg sent: (%d,%d)\n",xloc-xx,yloc-yy));
-                gfr->msg.code = PPTMSG_FIXED_RECT;
-                gfr->x = xloc - xx;
-                gfr->y = yloc - yy;
-                SendInputMsg( frame, gfr );
-            } else {
-                Panic("Can't alloc gFixRectMsg\n");
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
-Local
-VOID DW_MouseMove( FRAME *frame, WORD xloc, WORD yloc )
-{
-    struct Rectangle *sb = &frame->selbox;
-    struct IBox *gfr = &frame->fixrect;
-    WORD xx, yy;
-
-    switch( frame->selectmethod ) {
-        case GINP_LASSO_RECT:
-            if( sb->MinX != ~0 && (frame->selstatus & SELF_BUTTONDOWN) ) {
-                /* Overdraw previous */
-                RemoveSelectBox( frame );
-
-                if( frame->selstatus & SELF_CONTROLDOWN ) {
-                    WORD xx, yy, w, h;
-
-                    w = sb->MaxX - sb->MinX;
-                    h = sb->MaxY - sb->MinY;
-
-                    CalcMouseCoords( frame, frame->fixoffsetx, frame->fixoffsety, &xx, &yy );
-
-                    if( xloc-xx < 0 ) {
-                        sb->MinX = 0;
-                    } else if( xloc-xx+w > frame->pix->width ) {
-                        sb->MinX = frame->pix->width-w;
-                    } else {
-                        sb->MinX = xloc-xx;
-                    }
-
-                    if( yloc-yy < 0 ) {
-                        sb->MinY = 0;
-                    } else if( yloc-yy+h > frame->pix->height ) {
-                        sb->MinY = frame->pix->height-h;
-                    } else {
-                        sb->MinY = yloc-yy;
-                    }
-
-                    sb->MaxX = sb->MinX + w;
-                    sb->MaxY = sb->MinY + h;
-
-                } else {
-                    /* Redraw new */
-                    sb->MaxX = xloc; sb->MaxY = yloc;
-                }
-                DrawSelectBox( frame, DSBF_INTERIM );
-                UpdateIWSelbox(frame);
-            }
-
-            break;
-
-        case GINP_PICK_POINT:
-            break;
-
-        case GINP_FIXED_RECT:
-
-            if( frame->selstatus & SELF_BUTTONDOWN ) {
-                /*
-                 *  Remove previous, if needed
-                 *  BUG: May conflict with the lasso_rect stuff.
-                 */
-
-                RemoveSelectBox( frame );
-
-                CalcMouseCoords( frame, frame->fixoffsetx, frame->fixoffsety, &xx, &yy );
-
-                gfr->Left = xloc-xx; gfr->Top = yloc-yy;
-
-                DrawSelectBox( frame, DSBF_FIXEDRECT );
-            }
-
-            break;
-
-        default:
-            break;
-    }
-
-    /*
-     *  The mouse location is clipped to exlude the values just
-     *  outside the border.
-     */
-
-    UpdateMouseLocation( xloc >= frame->pix->width ? frame->pix->width-1 : xloc ,
-                         yloc >= frame->pix->height ? frame->pix->height-1 : yloc );
-
-}
-
 
 /*
     Handle Quickdisplaywindow IDCMP codes.
