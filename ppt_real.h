@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.10 1996/09/22 18:11:07 jj Exp $
+    $Id: ppt_real.h,v 1.11 1996/09/30 02:42:34 jj Exp $
 
     Main definitions for PPT.
 
@@ -137,6 +137,7 @@ typedef struct {
 
 #define NT_LOADER           (NT_USER - 0)
 #define NT_EFFECT           (NT_USER - 1)
+#define NT_SCRIPT           (NT_USER - 2)
 
 /* Values reserved from NT_USER - 2 downwards. */
 
@@ -161,8 +162,13 @@ typedef struct {
 } EFFECT;
 
 
-#define FTAGBASE         ( TAG_USER + 0x20000 )
 
+/*------------------------------------------------------------------*/
+/*  Scripts...  */
+
+typedef struct {
+    EXTERNAL        info;
+} SCRIPT;
 
 /*------------------------------------------------------------------*/
 
@@ -427,6 +433,7 @@ typedef struct {
 
     BOOL            expungelibs;    /* TRUE, if all modules should be expunged
                                        after use. */
+    UBYTE           rexxpath[MAXPATHLEN]; /* All scripts reside here */
 
 } PREFS;
 
@@ -454,6 +461,7 @@ typedef struct {
     Object          *LV_frames;
     struct List     tempframes;
     struct Process  *maintask;
+    struct List     scripts;
 } GLOBALS;
 
 
