@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.51 1998/01/04 16:33:09 jj Exp $
+    $Id: display.c,v 1.52 1998/06/28 23:12:32 jj Exp $
 
     Contains display routines.
 
@@ -62,7 +62,7 @@ Prototype VOID      CloseWindowSafely( struct Window * );
 Prototype PERROR    DisplayFrame( FRAME * );
 Prototype PERROR    RemoveDisplayWindow( FRAME *f );
 Prototype PERROR    OpenDisplay( void );
-Prototype int       CloseDisplay( void );
+Prototype PERROR    CloseDisplay( void );
 Prototype UBYTE     SlowBestMatchPen8( COLORMAP *cm, UBYTE ncolors, UBYTE r, UBYTE g, UBYTE b );
 Prototype VOID      GuessDisplay( FRAME * );
 Prototype UWORD     GetMinimumDepth( ULONG );
