@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 6.0 1999/11/25 23:16:34 jj Exp $
+    $Id: save.c,v 6.1 2000/01/04 21:38:58 jj Exp $
 
     This code is executed in multiple threads.
 */
@@ -139,7 +139,8 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
         Close(fh);
 
         r = XReq( GetFrameWin(frame), XGetStr(mSAVE_CANCEL_GAD),
-                  XGetStr(mSURE_ABOUT_SAVE) );
+                  XGetStr(mSURE_ABOUT_SAVE),
+                  filename );
         if( r == 0 ) {
             return PERR_CANCELED;
         }
