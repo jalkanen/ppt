@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.23 1998/02/26 19:53:23 jj Exp $
+    $Id: defs.h,v 1.24 1998/06/30 19:57:50 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -116,6 +116,21 @@
 #define QSHLOCK(x)  ObtainSemaphoreShared( &((x)->lock) )
 #define QUNLOCK(x)  ReleaseSemaphore( &((x)->lock) )
 
+/*
+ *  Some generic macros for typecasting
+ */
+
+#define STR(x) ((STRPTR)(x))
+
+/*
+ *  Some macros for common variables
+ */
+
+#define MAINWIN       (globals->maindisp->win)
+#define MAINSCR       (globals->maindisp->scr)
+#define USERPREFS     (globals->userprefs)
+#define DOCONFIRM     (globals->userprefs->confirm)
+
 #undef TMPBUF_SUPPORTED
 
 /*------------------------------------------------------------------*/
@@ -187,6 +202,8 @@ enum DebugFile_T {
 
 #define DEFAULT_PREVIEWMODE PWMODE_MEDIUM
 
+#define DEFAULT_CONFIRM     TRUE
+
 #define VM_FILENAME         "PPT_VM_FILE"
 
 /* This gives the amount of days after which PPT starts to complain
@@ -211,6 +228,7 @@ enum DebugFile_T {
 #define SELF_BUTTONDOWN     0x02
 #define SELF_CONTROLDOWN    0x04
 
+
 /*
     Flags for AddExtEntries()
 */
@@ -221,6 +239,14 @@ enum DebugFile_T {
 
 #define AEE_SAVE            (AEE_SAVECM | AEE_SAVETC)
 #define AEE_ALL             ~0
+
+
+/*
+    Flags for DrawSelectBox()
+ */
+
+#define DSBF_INTERIM        (1<<0)
+#define DSBF_FIXEDRECT      (1<<1)
 
 /*------------------------------------------------------------------*/
 /* DICE prototype stuff */
