@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.32 1998/01/04 16:33:51 jj Exp $
+    $Id: initexit.c,v 1.33 1998/06/28 23:21:40 jj Exp $
 
     Initialization and exit code.
 */
@@ -62,6 +62,8 @@
 #define BREAK_HOW_MANY_TIMES    10
 #define BREAK_DELAY_PERIOD      15
 
+#undef USE_LOGOIMAGE
+
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
@@ -78,7 +80,7 @@ Prototype void Panic( const char * );
     different structure. */
 
 struct Library *BGUIBase = NULL, *GadToolsBase = NULL, *LocaleBase = NULL,
-               *CyberGfxBase = NULL;
+               *CyberGfxBase = NULL, *PPCLibBase = NULL;
 struct Device  *TimerBase = NULL;
 struct FontRequester *fontreq = NULL;
 struct FileRequester *filereq = NULL;
@@ -122,6 +124,9 @@ struct TextFont *sfont2 = NULL;
 Object *Win_Startup = NULL, *GO_StartupText = NULL;
 struct Window *win_Startup;
 struct Screen *scr_Startup;
+#ifdef USE_LOGOIMAGE
+FRAME  *startupframe;
+#endif
 
 const char initblurb1[] =
     ISEQ_C ISEQ_B ISEQ_HIGHLIGHT "Welcome to PPT!";
@@ -137,6 +142,34 @@ const char initblurb3[] =
 /*----------------------------------------------------------------------*/
 /* Code */
 
+#ifdef USE_LOGOIMAGE
+FRAME *OpenStartupFrame(VOID)
+{
+    FRAME *f;
+    extern UWORD logoimagec_height, logoimagec_width;
+    extern UBYTE __far logoimagec_data[];
+
+    D(bug("Allocating startup frame with %lu bytes\n",
+          logoimagec_height*logoimagec_width*3));
+
+    if(f = MakeFrame( NULL, globxd )) {
+        f->pix->height = logoimagec_height;
+        f->pix->width  = logoimagec_width;
+        f->pix->colorspace = CS_RGB;
+        f->pix->vm_mode = VMEM_NEVER;
+
+        if( InitFrame( f, globxd  ) == PERR_OK ) {
+            memcpy( f->pix->vmh->data, logoimagec_data, logoimagec_height*logoimagec_width*3);
+            return f;
+        }
+
+        RemFrame( f, globxd );
+    }
+
+    return NULL;
+}
+#endif
+
 /*
     I'm really bored.  So this is the new startup window:
     Requires:  Libraries open
@@ -145,6 +178,9 @@ const char initblurb3[] =
 VOID OpenStartupWindow(VOID)
 {
     char *blurb2args[] = { RELEASE, VERSION, VERSDATE, COPYRIGHT };
+#ifdef USE_LOGOIMAGE
+    Object *Area;
+#endif
 
     if( MAINSCR )
         scr_Startup = MAINSCR;
@@ -167,43 +203,67 @@ VOID OpenStartupWindow(VOID)
         WINDOW_CloseGadget, FALSE,
         WINDOW_DepthGadget, FALSE,
         WINDOW_MasterGroup,
-            VGroupObject, StringFrame,
-                // GROUP_BackFill,SHINE_RASTER,
-                VarSpace(50),
+            HGroupObject,
+#ifdef USE_LOGOIMAGE
                 StartMember,
-                    InfoObject,
-                        INFO_TextFormat, GetStr(mINITBLURB1),
-                        BT_TextAttr,     &startupwinfont1,
-                        // FRM_BackFill,    SHINE_RASTER,
-                        FRM_Type,        FRTYPE_NONE,
+                    Area = AreaObject,
+                        AREA_MinWidth, logoimagec_width,
+                        AREA_MinHeight, logoimagec_height,
+                        ButtonFrame,
+                    EndObject, FixMinSize,
+                EndMember,
+#endif
+                StartMember,
+                    VGroupObject, StringFrame,
+                        // GROUP_BackFill,SHINE_RASTER,
+                        VarSpace(50),
+                        StartMember,
+                            InfoObject,
+                                INFO_TextFormat, GetStr(mINITBLURB1),
+                                BT_TextAttr,     &startupwinfont1,
+                                // FRM_BackFill,    SHINE_RASTER,
+                                FRM_Type,        FRTYPE_NONE,
+                            EndObject,
+                        EndMember,
+                        VarSpace(40),
+                        StartMember,
+                            InfoObject,
+                                INFO_TextFormat, GetStr(mINITBLURB2),
+                                INFO_Args,       blurb2args,
+                                INFO_MinLines,   4,
+                                BT_TextAttr,     &startupwinfont2,
+                                // FRM_BackFill,    SHINE_RASTER,
+                                FRM_Type,        FRTYPE_NONE,
+                            EndObject,
+                        EndMember,
+                        VarSpace(50),
+                        StartMember,
+                            GO_StartupText = InfoObject,
+                                INFO_TextFormat, GetStr(mINITBLURB3),
+                                BT_TextAttr,     &startupwinfont2,
+                                // FRM_BackFill,    SHINE_RASTER,
+                                FRM_Type,        FRTYPE_NONE,
+                            EndObject,
+                        EndMember,
                     EndObject,
                 EndMember,
-                VarSpace(40),
-                StartMember,
-                    InfoObject,
-                        INFO_TextFormat, GetStr(mINITBLURB2),
-                        INFO_Args,       blurb2args,
-                        INFO_MinLines,   4,
-                        BT_TextAttr,     &startupwinfont2,
-                        // FRM_BackFill,    SHINE_RASTER,
-                        FRM_Type,        FRTYPE_NONE,
-                    EndObject,
-                EndMember,
-                VarSpace(50),
-                StartMember,
-                    GO_StartupText = InfoObject,
-                        INFO_TextFormat, GetStr(mINITBLURB3),
-                        BT_TextAttr,     &startupwinfont2,
-                        // FRM_BackFill,    SHINE_RASTER,
-                        FRM_Type,        FRTYPE_NONE,
-                    EndObject,
-                EndMember,
-            EndObject,
+           EndObject,
     EndObject;
 
     if(Win_Startup) {
+        struct IBox *area;
+
         win_Startup = WindowOpen( Win_Startup );
         WindowBusy( Win_Startup );
+#ifdef USE_LOGOIMAGE
+        GetAttr( AREA_AreaBox, Area, (ULONG *)&area );
+        if(!startupframe)
+            startupframe = OpenStartupFrame();
+
+        if( startupframe && MAINSCR && scr_Startup == MAINSCR ) {
+            RenderFrame( startupframe, win_Startup->RPort, area, 0L, globxd );
+        }
+#endif
     } else {
         D(bug("\tWARNING! Couldn't open startup window!\n"));
     }
@@ -238,6 +298,9 @@ VOID CloseStartupWindow(VOID)
     if(sfont1) CloseFont( sfont1 );
     if(sfont2) CloseFont( sfont2 );
     sfont1 = sfont2 = NULL;
+#ifdef USE_LOGOIMAGE
+    if( startupframe ) RemFrame( startupframe, globxd );
+#endif
 }
 
 /*
