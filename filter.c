@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.23 1998/01/04 16:37:52 jj Exp $
+    $Id: filter.c,v 1.24 1998/06/28 23:13:24 jj Exp $
 
     Code containing effects stuff.
 
@@ -16,6 +16,7 @@
 #include "defs.h"
 #include "misc.h"
 #include "gui.h"
+#include "rexx.h"
 
 #include "version.h"
 
@@ -66,17 +67,47 @@
 
 Local FRAME *ExecFilter(EXTBASE *, FRAME *, EFFECT *, char *args, BOOL );
 Prototype ASM VOID      Filter( REG(a0) UBYTE *, REG(d0) ULONG );
-Prototype int       ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
-Prototype PERROR    RunFilter( FRAME *frame, UBYTE *argstr );
+Prototype PERROR    ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
+
+/*
+    This routine gives a bit more control than RunFilter().  It starts
+    up a given effect with the given args, adding the command to
+    the rexx list, so that the argument string will be freed
+    upon completion of the job.
+ */
+
+Prototype PERROR RunFilterCommand( FRAME *, STRPTR, STRPTR );
+
+PERROR
+RunFilterCommand( FRAME *frame, STRPTR filtername, STRPTR args )
+{
+    REXXARGS *ra;
+    char buffer[100];
+    PERROR res;
+
+    if( ra = SimulateRexxCommand( frame, args ) ) {
+        sprintf( buffer, "NAME=%s ARGS=%ld", filtername, ra->process_args );
+
+        if( (res = RunFilter( frame, buffer )) != PERR_OK ) {
+            ReplyRexxWaitItem( ra );
+        }
+    } else {
+        res = PERR_OUTOFMEMORY;
+    }
+
+    return res;
+}
 
 /*
     Main routine for effect execution. This is run from within the main
     task and it spawns the subtask to handle the execution. If argstr != NULL
     sends it to the effect routine.
 */
+
+Prototype PERROR RunFilter( FRAME *frame, UBYTE *argstr );
 
 PERROR RunFilter( FRAME *frame, UBYTE *argstr )
 {
@@ -349,7 +380,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
      *  Set up variables and check for REXX command
      */
 
-    if( optarray = ParseDOSArgs( argstr, "FRAME/A/N,NAME/K,ARGS/K,REXX/S", ExtBase ) ) {
+    if( optarray = ParseDOSArgs( argstr, "FRAME/A/N,NAME/K,ARGS/K/N,REXX/S", ExtBase ) ) {
         f = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) { /* A name was given */
             filname = (UBYTE *)optarray[1];
@@ -364,7 +395,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
                 SetErrorMsg( f, erbuf );
                 goto errorexit;
             }
-            args = (UBYTE *)optarray[2];
+            if( optarray[2] ) args = (UBYTE *)PEEKL(optarray[2]);
             rexx = (BOOL)optarray[3];
         }
     } else {
