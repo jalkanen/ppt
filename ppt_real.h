@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.2 1995/08/01 23:15:59 jj Exp $
+    $Id: ppt_real.h,v 1.3 1995/08/20 18:35:43 jj Exp $
 
     Main definitions for PPT.
 
@@ -90,10 +90,11 @@ typedef int         PERROR;         /* Error code */
 
 /*------------------------------------------------------------------*/
 
-#define MAXPATHLEN    256   /* Std AmigaDOS path len */
-#define NAMELEN       40    /* Maximum length of frame name */
-#define WINTITLELEN   80    /* Length of a window title */
-#define SCRTITLELEN   80    /* Length of the screen title */
+#define MAXPATHLEN          256     /* Std AmigaDOS path len */
+#define NAMELEN             40      /* Maximum length of frame name */
+#define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
+#define SCRTITLELEN         80      /* Length of the screen title buffer in DISPLAY */
+#define MAXSCRTITLENAMELEN  40      /* Max length of file name when shown on screen title */
 
 /*------------------------------------------------------------------*/
 
@@ -280,8 +281,9 @@ typedef struct {
     APTR            myframe;
     struct Window   *win;
     Object          *WO_win,
-                    *GO_progress, *GO_status,*GO_Close, *GO_Info, *GO_File,
-                    *GO_Display,*GO_Filter,*GO_Break, *GO_Selbox;
+                    *GO_progress,
+                    *GO_status,
+                    *GO_Break;
     ULONG           id;             /* PRIVATE */
 } INFOWIN;
 
