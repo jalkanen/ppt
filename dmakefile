@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.1 1995/07/24 23:33:50 janne Exp $
+#       $Id: dmakefile,v 1.2 1996/02/08 11:58:43 jj Exp $
 #
 #####################################################################
 #
@@ -31,6 +31,12 @@ EXTSRCDIR = $(MAINDIR)/externals/src
 OD        = dtmp:ppt/
 ROD       = dtmp:ppt_rel/
 
+#   Example files. These are currently scanned for autodoc
+#   entries
+EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
+            $(EXTSRCDIR)/sample_loader/sample_loader.c
+
+
 #####################################################################
 #
 #   Compilers and their options used.
@@ -49,20 +55,32 @@ ASOPTS =
 #
 
 SRCS = initexit.c gui.c infowin.c debug.c load.c edit.c frame.c main.c \
-       filter.c others.c message.c support.c vm.c display.c render.c \
-       external.c prefs.c save.c rexx.c areaclass.c
+       filter.c others.c message.c errors.c support.c vm.c display.c render.c \
+       rendermod.c dither.c dispdevs.c colormap.c palette.c \
+       external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
+       paletteclass.c askreq.c ppt_cat.c
 
 ASSYS = render2.a
+
+# Any change in these files forces a recompile as all sources
+# depend on these.
+
+# HDRS = ppt_real.h defs.h ppt_cat.h
+HDRS = ppt_real.h defs.h
 
 #   Object files.
 
 COBJS = $(SRCS:"*.c":"$(OD)*.o")
 AOBJS = $(ASSYS:"*.a":"$(OD)*.o")
-# Those who depend on version information
-VOBJS = $(OD)main.o $(OD)gui.o $(OD)prefs.o
+
+# Those who depend on version & gfx information
+VOBJS = $(OD)main.o $(OD)gui.o $(OD)prefs.o $(OD)palette_edit.o $(OD)askreq.o
+
+# Render objects, depend on render.h
+RENDOBJS = $(OD)colormap.o $(OD)palette.o $(OD)rendermod.o $(OD)dispdevs.o \
+           $(OD)dither.o $(OD)palette_edit.o $(OD)main.o
 
 MAIN = ppt
-HDRS = ppt_real.h ppt.h loaders.h defs.h
 LINKOPTS = -lbgui -lm
 MFILE = t:defs.m
 
@@ -72,14 +90,14 @@ MFILE = t:defs.m
 #
 FORTOBJS = /fortify/fortify.o
 FORTCOPTS = -DFORTIFY
-FORTLOPTS = -lpptsupp -L$(MAINDIR)/linklib -s
+FORTLOPTS = -lpptsupp -L$(MAINDIR)/linklib
 
 #
 # Debug version
 #
 
 CFLAGS = $(COPTS) $(FORTCOPTS)
-LDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+LDFLAGS= $(LINKOPTS) $(FORTLOPTS) -s
 OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS)
 
 
@@ -110,7 +128,7 @@ all : $(MFILE) $(MAIN) $(OD) externals
         @beep
         @Avail FLUSH >NIL:
 
-release : $(RMFILE) $(RMAIN) $(ROD) ext
+release : $(RMFILE) $(RMAIN) $(ROD) externals
         @List $(RMAIN) NOHEAD
         @beep
 
@@ -140,6 +158,8 @@ $(AOBJS) : $(ASSYS)
 
 $(VOBJS) :: version.h gui.h
 
+$(RENDOBJS) :: render.h
+
 $(OD)rexx.o :: rexx.h
 
 $(OD)external.o :: misc.h
@@ -160,7 +180,7 @@ $(ROD)external.o :: misc.h
 
 # Externals
 
-ext : ppt.h
+externals : ppt.h
         cd $(EXTSRCDIR)
         @dmake install
 
@@ -170,7 +190,7 @@ $(MFILE) : defs.h ppt_real.h protos.h machine-protos.h
 $(RMFILE) : defs.h ppt.h protos.h machine-protos.h
         Delete $(RMFILE) > NIL:
 
-extern :
+ext :
         cd $(EXTSRCDIR)
         @dmake install
 
@@ -188,7 +208,7 @@ backup :
 # RCS update
 
 rcs :
-        ci -l -q *.c *.h
+        ci -l -q *.c
 
 # This makes a distribution
 
@@ -214,11 +234,25 @@ linklib:
 pragmas:
         fd2pragma SAS pragma/pptsupp_pragmas.h pptsupp_lib.fd
 
+# This will build the ppt catalog strings
+
+locale: catcode catalogs
+
+catcode:
+        FlexCat Catalogs/ppt.cd ppt_cat.c=Catalogs/ppt_c.sd
+        FlexCat Catalogs/ppt.cd ppt_cat.h=Catalogs/ppt_h.sd
+
+catalogs:
+        cd Catalogs
+        FlexCat ppt.cd suomi/ppt.ct CATALOG suomi/ppt.catalog
+
 # This will reconstruct the developer docs.
 
 docs:
-        autodoc -Ft:autodoc.tmp -C -I -c $(SRCS) linklib/debug/debug.c > docs/support.doc
-        autorefs dme.refs docs/support.doc
+        adoc -Ft:autodoc.tmp -C -I -c $(SRCS) linklib/debug/debug.c > docs/support.doc
+        adoc -Ft:autodoc.tmp -C -I -c $(EXAMPLES) > docs/externals.doc
+        Delete dme.refs
+        autorefs dme.refs docs/support.doc docs/externals.doc
 
 # This can be used to force recompile
 
