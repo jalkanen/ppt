@@ -2,12 +2,13 @@
     PROJECT: ppt
     MODULE : areaclass.h
 
-    $Id: dropareaclass.h,v 1.3 1996/08/21 10:24:17 jj Exp $
+    $Id: dropareaclass.h,v 1.4 1997/08/30 21:29:41 jj Exp $
 
     These are for AreaClass.c
 */
 
-#ifndef AREACLASS_H
+#ifndef DROPAREACLASS_H
+#define DROPAREACLASS_H
 
 #ifndef EXEC_TYPES_H
 #include <exec/types.h>
