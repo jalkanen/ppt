@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 5.6 $
-        $Date: 1999/08/01 16:44:28 $
+    $Revision: 6.0 $
+        $Date: 1999/09/05 02:19:28 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 5.6 1999/08/01 16:44:28 jj Exp $
+    $Id: ppt_real.h,v 6.0 1999/09/05 02:19:28 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -703,6 +703,7 @@ typedef struct {
 
     BOOL            ditherpreview;  /* Should we apply dithering to the
                                        previews also? */
+    BOOL            splash;         /* Show splash screen? */
 
     LONG            tipnumber;      /* -1 = tips are disabled */
 
