@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.33 1999/09/08 22:46:07 jj Exp $
+    $Id: defs.h,v 6.0 1999/11/28 18:15:30 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -189,7 +189,8 @@ enum DebugFile_T {
     DFT_Save,
     DFT_Effect,
     DFT_Render,
-    DFT_Main
+    DFT_Main,
+    DFT_GetArgs
 };
 
 
