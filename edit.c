@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  edit.c
 
-    $Id: edit.c,v 1.11 1999/10/02 15:39:47 jj Exp $
+    $Id: edit.c,v 6.0 1999/12/15 00:15:39 jj Exp $
 
     This module contains code for editing facilities. Basically
     they are all external modules, but they are fast enough to
@@ -103,6 +103,8 @@ FRAME *CutToFrame( FRAME *oldframe, BOOL keep  )
 
         newframe->pix->height = height;
         newframe->pix->width  = width;
+        newframe->pix->components = 4;
+        newframe->pix->colorspace = CS_ARGB;
 
         if( keep == FALSE ) {
             MakeFrameName( NULL, namebuf, 15, globxd );
@@ -123,11 +125,45 @@ FRAME *CutToFrame( FRAME *oldframe, BOOL keep  )
         amount = oldframe->pix->components * width;
 
         for(srow = oldframe->selbox.MinY; srow < oldframe->selbox.MaxY; srow++) {
-            UBYTE *scp, *dcp;
+            UBYTE *scp;
+            ARGBPixel *dcp;
+            LONG dcol, scol;
+
             scp = GetPixelRow( oldframe, srow, globxd );
-            dcp = GetPixelRow( newframe, drow, globxd );
-            CopyMem( scp + offset, dcp, amount );
-            PutPixelRow( newframe, drow, dcp, globxd );
+            dcp = (ARGBPixel *)GetPixelRow( newframe, drow, globxd );
+
+            dcol = 0;
+
+            for( scol = oldframe->selbox.MinX; scol < oldframe->selbox.MaxX; scol++ ) {
+
+                switch( oldframe->pix->colorspace ) {
+                    case CS_ARGB:
+                        dcp[dcol] = (((ARGBPixel *)scp)[scol]);
+                        break;
+
+                    case CS_RGB:
+                        dcp[dcol].r = ((RGBPixel *)scp)[scol].r;
+                        dcp[dcol].g = ((RGBPixel *)scp)[scol].g;
+                        dcp[dcol].b = ((RGBPixel *)scp)[scol].b;
+                        break;
+
+                    case CS_GRAYLEVEL:
+                        dcp[dcol].r = scp[scol];
+                        dcp[dcol].g = scp[scol];
+                        dcp[dcol].b = scp[scol];
+                        break;
+                }
+
+                if( IsInArea( oldframe, srow, scol ) ) {
+                    dcp[dcol].a = 0;
+                } else {
+                    dcp[dcol].a = 255;
+                }
+
+                dcol++;
+            }
+
+            PutPixelRow( newframe, drow, (ROWPTR) dcp, globxd );
             drow++;
         }
     }
