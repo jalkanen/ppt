@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.5 1995/09/17 23:01:53 jj Exp $
+    $Id: ppt_real.h,v 1.6 1995/10/15 23:42:03 jj Exp $
 
     Main definitions for PPT.
 
@@ -189,13 +189,15 @@ typedef struct {
     UBYTE           colorspace; /* See below.  */
     UBYTE           components; /* Amount of components: 3 for fullcolor, 1 for grayscale */
     UBYTE           origdepth;  /* Original depth information */
-    UBYTE           reserved0;
+    UBYTE           bits_per_component; /* Currently 8 */
 
     UWORD           DPIX, DPIY; /* Dots per inch. Not used currently. */
     UWORD           XAspect,    /* Pixel X and Y aspect ratio */
                     YAspect;
 
     ULONG           bytes_per_row; /* Amount of bytes / pixel row. */
+
+    ULONG           origmodeid; /* Original display mode id */
 
     /* The fields beyond this point are PRIVATE! */
 
@@ -313,10 +315,12 @@ typedef struct Frame_t {
     ULONG           busy;           /* See below for definitions */
     ULONG           ID;             /* Frame ID, an unique code that will last.*/
     struct DispPrefsWindow *dpw;    /* Display prefs window. May be NULL */
+    struct PaletteWindow *pw;       /* Palette window. May be NULL */
     INFOWIN         *mywin;         /* This frame's infowindow. NULL, if not yet created */
     APTR            renderobject;   /* see render.h */
     UBYTE           selstatus;      /* 0 if not visible, 1 if visible */
-    UBYTE           reserved[3];    /* Unused */
+    UBYTE           reqrender;      /* != 0, if a render has been requested but not made */
+    UBYTE           reserved[2];    /* Unused */
     struct Frame_t  *lastframe;     /* The last before modifications. Undo frame. */
     struct Frame_t  *parent;        /* If the frame is a fresh copy, then you can find
                                        it's parent here. */
@@ -512,7 +516,7 @@ typedef struct {
 #define PPTX_SaveTrueColor      ( GTAGBASE + 102 ) /* FPTR */
 #define PPTX_SaveColorMapped    ( GTAGBASE + 103 ) /* FPTR */
 #define PPTX_Check              ( GTAGBASE + 104 ) /* FPTR */
-
+#define PPTX_NoFile             ( GTAGBASE + 105 ) /* BOOL */
 
 
 /*
