@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.6 1997/03/16 13:42:42 jj Exp $
+    $Id: load.c,v 2.7 1997/05/02 17:00:54 jj Exp $
 
     Code for loaders...
 */
@@ -244,9 +244,9 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
          */
 
         LOCKGLOB();
-        D(bug("\tAdding %08X to templist...\n",frame));
+        D(bug("\tAdding %08X to frames list...\n",frame));
 
-        AddTail( &globals->tempframes, (struct Node *)frame );
+        AddFrame( frame ); // BUG: Should check
 
         UNLOCKGLOB();
         UNLOCK(frame);
