@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.7 1996/09/30 02:48:18 jj Exp $
+    $Id: external.c,v 1.8 1996/10/10 19:08:18 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -283,7 +283,7 @@ PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 
     UnLoadSeg(who->seglist);
 
-    pfree(who);
+    sfree(who);
 
     return PERR_OK;
 }
@@ -304,7 +304,7 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
             FlushLibrary( who->diskname, globxd );
     }
 
-    pfree(who);
+    sfree(who);
 }
 
 PERROR PurgeExternal( EXTERNAL *w, BOOL f )
@@ -386,7 +386,7 @@ PERROR InitOldExternal( const char *who )
 //    DEBUG("INIT DONE\n");
 
     if(res == PERR_OK || X_Init == NULL) { /* No error occurred, or X_Init() does not exist. */
-        x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+        x = smalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
         x->seglist    = seglist;
         x->tags       = m->tagarray;
         x->islibrary  = FALSE;
@@ -420,7 +420,7 @@ PERROR InitScript( const char *who )
 {
     EXTERNAL *x;
 
-    x = pmalloc( sizeof(SCRIPT) );
+    x = smalloc( sizeof(SCRIPT) );
     x->seglist    = 0L;
     x->tags       = NULL;
     x->islibrary  = FALSE;
@@ -501,7 +501,7 @@ PERROR InitNewExternal( const char *who )
      *  Allocate room and put the necessary info into memory.
      */
 
-    x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+    x = smalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
     x->seglist    = 0L;
     x->tags       = NULL;
     x->islibrary  = TRUE;
