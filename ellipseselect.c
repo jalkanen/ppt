@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: ellipseselect.c,v 1.1 1999/05/30 18:12:48 jj Exp $
+    $Id: ellipseselect.c,v 1.2 1999/08/01 16:45:53 jj Exp $
 
  */
 
@@ -49,7 +49,7 @@ PPTDrawPoints( struct RastPort *rport, SHORT cx, SHORT cy, SHORT x, SHORT y, str
     if( INCLIP(cx-x,cy-y,clip) ) WritePixel( rport, cx-x,cy-y );
 }
 
-VOID PPTDrawEllipse( struct RastPort *rport, SHORT cx, SHORT cy, SHORT ry, SHORT rx, struct Rectangle *clip )
+VOID PPTDrawEllipse( struct RastPort *rport, SHORT cx, SHORT cy, SHORT rx, SHORT ry, struct Rectangle *clip )
 {
     int ry2, rx2;
     int tworx2, twory2;
@@ -119,6 +119,8 @@ VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
     WORD rx,ry;
     struct Rectangle cliparea;
 
+    if(!win) return;
+
     D(bug("DrawSelectCircle( x=%d, y=%d, r=%d)\n",x,y,r));
 
     GetAttr(AREA_AreaBox, frame->disp->RenderArea, (ULONG *) & abox);
@@ -134,33 +136,34 @@ VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
     x -= frame->zoombox.Left;
     y -= frame->zoombox.Top;
 
-    x = (LONG) (MULS16(x, winwidth)) / (WORD) (frame->zoombox.Width);
-    y = (LONG) (MULS16(y, winheight)) / (WORD) frame->zoombox.Height;
-    rx = (LONG) (MULS16(r, winwidth)) / (WORD) frame->zoombox.Width;
-    ry = (LONG) (MULS16(r, winheight)) / (WORD) frame->zoombox.Height;
-
-    /*
-     *  Draw!
-     */
+    x = (LONG) (MULS16(x, winwidth)+winwidth/2) / (WORD) (frame->zoombox.Width);
+    y = (LONG) (MULS16(y, winheight)+winheight/2) / (WORD) frame->zoombox.Height;
+    rx = (LONG) (MULS16(r, winwidth)) / (WORD) frame->zoombox.Width - 1;
+    ry = (LONG) (MULS16(r, winheight)) / (WORD) frame->zoombox.Height - 1;
 
     x += xoffset;
     y += yoffset;
+
+    cliparea.MinX = xoffset;
+    cliparea.MinY = yoffset;
+    cliparea.MaxX = xoffset + abox->Width;
+    cliparea.MaxY = yoffset + abox->Height;
+
+    /*
+     *  Draw!  (Use DrawEllipse() if you don't want clipping...
+     */
 
     SetDrMd(win->RPort, COMPLEMENT);
     SetDrPt(win->RPort, (UWORD) frame->disp->selpt);    // Uses just lower 16 bits
 
     WaitTOF();
 
-    // DrawEllipse( win->RPort, x, y, rx, ry );
-    cliparea.MinX = xoffset;
-    cliparea.MinY = yoffset;
-    cliparea.MaxX = xoffset + abox->Width;
-    cliparea.MaxY = yoffset + abox->Height;
     PPTDrawEllipse( win->RPort, x, y, rx, ry, &cliparea );
-
+    // DrawEllipse( win->RPort, x, y, rx, ry );
 }
 ///
 
+/// ButtonDown
 Local
 VOID LassoCircleButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
 {
@@ -171,7 +174,7 @@ VOID LassoCircleButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     if( IsFrameBusy(frame) ) return;
 
     /*
-     *  If the window has an old display rectangle visible, remove it.
+     *  If the window has an old circle visible, remove it.
      */
 
     if( IsAreaSelected(frame) && (selection->selstatus & SELF_DRAWN) ) { /* Delete old. */
@@ -183,10 +186,9 @@ VOID LassoCircleButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     selection->circleradius = 0;
     selection->selstatus |= SELF_BUTTONDOWN;
     D(bug("Marked circle select begin (%d,%d)\n",xloc,yloc));
-
-    frame->selection.selstatus |= SELF_BUTTONDOWN;
 }
-
+///
+/// ControlButtonDown
 Local
 VOID LassoCircleControlButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
 {
@@ -211,19 +213,27 @@ VOID LassoCircleControlButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
         ButtonDown( frame, msg );
     }
 }
+///
 
+/// MakeBoundingBox
 Local
 VOID LassoCircleMakeBoundingBox( FRAME *frame )
 {
     struct Selection *selection = &frame->selection;
     struct Rectangle *sb = &frame->selbox;
 
-    sb->MinX = selection->circlex - selection->circleradius;
-    sb->MinY = selection->circley - selection->circleradius;
-    sb->MaxX = selection->circlex + selection->circleradius;
-    sb->MaxY = selection->circley + selection->circleradius;
+    sb->MinX = selection->circlex - selection->circleradius - 1;
+    sb->MinY = selection->circley - selection->circleradius - 1;
+    sb->MaxX = selection->circlex + selection->circleradius + 1;
+    sb->MaxY = selection->circley + selection->circleradius + 1;
+    CLAMP( sb->MinX, 0, frame->pix->width );
+    CLAMP( sb->MaxX, 0, frame->pix->width );
+    CLAMP( sb->MinY, 0, frame->pix->height );
+    CLAMP( sb->MaxY, 0, frame->pix->height );
 }
+///
 
+/// ButtonUp
 Local
 VOID LassoCircleButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
 {
@@ -239,10 +249,11 @@ VOID LassoCircleButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
         UpdateIWSelbox( frame, TRUE );
         selection->selstatus &= ~(SELF_BUTTONDOWN|SELF_RECTANGLE);
     } else {
+        ULONG radius;
         EraseSelection( frame );
 
-        selection->circlex = xloc;
-        selection->circley = yloc;
+        radius = sqrt( (double)SQR(selection->circlex-xloc) + (double)SQR(selection->circley-yloc) );
+        selection->circleradius = radius;
 
         LassoCircleMakeBoundingBox( frame );
 
@@ -253,7 +264,7 @@ VOID LassoCircleButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
                selection->circlex, selection->circley, selection->circleradius ));
      }
 }
-
+///
 /// LassoCircleMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
 
 Local
@@ -262,7 +273,6 @@ VOID LassoCircleMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
     struct Selection *selection = &frame->selection;
     WORD xloc   = msg->xloc;
     WORD yloc   = msg->yloc;
-    struct Rectangle *sb = &frame->selbox;
 
     if( IsAreaSelected(frame) && (selection->selstatus & SELF_BUTTONDOWN) ) {
         ULONG radius;
@@ -280,27 +290,30 @@ VOID LassoCircleMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
             radius = sqrt( (double)SQR(selection->circlex-xloc) + (double)SQR(selection->circley-yloc) );
             selection->circleradius = radius;
         }
+        LassoCircleMakeBoundingBox( frame );
         DrawSelection( frame, DSBF_INTERIM );
         UpdateIWSelbox( frame, FALSE );
     }
 }
 ///
-
+/// IsInArea
 Local
-BOOL LassoCircleIsInArea( FRAME *frame, struct MouseLocationMsg *msg )
+BOOL LassoCircleIsInArea( FRAME *frame, WORD row, WORD col )
 {
     struct Selection *selection = &frame->selection;
-    WORD xloc   = msg->xloc;
-    WORD yloc   = msg->yloc;
+    BOOL res    = FALSE;
 
-    if( (SQR(xloc - selection->circlex) + SQR( yloc - selection->circley )) < SQR(selection->circleradius) )
+//    D(bug("...(%d,%d) : x=%d,y=%d,r=%d\n",row,col,selection->circlex,selection->circley,selection->circleradius));
+//    D(bug("......distance=%d\n",SQR(col-selection->circlex)+SQR(row-selection->circley)));
+    if( (SQR(col - selection->circlex) + SQR( row - selection->circley)) <= SQR(selection->circleradius-1) )
     {
-        return TRUE;
+        // D(bug("......is inside radius\n"));
+        res = TRUE;
     }
 
-    return FALSE;
+    return res;
 }
-
+///
 /// LassoCircleDraw() & LassoCircleErase()
 Local
 VOID LassoCircleDraw( FRAME *frame, ULONG flags )
@@ -319,6 +332,26 @@ VOID LassoCircleErase( FRAME *frame )
 }
 ///
 
+/*
+ *  BUG: if scaling is non-uniform, will cause problems.
+ */
+
+VOID LassoCircleRescale( FRAME *src, FRAME *dst )
+{
+    dst->selection.circlex = src->selection.circlex * dst->pix->width / src->pix->width;
+    dst->selection.circley = src->selection.circley * dst->pix->height / src->pix->height;
+    dst->selection.circleradius = src->selection.circleradius * dst->pix->width / src->pix->width;
+    LassoCircleMakeBoundingBox( dst );
+}
+
+
+VOID LassoCircleCopy( FRAME *src, FRAME *dst )
+{
+    dst->selection.circlex = src->selection.circlex;
+    dst->selection.circley = src->selection.circley;
+    dst->selection.circleradius = src->selection.circleradius;
+    LassoCircleMakeBoundingBox( dst );
+}
 
 Prototype PERROR InitLassoCircleSelection( FRAME *frame );
 
@@ -333,6 +366,8 @@ PERROR InitLassoCircleSelection( FRAME *frame )
     s->EraseSelection    = LassoCircleErase;
     s->MouseMove         = LassoCircleMouseMove;
     s->IsInArea          = LassoCircleIsInArea;
+    s->Rescale           = LassoCircleRescale;
+    s->Copy              = LassoCircleCopy;
 
     return PERR_OK;
 }
