@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.53 1998/09/20 00:36:31 jj Exp $
+    $Id: gui.c,v 1.54 1998/11/08 00:44:24 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -105,73 +105,86 @@ Prototype Object *      MyNewObject( EXTBASE *, ULONG, Tag, ... );
 
 */
 
+/*
+ *  We don't want to localize all of the menu codes
+ */
+
+#define MF_NO_LOCALIZE                  0x80000000
+#define TitleTxt(t)                     { NM_TITLE, t, NULL, 0, 0, (APTR)MF_NO_LOCALIZE }
+#define ItemTxt(t,s,i)                  { NM_ITEM, t, s, 0, 0, (APTR)(i | MF_NO_LOCALIZE) }
+#define DItemTxt(t,s,i)                 { NM_ITEM, t, s, NM_ITEMDISABLED, 0, (APTR)(i | MF_NO_LOCALIZE) }
+#define SubItemTxt(t,s,i)               { NM_SUB, t, s, 0, 0, (APTR)(i |MF_NO_LOCALIZE) }
+
+/* Turns off the SAS/C warning about incompatible pointer types. */
+#pragma msg 225 ignore
 struct NewMenu PPTMenus[] = {
-    Title( "Project "),
-        Item( "New...",         "N",    MID_NEW ),
-        Item( "Open...",        "O",    MID_LOADNEW ),
-        Item("Open As...",      NULL,   MID_LOADAS ),
-        // DItem("Save",          "W",  MID_SAVE ),
-        DItem( "Save As...",    "U",    MID_SAVEAS ),
-        DItem( "Close",         "D",    MID_DELETE ),
+    Title( mMENU_PROJECT ),
+        Item( mMENU_PROJECT_NEW,        mMENU_PROJECT_NEW_KEY,          MID_NEW ),
+        Item( mMENU_PROJECT_OPEN,       mMENU_PROJECT_OPEN_KEY,         MID_LOADNEW ),
+        Item( mMENU_PROJECT_OPENAS,     mMENU_PROJECT_OPENAS_KEY,       MID_LOADAS ),
+        // DItem("Save",            "W",                        MID_SAVE ),
+        DItem(mMENU_PROJECT_SAVEAS,     mMENU_PROJECT_SAVEAS_KEY,       MID_SAVEAS ),
+        DItem(mMENU_PROJECT_CLOSE,      mMENU_PROJECT_CLOSE_KEY,        MID_DELETE ),
         ItemBar,
-        DItem( "Rename...",     NULL,   MID_RENAME ),
-        DItem( "Hide/Show",     "H",    MID_HIDE ),
-        Item( "Preferences...", NULL,   MID_PREFS ),
+        DItem(mMENU_PROJECT_RENAME,     mMENU_PROJECT_RENAME_KEY,       MID_RENAME ),
+        DItem(mMENU_PROJECT_HIDESHOW,   mMENU_PROJECT_HIDESHOW_KEY,     MID_HIDE ),
+        Item( mMENU_PROJECT_PREFERENCES,mMENU_PROJECT_PREFERENCES_KEY,  MID_PREFS ),
         ItemBar,
-        Item( "About PPT",      NULL,   MID_ABOUT ),
+        Item( mMENU_PROJECT_ABOUT,      mMENU_PROJECT_ABOUT_KEY,        MID_ABOUT ),
         ItemBar,
-        Item( "Quit",           "Q",    MID_QUIT ),
-    Title( "Edit" ),
-        DItem( "Undo",          "Z",    MID_UNDO ),
-        DItem( "Cut",           "X",    MID_CUT ),
-        DItem( "Cut To New",    NULL,   MID_CUTFRAME ),
-        DItem( "Copy",          "C",    MID_COPY ),
-        DItem( "Paste",         "V",    MID_PASTE ),
+        Item( mMENU_PROJECT_QUIT,       mMENU_PROJECT_QUIT_KEY,         MID_QUIT ),
+    Title( mMENU_EDIT ),
+        DItem(mMENU_EDIT_UNDO,          mMENU_EDIT_UNDO_KEY,            MID_UNDO ),
+        DItem(mMENU_EDIT_CUT,           mMENU_EDIT_CUT_KEY,             MID_CUT ),
+        DItem(mMENU_EDIT_CUTTONEW,      mMENU_EDIT_CUTTONEW_KEY,        MID_CUTFRAME ),
+        DItem(mMENU_EDIT_COPY,          mMENU_EDIT_COPY_KEY,            MID_COPY ),
+        DItem(mMENU_EDIT_PASTE,         mMENU_EDIT_PASTE_KEY,           MID_PASTE ),
 #ifdef DEBUG_MODE
-        DItem( "Crop",          NULL,   MID_CROP ),
+        DItemTxt( "Crop",          NULL,   MID_CROP ),
 #endif
         ItemBar,
-        DItem("Zoom In",        "+",    MID_ZOOMIN ),
-        DItem("Zoom Out",       "-",    MID_ZOOMOUT ),
+        DItem(mMENU_EDIT_ZOOM_IN,       mMENU_EDIT_ZOOM_IN_KEY,         MID_ZOOMIN ),
+        DItem(mMENU_EDIT_ZOOM_OUT,      mMENU_EDIT_ZOOM_OUT_KEY,        MID_ZOOMOUT ),
         ItemBar,
-        DItem( "Select All",    "A",    MID_SELECTALL ),
-        DItem( "Edit Info...",  "Y",    MID_EDITINFO ),
-    Title( "Display" ),
-        DItem( "Settings...",   NULL,   MID_SETRENDER ),
-        DItem( "Render",        "R",    MID_RENDER ),
-        DItem( "Close Render",  NULL,   MID_CLOSERENDER ),
+        DItem(mMENU_EDIT_SELECT_ALL,    mMENU_EDIT_SELECT_ALL_KEY,      MID_SELECTALL ),
+        DItem(mMENU_EDIT_EDIT_INFO,     mMENU_EDIT_EDIT_INFO_KEY,       MID_EDITINFO ),
+    Title( mMENU_DISPLAY ),
+        DItem( mMENU_DISP_SETTINGS,     mMENU_DISP_SETTINGS_KEY,        MID_SETRENDER ),
+        DItem( mMENU_DISP_RENDER,       mMENU_DISP_RENDER_KEY,          MID_RENDER ),
+        DItem( mMENU_DISP_CLOSERENDER,  mMENU_DISP_CLOSERENDER_KEY,     MID_CLOSERENDER ),
         ItemBar,
-        DItem( "Correct Aspect","J",    MID_CORRECTASPECT ),
-        DItem( "Palette",       NULL,   MID_PALETTE ),
-            SubItem( "Edit...", "G",    MID_EDITPALETTE ),
-            SubItem( "Load...", NULL,   MID_LOADPALETTE ),
-            SubItem( "Save...", NULL,   MID_SAVEPALETTE ),
-    Title( "Process" ),
-        DItem( "Process...",    "P",    MID_PROCESS ),
-        DItem( "Break",         ".",    MID_BREAK ),
+        DItem( mMENU_DISP_CORRECTASP,   mMENU_DISP_CORRECTASP_KEY,      MID_CORRECTASPECT ),
+        DItem( mMENU_DISP_PALETTE,      mMENU_DISP_PALETTE_KEY,         MID_PALETTE ),
+            SubItem( mMENU_DISP_PAL_EDIT, mMENU_DISP_PAL_EDIT_KEY,      MID_EDITPALETTE ),
+            SubItem( mMENU_DISP_PAL_LOAD, mMENU_DISP_PAL_LOAD_KEY,      MID_LOADPALETTE ),
+            SubItem( mMENU_DISP_PAL_SAVE, mMENU_DISP_PAL_SAVE_KEY,      MID_SAVEPALETTE ),
+    Title( mMENU_PROCESS ),
+        DItem( mMENU_PROC_PROCESS,      mMENU_PROC_PROCESS_KEY,         MID_PROCESS ),
+        DItem( mMENU_PROC_BREAK,        mMENU_PROC_BREAK_KEY,           MID_BREAK ),
 #ifdef USE_OLD_ALPHA
-        DItem( "Remove Alpha",  NULL,   MID_REMOVEALPHA ),
+        DItemTxt( "Remove Alpha",  NULL,   MID_REMOVEALPHA ),
 #endif
 #ifdef DEBUG_MODE
-    Title( "Debug" ),
-        Item( "SavPalette",     NULL,   MID_SAVEMAINPALETTE ),
-        Item( "Memory Check",   NULL,   MID_MEMCHECK ),
-        Item( "Test AskReq()",  NULL,   MID_TESTAR ),
-        Item( "Memory Fail Rate", NULL, MID_MEMFAIL ),
-            { NM_SUB, " 0 %", NULL, CHECKIT|MENUTOGGLE|CHECKED, ~1, (APTR)MID_MEMFAIL0 },
-            { NM_SUB, "10 %", NULL, CHECKIT|MENUTOGGLE, ~2, (APTR)MID_MEMFAIL10 },
-            { NM_SUB, "25 %", NULL, CHECKIT|MENUTOGGLE, ~4, (APTR)MID_MEMFAIL25 },
-            { NM_SUB, "50 %", NULL, CHECKIT|MENUTOGGLE, ~8, (APTR)MID_MEMFAIL50 },
+    TitleTxt( "Debug" ),
+        ItemTxt( "SavPalette",     NULL,   MID_SAVEMAINPALETTE ),
+        ItemTxt( "Memory Check",   NULL,   MID_MEMCHECK ),
+        ItemTxt( "Test AskReq()",  NULL,   MID_TESTAR ),
+        ItemTxt( "Memory Fail Rate", NULL, MID_MEMFAIL ),
+            { NM_SUB, " 0 %", NULL, CHECKIT|MENUTOGGLE|CHECKED, ~1, (APTR)(MID_MEMFAIL0|MF_NO_LOCALIZE) },
+            { NM_SUB, "10 %", NULL, CHECKIT|MENUTOGGLE, ~2, (APTR)(MID_MEMFAIL10|MF_NO_LOCALIZE) },
+            { NM_SUB, "25 %", NULL, CHECKIT|MENUTOGGLE, ~4, (APTR)(MID_MEMFAIL25|MF_NO_LOCALIZE) },
+            { NM_SUB, "50 %", NULL, CHECKIT|MENUTOGGLE, ~8, (APTR)(MID_MEMFAIL50|MF_NO_LOCALIZE) },
 #endif
-    Title( "Window" ),
-        { NM_ITEM, "Frames",    "F",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_FRAMEWINDOW },
-        { NM_ITEM, "Toolbar",   "T",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_TOOLWINDOW },
-        { NM_ITEM, "Select",    "I",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_SELECTWINDOW },
-        { NM_ITEM, "Effects",   "E",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_EFFECTS },
-        { NM_ITEM, "Loaders",   "L",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_LOADERS },
-        { NM_ITEM, "Scripts",   "S",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_REXXWINDOW },
+    Title( mMENU_WINDOW ),
+        { NM_ITEM, mMENU_WIN_FRAMES,    mMENU_WIN_FRAMES_KEY,     CHECKIT|MENUTOGGLE, 0L, (APTR)MID_FRAMEWINDOW },
+        { NM_ITEM, mMENU_WIN_TOOLBAR,   mMENU_WIN_TOOLBAR_KEY,    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_TOOLWINDOW },
+        { NM_ITEM, mMENU_WIN_SELECT,    mMENU_WIN_SELECT_KEY,     CHECKIT|MENUTOGGLE, 0L, (APTR)MID_SELECTWINDOW },
+        { NM_ITEM, mMENU_WIN_EFFECTS,   mMENU_WIN_EFFECTS_KEY,    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_EFFECTS },
+        { NM_ITEM, mMENU_WIN_LOADERS,   mMENU_WIN_LOADERS_KEY,    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_LOADERS },
+        { NM_ITEM, mMENU_WIN_SCRIPTS,   mMENU_WIN_SCRIPTS_KEY,    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_REXXWINDOW },
     End
 };
+#pragma msg 225 warn
 ///
 
 /* Here are some mapping codes for different type objects */
@@ -188,35 +201,18 @@ const ULONG dpcol_fl2sl[] = { FLOAT_LongValue, SLIDER_Level, TAG_END };
 /// Miscallaneous labels
 
 /* Color cycle labels. */
-const char *color_labels[] = {
-    "Normal Color",
-    "EHB",
-    "HAM",
-    "HAM8",
-    NULL,
-};
-
-const char *palette_labels[] = {
-    "Median Cut",
-    "Popularity",
-    "Force -->",
-    NULL,
-};
+const char *color_labels[5] = { 0 };
+const char *palette_labels[4] = { 0 };
+const char *save_mode_labels[3] = { 0 };
 
 const char *dither_labels[] = {
-    "Off",
+    NULL,
     "Floyd-Steinberg",
     NULL,
 };
 
 const char *scr_labels[] = {
     "Amiga",
-    NULL,
-};
-
-const char *save_mode_labels[] = {
-    "Truecolor",
-    "Colormapped",
     NULL,
 };
 
@@ -237,11 +233,93 @@ char workbuf[MAXPATHLEN+1],undobuf[MAXPATHLEN+1];
 /*----------------------------------------------------------------------*/
 /* Code */
 
+/// ColorSpaceName()
+/*
+    This returns the colorspace name.  It is a separate function instead
+    of an array for localization purposes.  Note that if you need
+    an english name, you can access ColorSpaceNamesE[] array.
+ */
+Prototype const char *ColorSpaceName( int id );
+
+const char *ColorSpaceName( int id )
+{
+    switch(id) {
+        case CS_GRAYLEVEL:
+            return GetStr(mCSPACE_GREY);
+        case CS_RGB:
+            return GetStr(mCSPACE_RGB);
+        case CS_LUT:
+            return GetStr(mCSPACE_COLORMAPPED);
+        case CS_ARGB:
+            return GetStr(mCSPACE_ARGB);
+    }
+    return "Unknown";
+}
+///
+
+/// InitGUILocale()
+/*
+ *  Initializes the menu array for localization.
+ */
+
+Prototype PERROR InitGUILocale(VOID);
+
+PERROR InitGUILocale(VOID)
+{
+    int i;
+    char *s;
+
+    D(bug("\tInitGUILocale()\n"));
+
+    save_mode_labels[0] = GetStr( mSAVE_MODE_LABEL_TRUECOLOR );
+    save_mode_labels[1] = GetStr( mSAVE_MODE_LABEL_COLORMAP );
+
+    dither_labels[0] = GetStr(mRENDER_DITHER_OFF);
+
+    palette_labels[0] = GetStr(mRENDER_PALETTE_MEDIAN_CUT);
+    palette_labels[1] = GetStr(mRENDER_PALETTE_POPULARITY);
+    palette_labels[2] = GetStr(mRENDER_PALETTE_FORCE);
+
+    color_labels[0] = GetStr(mRENDER_COLOR_NORMAL);
+    color_labels[1] = GetStr(mRENDER_COLOR_EHB);
+    color_labels[2] = GetStr(mRENDER_COLOR_HAM);
+    color_labels[3] = GetStr(mRENDER_COLOR_HAM8);
+
+    for( i = 0; PPTMenus[i].nm_Type != NM_END; i++ ) {
+        /*
+         *  Skip, if we don't want to localize.  Otherwise, start
+         *  going through the localization thingies.
+         */
+        if( (ULONG)PPTMenus[i].nm_UserData & MF_NO_LOCALIZE ) {
+            PPTMenus[i].nm_UserData = (APTR)((ULONG)PPTMenus[i].nm_UserData & ~MF_NO_LOCALIZE); /* Remove flag */
+            continue;
+        }
+        if( (PPTMenus[i].nm_Type == NM_TITLE || PPTMenus[i].nm_Type == NM_ITEM ||
+             PPTMenus[i].nm_Type == NM_SUB )
+             && !(PPTMenus[i].nm_Type & NM_IGNORE)
+             && PPTMenus[i].nm_Label != NM_BARLABEL )
+        {
+            PPTMenus[i].nm_Label = GetStr( (struct LocaleString *)PPTMenus[i].nm_Label );
+        }
+
+        s = GetStr( (struct LocaleString *)PPTMenus[i].nm_CommKey);
+        if( s[0] == '\0' || s[1] != '\0' || s == NULL ) {
+            PPTMenus[i].nm_CommKey = NULL;
+        } else {
+            PPTMenus[i].nm_CommKey = s;
+        }
+    }
+
+    return PERR_OK;
+}
+
+///
+
+/// "MyNewObject()"
 /*
     This is a replacement stub for BGUI_NewObject.
 */
 
-/// "MyNewObject()"
 Object *MyNewObject( EXTBASE *xd, ULONG classid, Tag tag1, ... )
 {
     struct Library *BGUIBase = xd->lb_BGUI;
@@ -1463,7 +1541,7 @@ Object *GimmeMainWindow( VOID )
 
     D(bug("GimmeMainWindow()\n"));
 
-    if( framew.initialpos.Height == 0 ) {
+    if( framew.prefs.initialpos.Height == 0 ) {
         if(MAINSCR) {
             ibox.Left = MAINSCR->Width;
         } else {
@@ -1473,7 +1551,7 @@ Object *GimmeMainWindow( VOID )
         ibox.Height = 200;
         ibox.Width  = 150;
     } else {
-        ibox = framew.initialpos;
+        ibox = framew.prefs.initialpos;
     }
 
     framew.Win = WindowObject,
@@ -1541,14 +1619,14 @@ PERROR GimmeToolBarWindow( VOID )
 
     args[0] = args[1] = 0L;
 
-    if( toolw.initialpos.Height == 0 ) {
+    if( toolw.prefs.initialpos.Height == 0 ) {
         ibox.Left   = 0;
         if( MAINSCR )
             ibox.Top    = MAINSCR->Height;
         else
             ibox.Top    = 320;
     } else {
-        ibox = toolw.initialpos;
+        ibox = toolw.prefs.initialpos;
     }
 
     ibox.Height = 0;
@@ -1648,14 +1726,14 @@ PERROR GimmeSelectWindow(VOID)
     struct IBox ibox;
     Object *c;
 
-    if( selectw.initialpos.Height == 0 ) {
+    if( selectw.prefs.initialpos.Height == 0 ) {
         ibox.Left   = DEFAULT_TOOLBAR_WIDTH+1; // Just to the left of the ToolBox
         if( MAINSCR )
             ibox.Top    = MAINSCR->Height;
         else
             ibox.Top    = 320;
     } else {
-        ibox = selectw.initialpos;
+        ibox = selectw.prefs.initialpos;
     }
 
     ibox.Height = ibox.Width  = 0; // Use defaults
