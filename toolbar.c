@@ -7,17 +7,45 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.5 1999/01/02 22:36:30 jj Exp $
+    $Id: toolbar.c,v 1.6 1999/01/13 22:58:00 jj Exp $
 
+    Grumble...
+
+    Let's see.  The following code should open up a toolbar...
+
+    list = AllocVec( sizeof(Object *) * numItems )
+
+    for( i = 0; i < numItems; i++ ) {
+        list[i] = NewObject( ToolItemClass,
+                             TOOLITEM_Label, "foo",
+                             TOOLITEM_Image, image,
+                             GA_ID, gid
+                             TAG_DONE );
+    }
+
+    NewObject( ToolbarClass,
+               TOOLBAR_Items, list,
+               TAG_DONE );
+
+    FreeVec(list);
  */
 
+/// Includes
 #include "defs.h"
 #include "misc.h"
 #include "gui.h"
 
+#include <datatypes/datatypes.h>
+#include <datatypes/pictureclass.h>
+#include <proto/datatypes.h>
+
+#include "bitmapclass.h" // BUG
+#include "pragmas/bguibitmap_pragmas.h"
+///
+
 /*------------------------------------------------------------------*/
 
-#define TextItem(x)   { (x), TIT_TEXT, NULL, NULL, NULL }
+#define TextItem(x)   { (x), TIT_TEXT,  NULL, NULL, NULL }
 #define PicItem(x,a)  { (x), TIT_IMAGE, a, NULL, NULL }
 #define EndItem       { 0L,  TIT_END, NULL, NULL, NULL }
 
@@ -27,7 +55,14 @@
 
 /*------------------------------------------------------------------*/
 
-Class *ToolbarClass;
+/// Globals & type definitions
+
+Class *ToolbarClass, *ToolItemClass = NULL, *BGUIBitmapClass = NULL;
+struct Library *BGUIBitmapBase = NULL;
+
+/*
+ *  This list contains the different things.
+ */
 
 struct ToolbarItem PPTToolbar[MAX_TOOLBARSIZE+1] = {
     TextItem( MID_LOADNEW ),
@@ -90,12 +125,388 @@ const LONG AvailableButtons[] = {
     -1L
 };
 
+/*
+ *  Toolbar class data.
+ */
+
 typedef struct {
-    struct ToolbarItem  **td_Toolbar;
     int                 td_NumItems;
 } TD;
 
+/*
+ *  ToolItem class data.
+ */
+
+typedef struct {
+    Object              *tid_Image;
+} TID;
+///
+
 /*------------------------------------------------------------------*/
+/* ToolItem class */
+
+/// ToolItemNew()
+ULONG STATIC ASM
+ToolItemNew( REGPARAM(a0,Class *,cl),
+             REGPARAM(a2,Object *,obj),
+             REGPARAM(a1,struct opSet *,ops) )
+{
+    TID      *tid;
+    struct TagItem *tag, *tags = ops->ops_AttrList, *tstate;
+    ULONG rc;
+    STRPTR filename = NULL;
+    struct Screen *scr = NULL;
+
+    D(bug("ToolItem: OM_NEW\n"));
+
+    if( rc = DoSuperMethodA( cl, obj, (Msg) ops )) {
+        tid = (TID*)INST_DATA(cl,rc);
+        bzero( tid, sizeof(TID) );
+
+        tstate = tags;
+
+        while( tag = NextTagItem( &tstate ) ) {
+            switch( tag->ti_Tag ) {
+                case TOOLITEM_FileName:
+                    filename = (STRPTR) tag->ti_Data;
+                    break;
+                case TOOLITEM_Screen:
+                    scr = (struct Screen *)tag->ti_Data;
+                    break;
+            }
+        }
+
+        if( filename && BGUIBitmapClass ) {
+            Object *dto;
+
+            D(bug("\tOpening image file '%s'\n",filename));
+
+            if( dto = NewDTObject( filename, DTA_SourceType, DTST_FILE,
+                                             DTA_GroupID, GID_PICTURE,
+                                             PDTA_Remap, FALSE, TAG_DONE ) )
+            {
+                struct BitMapHeader *bmh;
+                struct BitMap *bm;
+                UBYTE *cr;
+                ULONG nColors;
+
+                if( DoDTMethod( dto, NULL, NULL, DTM_PROCLAYOUT, NULL, TRUE ) ) {
+                    if( GetDTAttrs( dto, PDTA_BitMapHeader, &bmh,
+                                         PDTA_BitMap, &bm,
+                                         PDTA_ColorRegisters, &cr,
+                                         PDTA_NumColors, &nColors,
+                                         TAG_DONE ) == 4 )
+                    {
+                        tid->tid_Image = NewObject( BGUIBitmapClass, NULL,
+                                                    BITMAP_BitMap,   bm,
+                                                    BITMAP_NumColors, nColors,
+                                                    BITMAP_Colors,   cr,
+                                                    BITMAP_Width,    bmh->bmh_Width,
+                                                    BITMAP_Height,   bmh->bmh_Height,
+                                                    BITMAP_Remap,    TRUE,
+                                                    BITMAP_Screen,   scr,
+                                                    TAG_DONE );
+
+                        if( tid->tid_Image ) {
+                            SetSuperAttrs( cl, (Object *)rc,
+                                           BUTTON_Image,    tid->tid_Image,
+                                           FRM_EdgesOnly,   TRUE,
+                                           LAB_Label,       NULL,
+                                           TAG_DONE );
+                        }
+
+                    }
+
+                }
+
+                DisposeObject( dto );
+            }
+
+            /*
+             *  For some reason, opening failed.
+             */
+
+            if( !tid->tid_Image ) {
+                D(bug("Couldn't open image file %s\n",filename));
+            }
+        }
+
+    }
+
+    return rc;
+
+}
+///
+/// ToolItemDispose()
+ULONG STATIC ASM
+ToolItemDispose( REGPARAM(a0,Class *,cl),
+                 REGPARAM(a2,Object *,obj),
+                 REGPARAM(a1,Msg,msg) )
+{
+    TID *tid = (TID*)INST_DATA(cl,obj);
+
+    D(bug("ToolItem: OM_DISPOSE\n"));
+
+    if( tid->tid_Image ) {
+        DisposeObject( tid->tid_Image );
+    }
+
+    return( DoSuperMethodA( cl, obj, msg ));
+}
+///
+
+/// Class Initialization
+STATIC DPFUNC TIClassFunc[] = {
+    OM_NEW,             (FUNCPTR)ToolItemNew,
+    OM_DISPOSE,         (FUNCPTR)ToolItemDispose,
+    DF_END
+};
+
+Prototype Class *InitToolItemClass(VOID);
+
+Class *InitToolItemClass(VOID)
+{
+    struct Library *BGUIBitmapBase;
+
+    if( BGUIBitmapBase = OpenLibrary("gadgets/bgui_bitmap.image",0L) ) {
+        BGUIBitmapClass = GetBitmapClassPtr();
+    } else {
+        D(bug( __FUNC__ ":: No Bitmap class available\n"));
+    }
+
+    return BGUI_MakeClass( CLASS_SuperClassBGUI, BGUI_BUTTON_GADGET,
+                           CLASS_ObjectSize,     sizeof(TID),
+                           CLASS_DFTable,        TIClassFunc,
+                           TAG_DONE );
+}
+
+Prototype BOOL FreeToolItemClass( Class *cl );
+
+BOOL FreeToolItemClass( Class *cl )
+{
+    if( BGUIBitmapBase ) CloseLibrary( BGUIBitmapBase );
+    return BGUI_FreeClass( cl );
+}
+///
+
+/*------------------------------------------------------------------*/
+/* Toolbar class */
+
+/// TOOLM_ADDSINGLE
+BOOL STATIC ASM
+ToolbarAddSingle( REGPARAM(a0,Class *,cl),
+                  REGPARAM(a2,Object *,obj),
+                  REGPARAM(a1,struct toolAddSingle *,tas) )
+{
+    TD *td = (TD*)INST_DATA(cl,obj);
+    int item = td->td_NumItems;
+
+    DoMethod( obj, GRM_ADDMEMBER, tas->tas_Item, TAG_DONE );
+
+    td->td_NumItems++;
+
+    return TRUE;
+}
+///
+
+/// AddItems()
+BOOL
+AddItems( Class *cl, Object *obj, TD *td, Object **tb )
+{
+    while( tb ) {
+        if( DoMethod( obj, TOOLM_ADDSINGLE, NULL, tb, -1, 0L ) == FALSE ) {
+            return FALSE;
+        }
+        tb++;
+    }
+
+    return TRUE;
+}
+///
+
+/// ToolbarNew()
+
+ULONG STATIC ASM
+ToolbarNew( REGPARAM(a0,Class *,cl),
+            REGPARAM(a2,Object *,obj),
+            REGPARAM(a1,struct opSet *,ops) )
+{
+    TD      *td;
+    struct TagItem *tag, *tags = ops->ops_AttrList, *tstate;
+    int    c = 0, item = 0;
+    BOOL   quit = FALSE;
+    ULONG rc;
+
+    D(bug("Toolbar: OM_NEW\n"));
+    /*
+     *  BUG: Should really do a FilterTagItems(),
+     *       then add own tags.
+     */
+
+    if( tag = FindTagItem( TAG_DONE, tags ) ) {
+        tag->ti_Tag  = TAG_MORE;
+        tag->ti_Data = DefaultTags;
+    }
+
+    if( rc = DoSuperMethodA( cl, obj, (Msg) ops )) {
+        td = (TD*)INST_DATA(cl,rc);
+        bzero( td, sizeof(TD) );
+
+        tstate = tags;
+
+        while( tag = NextTagItem( &tstate ) ) {
+            switch( tag->ti_Tag ) {
+                case TOOLBAR_Items:
+                    if( AddItems( cl, rc, td, tag->ti_Data ) == FALSE ) {
+                        CoerceMethod(cl, (Object *)rc, OM_DISPOSE);
+                        rc = NULL;
+                    }
+                    break;
+            }
+        }
+    }
+
+    return rc;
+}
+///
+/// ToolbarDispose()
+ULONG STATIC ASM
+ToolbarDispose( REGPARAM(a0,Class *,cl),
+                REGPARAM(a2,Object *,obj),
+                REGPARAM(a1,Msg,msg) )
+{
+    TD *td = (TD*)INST_DATA(cl,obj);
+    int i;
+
+    D(bug("Toolbar: OM_DISPOSE\n"));
+
+    return( DoSuperMethodA( cl, obj, msg ));
+}
+///
+
+/// ReadToolbarConfig()
+/*
+ *  Reads in a configuration.  END finishes.  buffer is meant
+ *  for reading.
+ *  BUG: If goes over MAX_TOOLBARSIZE, will crash.
+ */
+
+Prototype PERROR ReadToolbarConfig( BPTR fh );
+
+PERROR ReadToolbarConfig( BPTR fh )
+{
+    UBYTE buf[ BUFLEN+1 ], *s;
+    struct ToolbarItem *tbi = PPTToolbar;
+    char *tail;
+
+    D(bug("BEGIN_TOOLBAR\n"));
+
+    while( FGets( fh, buf, BUFLEN ) ) {
+        if( buf[strlen(buf)-1] = '\n' ) buf[strlen(buf)-1] = '\0'; /* Remove the final CR */
+
+        s = strtok( buf, " \t" );
+        if( s ) {
+            switch( GetOptID( ToolbarOptions, s ) ) {
+                case TO_END:
+                    tbi->ti_Type = TIT_END;
+                    return PERR_OK;
+
+                case TO_IMAGE:
+                    s = strtok( NULL, " \t\n" ); /* s = 2nd arg */
+                    tbi->ti_Type = TIT_IMAGE;
+                    tbi->ti_GadgetID = strtol( s, &tail, 0 );
+                    s = strtok( NULL, "\n" ); /* s = 3rd arg */
+                    if( tbi->ti_FileName = smalloc( strlen(s) + 1 ) )
+                        strcpy( tbi->ti_FileName, s );
+
+                    D(bug("\tRead in image gadget %lu (file=%s)\n",tbi->ti_GadgetID,tbi->ti_FileName));
+                    tbi++;
+                    break;
+
+                case TO_TEXT:
+                    s = strtok( NULL, " \t\n" ); /* s = 2nd arg */
+                    tbi->ti_Type = TIT_TEXT;
+                    tbi->ti_GadgetID = strtol( s, &tail, 0 );
+                    D(bug("\tRead in gadget %lu\n",tbi->ti_GadgetID));
+                    tbi++;
+                    break;
+
+                case GOID_COMMENT:
+                    D(bug("\tSkipped comment\n"));
+                    break;
+
+                case GOID_UNKNOWN:
+                    D(bug("\tUnknown thingy '%s'\n",buf));
+            }
+        }
+
+    }
+}
+///
+/// WriteToolbarConfig()
+Prototype PERROR WriteToolbarConfig( BPTR fh );
+
+PERROR WriteToolbarConfig( BPTR fh )
+{
+    struct ToolbarItem *tbi = PPTToolbar;
+    char buf[BUFLEN];
+
+    FPuts( fh, "BEGINTOOLBAR\n" );
+
+    while( tbi->ti_Type != TIT_END ) {
+        switch( tbi->ti_Type ) {
+            case TIT_TEXT:
+                sprintf( buf, "    TEXT %lu\n", tbi->ti_GadgetID );
+                FPuts( fh, buf );
+                break;
+
+            case TIT_IMAGE:
+                sprintf( buf, "    IMAGE %lu %s\n", tbi->ti_GadgetID, tbi->ti_FileName );
+                FPuts( fh, buf );
+                break;
+
+        }
+        tbi++;
+    }
+    FPuts( fh, "END\n" );
+
+    return PERR_OK;
+}
+///
+
+/// Class Initialization
+STATIC DPFUNC ClassFunc[] = {
+    OM_NEW,             (FUNCPTR)ToolbarNew,
+    OM_DISPOSE,         (FUNCPTR)ToolbarDispose,
+    TOOLM_ADDSINGLE,    (FUNCPTR)ToolbarAddSingle,
+    DF_END
+};
+
+Prototype Class *InitToolbarClass(VOID);
+
+Class *InitToolbarClass(VOID)
+{
+    if( ToolItemClass = InitToolItemClass() ) {
+        return BGUI_MakeClass( CLASS_SuperClassBGUI, BGUI_GROUP_GADGET,
+                               CLASS_ObjectSize,     sizeof(TD),
+                               CLASS_DFTable,        ClassFunc,
+                               TAG_DONE );
+    }
+    return NULL;
+}
+
+Prototype BOOL FreeToolbarClass( Class *cl );
+
+BOOL FreeToolbarClass( Class *cl )
+{
+    if( ToolItemClass ) FreeToolItemClass(ToolItemClass);
+
+    return BGUI_FreeClass( cl );
+}
+///
+
+/*--------------------------------------------------------------------*/
+/* PPT functions */
 
 /// FindNewMenuItem()
 Local
@@ -126,6 +537,7 @@ struct NewMenu *FindNewMenuItemName( struct NewMenu *menus, STRPTR name )
 }
 ///
 
+/// FindInToolbar()
 Prototype struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid );
 
 struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid )
@@ -149,62 +561,9 @@ struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name )
     }
     return NULL;
 }
-
-
-
-
-/// UpdateMouseLocation()
-/*
-    Updates the mouse location in the tool window.
-
-    BUG: Is now quite slow due to the TextExtent().
-*/
-
-Prototype VOID UpdateMouseLocation( WORD xloc, WORD yloc );
-
-VOID UpdateMouseLocation( WORD xloc, WORD yloc )
-{
-    struct IBox *ibox;
-    struct RastPort *rport;
-    char buffer[40];
-    struct TextExtent te;
-    extern UWORD textpen;
-
-    if( !toolw.win ) return;
-
-    rport = toolw.win->RPort;
-
-    GetAttr(AREA_AreaBox, toolw.GO_ToolInfo, (ULONG *)&ibox );
-
-    if( xloc != -1 )
-        sprintf(buffer,"(%3d,%3d)",xloc,yloc);
-    else
-        strcpy(buffer,"(---,---)");
-
-    TextExtent(rport, buffer, strlen(buffer), &te);
-
-    /* Clear the areabox and center the text. */
-
-    EraseRect( rport, ibox->Left, ibox->Top,
-                      ibox->Left+ibox->Width-1, ibox->Top+ibox->Height-1 );
-
-    Move( rport, ibox->Left + ((ibox->Width-te.te_Width)>>1),
-                 ibox->Top - te.te_Extent.MinY + 3 );
-    SetAPen( rport, textpen );
-    Text( rport, buffer, strlen(buffer) );
-    WaitBlit(); /* Has to be done to ensure the buffer
-                   is valid through the entire blit */
-}
-///
-/// ClearMouseLocation()
-Prototype VOID ClearMouseLocation(VOID);
-
-VOID ClearMouseLocation(VOID)
-{
-    UpdateMouseLocation(-1,-1);
-}
 ///
 
+/// InsertToolItem()
 /*
  *  Inserts a tool bar item onto the list.  Also updates visuals.
  *  BUG: Currently only addtail()s
@@ -230,7 +589,8 @@ VOID InsertToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *prev, stru
         AddEntrySelect( prefsw.win, prefsw.ToolbarList, nm->nm_Label, LVAP_TAIL );
     }
 }
-
+///
+/// RemoveToolItem()
 Prototype VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb );
 
 VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb )
@@ -248,6 +608,7 @@ VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb )
 
     RemoveEntryVisible( prefsw.win, prefsw.ToolbarList, tb->ti_Label );
 }
+///
 
 /// SetupToolbarList()
 /*
@@ -342,134 +703,6 @@ int HandleToolIDCMP( ULONG rc )
 }
 ///
 
-/// TOOLM_ADDSINGLE
-BOOL STATIC ASM
-ToolbarAddSingle( REGPARAM(a0,Class *,cl),
-                  REGPARAM(a2,Object *,obj),
-                  REGPARAM(a1,struct toolAddSingle *,tas) )
-{
-    struct ToolbarItem *ti = tas->tas_Item;
-    TD *td = (TD*)INST_DATA(cl,obj);
-    int item = td->td_NumItems;
-
-    if(td->td_Toolbar[item] = smalloc( sizeof( struct ToolbarItem ) )) {
-
-        bcopy( ti, td->td_Toolbar[item], sizeof(struct ToolbarItem) );
-
-        /*
-         *  Allocate room for label
-         *  BUG: filename is missing
-         */
-
-        td->td_Toolbar[item]->ti_Label = smalloc( strlen(ti->ti_Label) + 1);
-        strcpy( td->td_Toolbar[item]->ti_Label, ti->ti_Label );
-
-        if(td->td_Toolbar[item]->ti_Gadget = ButtonObject,
-            UScoreLabel( td->td_Toolbar[item]->ti_Label, '_' ),
-            GA_ID,       td->td_Toolbar[item]->ti_GadgetID,
-            XenFrame,
-            BT_ToolTip,  td->td_Toolbar[item]->ti_Label,
-            EndObject)
-        {
-            DoMethod( obj, GRM_ADDMEMBER, td->td_Toolbar[item]->ti_Gadget, TAG_DONE );
-        } else {
-            return FALSE;
-        }
-
-        td->td_NumItems++;
-
-    }
-    return TRUE;
-}
-///
-
-/// AddItems()
-BOOL
-AddItems( Class *cl, Object *obj, TD *td, struct ToolbarItem *tb )
-{
-    while( tb->ti_Type != TIT_END ) {
-        if( DoMethod( obj, TOOLM_ADDSINGLE, NULL, tb, -1, 0L ) == FALSE ) {
-            return FALSE;
-        }
-        tb++;
-    }
-
-    return TRUE;
-}
-///
-
-/// ToolbarNew()
-
-ULONG STATIC ASM
-ToolbarNew( REGPARAM(a0,Class *,cl),
-            REGPARAM(a2,Object *,obj),
-            REGPARAM(a1,struct opSet *,ops) )
-{
-    TD      *td;
-    struct TagItem *tag, *tags = ops->ops_AttrList, *tstate;
-    int    c = 0, item = 0;
-    BOOL   quit = FALSE;
-    ULONG rc;
-
-    D(bug("Toolbar: OM_NEW\n"));
-    /*
-     *  BUG: Should really do a FilterTagItems(),
-     *       then add own tags.
-     */
-
-    if( tag = FindTagItem( TAG_DONE, tags ) ) {
-        tag->ti_Tag  = TAG_MORE;
-        tag->ti_Data = DefaultTags;
-    }
-
-    if( rc = DoSuperMethodA( cl, obj, (Msg) ops )) {
-        td = (TD*)INST_DATA(cl,rc);
-        bzero( td, sizeof(TD) );
-
-        td->td_Toolbar = smalloc( sizeof(struct ToolbarItem *) * MAX_TOOLBARSIZE );
-
-        tstate = tags;
-
-        while( tag = NextTagItem( &tstate ) ) {
-            switch( tag->ti_Tag ) {
-                case TOOLBAR_Items:
-                    if( AddItems( cl, rc, td, tag->ti_Data ) == FALSE ) {
-                        CoerceMethod(cl, (Object *)rc, OM_DISPOSE);
-                        rc = NULL;
-                    }
-                    break;
-            }
-        }
-    }
-
-    return rc;
-}
-///
-/// ToolbarDispose()
-ULONG STATIC ASM
-ToolbarDispose( REGPARAM(a0,Class *,cl),
-                REGPARAM(a2,Object *,obj),
-                REGPARAM(a1,Msg,msg) )
-{
-    TD *td = (TD*)INST_DATA(cl,obj);
-    int i;
-
-    D(bug("Toolbar: OM_DISPOSE\n"));
-
-    if( td->td_Toolbar ) {
-        for( i = 0; i < td->td_NumItems; i++ ) {
-            if( td->td_Toolbar[i]) {
-                if( td->td_Toolbar[i]->ti_Label ) sfree( td->td_Toolbar[i]->ti_Label );
-                sfree( td->td_Toolbar[i] );
-            }
-        }
-        sfree( td->td_Toolbar );
-    }
-
-    return( DoSuperMethodA( cl, obj, msg ));
-}
-///
-
 /// GimmeToolBarWindow()
 /*
     This creates and opens the tool bar window.
@@ -534,9 +767,24 @@ PERROR GimmeToolBarWindow( VOID )
         return PERR_WINDOWOPEN;
     }
 
-    toolw.GO_ToolBar = NewObject( ToolbarClass, NULL,
-                                  TOOLBAR_Items, &PPTToolbar,
-                                  TAG_DONE );
+
+    if( toolw.GO_ToolBar = NewObject( ToolbarClass, NULL, TAG_DONE ) ) {
+        int i;
+
+        for(i = 0; PPTToolbar[i].ti_Type != TIT_END; i++ ) {
+
+            if( PPTToolbar[i].ti_Gadget = NewObject( ToolItemClass, NULL,
+                                                     Label( PPTToolbar[i].ti_Label ),
+                                                     BT_ToolTip, PPTToolbar[i].ti_Label,
+                                                     TOOLITEM_Screen, MAINSCR,
+                                                     TOOLITEM_FileName, PPTToolbar[i].ti_FileName,
+                                                     GA_ID, PPTToolbar[i].ti_GadgetID,
+                                                     TAG_DONE ) )
+            {
+                DoMethod( toolw.GO_ToolBar, TOOLM_ADDSINGLE, NULL, PPTToolbar[i].ti_Gadget, TASNUM_LAST, 0L );
+            }
+        }
+    }
 
     /*
      *  The window itself. The area is attached onto it.
@@ -581,6 +829,7 @@ PERROR GimmeToolBarWindow( VOID )
 }
 ///
 
+/// LocalizeToolbar()
 Prototype PERROR LocalizeToolbar(VOID);
 
 PERROR LocalizeToolbar(VOID)
@@ -599,104 +848,70 @@ PERROR LocalizeToolbar(VOID)
 
     return PERR_OK;
 }
+///
 
-/// ReadToolbarConfig()
+Prototype VOID FreeToolbar(VOID);
+
+VOID FreeToolbar(VOID)
+{
+    int item = 0;
+    struct NewMenu *nm;
+
+    while( PPTToolbar[item].ti_Type != TIT_END ) {
+        if( PPTToolbar[item].ti_FileName ) sfree( PPTToolbar[item].ti_FileName );
+        item++;
+    }
+}
+
+/// UpdateMouseLocation()
 /*
- *  Reads in a configuration.  END finishes.  buffer is meant
- *  for reading.
- *  BUG: If goes over MAX_TOOLBARSIZE, will crash.
- */
+    Updates the mouse location in the tool window.
 
-Prototype PERROR ReadToolbarConfig( BPTR fh );
+    BUG: Is now quite slow due to the TextExtent().
+*/
 
-PERROR ReadToolbarConfig( BPTR fh )
+Prototype VOID UpdateMouseLocation( WORD xloc, WORD yloc );
+
+VOID UpdateMouseLocation( WORD xloc, WORD yloc )
 {
-    UBYTE buf[ BUFLEN+1 ], *s;
-    struct ToolbarItem *tbi = PPTToolbar;
-    char *tail;
+    struct IBox *ibox;
+    struct RastPort *rport;
+    char buffer[40];
+    struct TextExtent te;
+    extern UWORD textpen;
 
-    D(bug("BEGIN_TOOLBAR\n"));
+    if( !toolw.win ) return;
 
-    while( FGets( fh, buf, BUFLEN ) ) {
-        if( buf[strlen(buf)-1] = '\n' ) buf[strlen(buf)-1] = '\0'; /* Remove the final CR */
+    rport = toolw.win->RPort;
 
-        s = strtok( buf, " \t" );
-        if( s ) {
-            switch( GetOptID( ToolbarOptions, s ) ) {
-                case TO_END:
-                    tbi->ti_Type = TIT_END;
-                    return PERR_OK;
+    GetAttr(AREA_AreaBox, toolw.GO_ToolInfo, (ULONG *)&ibox );
 
-                case TO_IMAGE:
-                    break;
+    if( xloc != -1 )
+        sprintf(buffer,"(%3d,%3d)",xloc,yloc);
+    else
+        strcpy(buffer,"(---,---)");
 
-                case TO_TEXT:
-                    s = strtok( NULL, " \t\n" ); /* s = 2nd arg */
-                    tbi->ti_Type = TIT_TEXT;
-                    tbi->ti_GadgetID = strtol( s, &tail, 0 );
-                    D(bug("\tRead in gadget %lu\n",tbi->ti_GadgetID));
-                    tbi++;
-                    break;
+    TextExtent(rport, buffer, strlen(buffer), &te);
 
-                case GOID_COMMENT:
-                    D(bug("\tSkipped comment\n"));
-                    break;
+    /* Clear the areabox and center the text. */
 
-                case GOID_UNKNOWN:
-                    D(bug("\tUnknown thingy '%s'\n",buf));
-            }
-        }
+    EraseRect( rport, ibox->Left, ibox->Top,
+                      ibox->Left+ibox->Width-1, ibox->Top+ibox->Height-1 );
 
-    }
+    Move( rport, ibox->Left + ((ibox->Width-te.te_Width)>>1),
+                 ibox->Top - te.te_Extent.MinY + 3 );
+    SetAPen( rport, textpen );
+    Text( rport, buffer, strlen(buffer) );
+    WaitBlit(); /* Has to be done to ensure the buffer
+                   is valid through the entire blit */
 }
 ///
-/// WriteToolbarConfig()
-Prototype PERROR WriteToolbarConfig( BPTR fh );
+/// ClearMouseLocation()
+Prototype VOID ClearMouseLocation(VOID);
 
-PERROR WriteToolbarConfig( BPTR fh )
+VOID ClearMouseLocation(VOID)
 {
-    struct ToolbarItem *tbi = PPTToolbar;
-    char buf[BUFLEN];
-
-    FPuts( fh, "BEGINTOOLBAR\n" );
-
-    while( tbi->ti_Type != TIT_END ) {
-        switch( tbi->ti_Type ) {
-            case TIT_TEXT:
-                sprintf( buf, "    TEXT %lu\n", tbi->ti_GadgetID );
-                FPuts( fh, buf );
-                break;
-
-        }
-        tbi++;
-    }
-    FPuts( fh, "END\n" );
-
-    return PERR_OK;
+    UpdateMouseLocation(-1,-1);
 }
 ///
 
-STATIC DPFUNC ClassFunc[] = {
-    OM_NEW,             (FUNCPTR)ToolbarNew,
-    OM_DISPOSE,         (FUNCPTR)ToolbarDispose,
-    TOOLM_ADDSINGLE,    (FUNCPTR)ToolbarAddSingle,
-    0xF00D,             (FUNCPTR)ToolbarNew,
-    DF_END
-};
-
-Prototype Class *InitToolbarClass(VOID);
-
-Class *InitToolbarClass(VOID)
-{
-    return BGUI_MakeClass( CLASS_SuperClassBGUI, BGUI_GROUP_GADGET,
-                           CLASS_ObjectSize,     sizeof(TD),
-                           CLASS_DFTable,        ClassFunc,
-                           TAG_DONE );
-}
-
-Prototype BOOL FreeToolbarClass( Class *cl );
-
-BOOL FreeToolbarClass( Class *cl )
-{
-    return BGUI_FreeClass( cl );
-}
