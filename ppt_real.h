@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.10 $
-        $Date: 1998/10/14 20:31:42 $
+    $Revision: 4.11 $
+        $Date: 1998/10/25 22:01:13 $
       $Author: nobody $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.10 1998/10/14 20:31:42 nobody Exp $
+    $Id: ppt_real.h,v 4.11 1998/10/25 22:01:13 nobody Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -173,7 +173,8 @@ typedef struct {
     struct TagItem  *tags;
     ULONG           usecount;
     BOOL            islibrary;  /* If != 0, this is a newstyle library */
-    UBYTE           diskname[NAMELEN+1];/* The real name on disk. */
+    UBYTE           diskname[MAXPATHLEN+NAMELEN+1];/* The real name on disk,
+                                                      including path. */
     UBYTE           realname[NAMELEN+1];/* The name by which this is known */
 } EXTERNAL;
 
