@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.88 1998/06/30 20:01:26 jj Exp $
+    $Id: main.c,v 1.89 1998/07/01 21:36:53 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2408,7 +2408,6 @@ int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
 
 /*
  *  Handle the palette window IDCMP
- *  BUG: G and B slider don't work.
  */
 
 /// HandlePaletteWindowIDCMP()
@@ -2440,6 +2439,7 @@ int HandlePaletteWindowIDCMP( FRAME *frame, ULONG rc )
             DoRender(frame->renderobject);
             break;
 
+        case WMHI_ACTIVE:
         case GID_PAL_PALETTE:
             /*
              *  BUG: This is dubious. Should we use the frame display
