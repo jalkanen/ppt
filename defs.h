@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 6.0 1999/11/28 18:15:30 jj Exp $
+    $Id: defs.h,v 6.1 2000/04/16 22:07:49 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -148,9 +148,9 @@
  *  generate the locking messages.
  */
 
-#define QLOCK(x)    ObtainSemaphore( &((x)->lock) )
-#define QSHLOCK(x)  ObtainSemaphoreShared( &((x)->lock) )
-#define QUNLOCK(x)  ReleaseSemaphore( &((x)->lock) )
+#define QLOCK(x)                    ObtainSemaphore( &((x)->lock) )
+#define QSHLOCK(x)                  ObtainSemaphoreShared( &((x)->lock) )
+#define QUNLOCK(x)                  ReleaseSemaphore( &((x)->lock) )
 
 /*
  *  Some generic macros for typecasting
@@ -162,10 +162,10 @@
  *  Some macros for common variables
  */
 
-#define MAINWIN       (globals->maindisp->win)
-#define MAINSCR       (globals->maindisp->scr)
-#define USERPREFS     (globals->userprefs)
-#define DOCONFIRM     (globals->userprefs->confirm)
+#define MAINWIN                     (globals->maindisp->win)
+#define MAINSCR                     (globals->maindisp->scr)
+#define USERPREFS                   (globals->userprefs)
+#define DOCONFIRM                   (globals->userprefs->confirm)
 
 #undef TMPBUF_SUPPORTED
 
@@ -173,9 +173,9 @@
  *  Useful version checking macros
  */
 
-#define GFXV39              ( GfxBase->LibNode.lib_Version >= 39 )
-#define IS_AGA              (((struct GfxBase *)GfxBase)->ChipRevBits0 & GFXF_AA_ALICE)
-#define SYSV39              ( SysBase->LibNode.lib_Version >= 39 )
+#define GFXV39                      ( GfxBase->LibNode.lib_Version >= 39 )
+#define IS_AGA                      (((struct GfxBase *)GfxBase)->ChipRevBits0 & GFXF_AA_ALICE)
+#define SYSV39                      ( SysBase->LibNode.lib_Version >= 39 )
 
 /*------------------------------------------------------------------*/
 /* Internal type definitions, which are not in ppt.h */
@@ -198,73 +198,76 @@ enum DebugFile_T {
 /*------------------------------------------------------------------*/
 /* Mainly buffer constants. You shouldn't need to change. */
 
-#define EXALLBUFSIZE        2048    /* for ExAll() in load.c */
-#define PPNCBUFSIZE         40      /* for ParsePatternNoCase() */
-#define MIN_VMBUFSIZ        96      /* in Kb. 32 (max pic width) * 3 (bytes/pixel) */
-#define ERRBUFLEN           80      /* Max no of characters allowed in an error message
-                                       from an external module. See PPTX_ErrMsg. */
-#define ARGBUF_SIZE         256     /* Length of frame->argbuf */
-#define DEFAULT_EXTSTACK    10000   /* Size of external processes stacks */
-#define INIT_BYTES          16      /* How many bytes are read from a file
-                                       and passed down to the Check() routine
-                                       of a loader. */
+#define EXALLBUFSIZE                2048    /* for ExAll() in load.c */
+#define PPNCBUFSIZE                 40      /* for ParsePatternNoCase() */
+#define MIN_VMBUFSIZ                96      /* in Kb. 32 (max pic width) * 3 (bytes/pixel) */
+#define ERRBUFLEN                   80      /* Max no of characters allowed in an error message
+                                               from an external module. See PPTX_ErrMsg. */
+#define ARGBUF_SIZE                 256     /* Length of frame->argbuf */
+#define DEFAULT_EXTSTACK            10000   /* Size of external processes stacks */
+#define INIT_BYTES                  16      /* How many bytes are read from a file
+                                               and passed down to the Check() routine
+                                               of a loader. */
 /*
  *  These two are for the PPT internal memory allocation scheme.
  */
 
-#define POOL_PUDDLESIZE     8192
-#define POOL_THRESHSIZE     8192
+#define POOL_PUDDLESIZE             8192
+#define POOL_THRESHSIZE             8192
 
 /*------------------------------------------------------------------*/
 /* Internal defaults. These you might want to change. But they can
    be changed from preferences anyway. */
 
-#define DEFAULT_PREFS_FILE  "ENVARC:PPT.prefs" /* BUG: A bad place! */
-#define DEFAULT_VM_DIR      "T:"
-#define DEFAULT_VM_BUFSIZ   120     /* In Kb */
-#define DEFAULT_MAXUNDO     4
-#define DEFAULT_MODULEPATH  "modules"
-#define DEFAULT_REXXPATH    "rexx"
+#define DEFAULT_PREFS_FILE          "ENVARC:PPT.prefs" /* BUG: A bad place! */
+#define DEFAULT_VM_DIR              "T:"
+#define DEFAULT_VM_BUFSIZ           120     /* In Kb */
+#define DEFAULT_MAXUNDO             4
+#define DEFAULT_MODULEPATH          "modules"
+#define DEFAULT_REXXPATH            "rexx"
 
-#define DEFAULT_TOOLBARDIR  "PROGDIR:GUI/toolbar/standard"
+#define DEFAULT_TOOLBARDIR          "PROGDIR:GUI/toolbar/standard"
 
 #ifdef  DEBUG_MODE
-#define DEFAULT_STARTUPDIR  "Data:Gfx/Pics"
+#define DEFAULT_STARTUPDIR          "Data:Gfx/Pics"
 #else
-#define DEFAULT_STARTUPDIR  ""
+#define DEFAULT_STARTUPDIR          ""
 #endif
 
-#define DEFAULT_STARTUPFILE ""
-#define DEFAULT_EXTNICEVAL  10
-#define DEFAULT_EXTPRIORITY -1
+#define DEFAULT_STARTUPFILE         ""
+#define DEFAULT_EXTNICEVAL          10
+#define DEFAULT_EXTPRIORITY         -1
 
-#define DEFAULT_PROGRESS_FILESIZE 256000 /* Bytes, before a progress display is shown */
-#define DEFAULT_PROGRESS_STEP 40
+#define DEFAULT_PROGRESS_FILESIZE   256000 /* Bytes, before a progress display is shown */
+#define DEFAULT_PROGRESS_STEP       40
 
 /* Main window defaults */
-#define DEFAULT_SCRDEPTH    4       /* Make a 16 color screen by default */
-#define DEFAULT_SCRHEIGHT   200
-#define DEFAULT_SCRWIDTH    640
-#define DEFAULT_DISPID      HIRES_KEY
+#define DEFAULT_SCRDEPTH            4       /* Make a 16 color screen by default */
+#define DEFAULT_SCRHEIGHT           200
+#define DEFAULT_SCRWIDTH            640
+#define DEFAULT_DISPID              HIRES_KEY
 
-#define DEFAULT_PREVIEWMODE PWMODE_MEDIUM
+#define DEFAULT_PREVIEWMODE         PWMODE_MEDIUM
 
-#define DEFAULT_CONFIRM     TRUE
-#define DEFAULT_TIPNUMBER   0
+#define DEFAULT_CONFIRM             TRUE
+#define DEFAULT_TIPNUMBER           0
 
-#define VM_FILENAME         "PPT_VM_FILE"
-#define PPTPUBSCREENNAME    "PPT"
+#define DEFAULT_IMAGEICON           "PROGDIR:GUI/Default-icon.info"
+
+#define VM_FILENAME                 "PPT_VM_FILE"
+#define PPTPUBSCREENNAME            "PPT"
 
 /* This gives the amount of days after which PPT starts to complain
    about expiration */
-#define NAG_PERIOD          (2*30)  /* In days */
+#define NAG_PERIOD                  (2*30)  /* In days */
 
 /*------------------------------------------------------------------*/
 /* Miscallaneous constants. */
 
-#define VM_SAFEBOUNDARY     128     /* If hit happens this close to boundaries, then reload file. */
-#define FONT_MAXHEIGHT      30      /* Won't allow fonts bigger than this.*/
-#define BGUI_VERSION_REQUIRED 41L
+#define VM_SAFEBOUNDARY             128     /* If hit happens this close to boundaries, then reload file. */
+#define FONT_MAXHEIGHT              30      /* Won't allow fonts bigger than this.*/
+#define BGUI_VERSION_REQUIRED       41L
+#define BGUI_REVISION_REQUIRED      10L
 
 /*------------------------------------------------------------------*/
 /* Miscallaneous flags */
@@ -273,37 +276,37 @@ enum DebugFile_T {
     frame->selstatus flag definitions. Should probably be named
     frame->flags.
 */
-#define SELF_DRAWN          0x01
-#define SELF_BUTTONDOWN     0x02
-#define SELF_CONTROLDOWN    0x04
+#define SELF_DRAWN                  0x01
+#define SELF_BUTTONDOWN             0x02
+#define SELF_CONTROLDOWN            0x04
 
-#define SELF_LOCKED         0x80    /* Ignore global selection messages
-                                       and lock to this selection type */
+#define SELF_LOCKED                 0x80    /* Ignore global selection messages
+                                               and lock to this selection type */
 
 /*
     Flags for AddExtEntries()
 */
 
-#define AEE_SAVECM          0x00000001  /* Colormapped */
-#define AEE_SAVETC          0x00000002  /* Truecolor */
-#define AEE_LOAD            0x00000004  /* Loaders */
+#define AEE_SAVECM                  0x00000001  /* Colormapped */
+#define AEE_SAVETC                  0x00000002  /* Truecolor */
+#define AEE_LOAD                    0x00000004  /* Loaders */
 
-#define AEE_SAVE            (AEE_SAVECM | AEE_SAVETC)
-#define AEE_ALL             ~0
+#define AEE_SAVE                    (AEE_SAVECM | AEE_SAVETC)
+#define AEE_ALL                     ~0
 
 
 /*
     Flags for DrawSelectBox()
  */
 
-#define DSBF_INTERIM        (1<<0)
-#define DSBF_FIXEDRECT      (1<<1)
+#define DSBF_INTERIM                (1<<0)
+#define DSBF_FIXEDRECT              (1<<1)
 
 /*------------------------------------------------------------------*/
 /* DICE prototype stuff */
 
-#define Prototype           extern
-#define Local               static
+#define Prototype                   extern
+#define Local                       static
 
 /*------------------------------------------------------------------*/
 
