@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.1 1995/11/24 23:19:12 jj Exp $
+    $Id: errors.c,v 1.2 1995/12/06 22:35:10 jj Exp $
 
     Error handling routines.
 */
@@ -20,7 +20,7 @@ Prototype VOID        SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error );
 Prototype VOID        ShowError( REG(A0) FRAME *frame );
 Prototype UBYTE      *GetErrorMsg( FRAME * );
 Prototype VOID        ClearError( FRAME * );
-
+Prototype VOID        CopyError( FRAME *, FRAME * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -101,6 +101,19 @@ VOID ClearError( FRAME *frame )
     }
 }
 
+/*
+    A kludgish way to copy error messages from one frame to another one.
+*/
+
+VOID CopyError( FRAME *source, FRAME *dest )
+{
+    if( source != dest ) {
+        dest->errorcode = source->errorcode;
+        dest->doerror   = source->doerror;
+        strncpy( dest->errormsg, source->errormsg, ERRBUFLEN-1 );
+    }
+}
+
 /****** pptsupport/SetErrorCode ******************************************
 *
 *   NAME
@@ -126,9 +139,9 @@ VOID ClearError( FRAME *frame )
 *   EXAMPLE
 *
 *   NOTES
+*       You cannot set the error code more than once.
 *
 *   BUGS
-*       Behaviour with SetErrorMsg() is not properly defined.
 *
 *   SEE ALSO
 *       SetErrorMsg(), ppt.h
@@ -142,9 +155,12 @@ SAVEDS ASM VOID SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error )
     D(bug("SetErrorCode(%08X, error=%lu)\n",frame,error));
 
     if(CheckPtr(frame,"SetErrorCode: frame")) {
-        if(!CheckPtr(frame, "SetErrorCode(): frame")) return;
-        frame->errorcode = error;
-        frame->doerror   = TRUE; /* Signal: This error has not yet been shown */
+        if( frame->doerror == FALSE ) {
+            frame->errorcode = error;
+            frame->doerror   = TRUE; /* Signal: This error has not yet been shown */
+        } else {
+            D(bug("\tAn error was already pending; didn't add this one\n"));
+        }
     }
 }
 
@@ -160,18 +176,23 @@ SAVEDS ASM VOID SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error )
 *       VOID SetErrorMsg( FRAME *, UBYTE * );
 *
 *   FUNCTION
+*       Set up a custom error message for the frame.
 *
 *   INPUTS
+*       frame - your frame handle
+*       msg - pointer to a NUL-terminated string, which contains
+*           the error message. It is copied to an internal buffer,
+*           so you needn't guarantee it's validity after exiting
+*           your external module.
 *
 *   RESULT
 *
 *   EXAMPLE
 *
 *   NOTES
+*       You cannot set the error code more than once.
 *
 *   BUGS
-*       This entry still very incomplete.
-*       The behaviour with SetErrorCode() is not properly defined
 *
 *   SEE ALSO
 *       SetErrorCode()
@@ -185,10 +206,13 @@ SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
     D(bug("SetErrorMsg(%08X, error='%s')\n",frame,error));
 
     if( CheckPtr(frame,"SetErrorMsg(): frame") && error) {
-        if(!CheckPtr(frame, "SetErrorMsg(): frame")) return;
-        frame->errorcode = PERR_FAILED;
-        strncpy( frame->errormsg, error, ERRBUFLEN-1 );
-        frame->doerror = TRUE; /* Signal: This error has not yet been shown */
+        if( frame->doerror == FALSE ) {
+            frame->errorcode = PERR_FAILED;
+            strncpy( frame->errormsg, error, ERRBUFLEN-1 );
+            frame->doerror = TRUE; /* Signal: This error has not yet been shown */
+        } else {
+            D(bug("\tAn error was already pending; didn't add this one\n"));
+        }
     }
 }
 
