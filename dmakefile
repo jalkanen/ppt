@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 6.1 1999/09/06 21:18:46 jj Exp $
+#       $Id: dmakefile,v 6.2 1999/09/08 22:46:47 jj Exp $
 #
 #####################################################################
 #
@@ -539,6 +539,9 @@ ModuleInfo/moduleinfo : ppt_real.h
 devarc : devdocs pragmas $(DEVDIR)
         dupdate $(MAINDIR) $(DEVDIR) FORCE DISTFILE .DistFiles_dev
         lha -r u $(ARCHIVEDIR)PPT_dev.lha $(DEVDIR)/#?
+
+ppcdev :
+        lha -re u ram:PPT_ppcdev.lha pluginsrc/sample_effect_ppc/~(#?.(o|effect))
 
 #
 # Non-free stuff
