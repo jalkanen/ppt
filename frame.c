@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.12 1997/08/30 22:44:23 jj Exp $
+    $Id: frame.c,v 2.13 1997/08/31 20:47:28 jj Exp $
 
     This contains frame handling routines
 
@@ -107,10 +107,12 @@ gotcha:
             goto errorexit;
     }
 
+#ifdef USE_OLD_ALPHA
     if( cur = FindFrame(frame->alpha) ) {
         if(ObtainFrame( cur, method ) == FALSE)
             goto errorexit;
     }
+#endif
 
     frame->busy = method;
     frame->busycount++;
@@ -163,9 +165,11 @@ SAVEDS BOOL ReleaseFrame( FRAME *frame )
         ReleaseFrame( cur );
     }
 
+#ifdef USE_OLD_ALPHA
     if( cur = FindFrame(frame->alpha) ) {
         ReleaseFrame( cur );
     }
+#endif
 
     /*
      *  Release the frame only if busycount is equal to zero
@@ -366,6 +370,8 @@ void DeleteFrame( FRAME *f )
     D(bug("\nReturning from DeleteFrame()\n"));
 }
 
+#ifdef USE_OLD_ALPHA
+
 /*
     Adds an alpha frame to the frame given. Performs a multitude of checks, also.
 
@@ -422,6 +428,42 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
     return PERR_CANCELED;
 }
 
+#else
+
+PERROR AddAlpha( FRAME *frame, FRAME *alpha )
+{
+    UBYTE cspace = frame->pix->colorspace;
+    char buffer[100];
+
+    if( cspace != CS_RGB && cspace != CS_ARGB ) {
+        Req(GetFrameWin(frame), NULL, "\nAlpha channels on others than\n"
+                                      "RGB images are not allowed (yet)\n" );
+        return PERR_FAILED;
+    }
+
+    if( cspace == CS_ARGB ) {
+        if(Req(GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
+               "\nReplace current alpha channel\n"
+                "with '%s'?\n", alpha->name ) )
+        {
+            return PERR_CANCELED;
+        }
+    }
+
+    if( AttachFrame( frame, alpha, ATTACH_SIMPLE, globxd ) ) {
+        sprintf(buffer, "NAME=ADDALPHA ARGS=\"ALPHA %ld\"", alpha->ID );
+        if( RunFilter( frame, buffer ) != PERR_OK ) {
+            Req( GetFrameWin(frame), NULL, "\nCouldn't start a new process!\n");
+            return PERR_FAILED;
+        }
+    }
+
+    return PERR_OK;
+}
+
+#endif
+
+
 /*
     Removes the current alpha channel
 */
@@ -431,7 +473,9 @@ VOID RemoveAlpha( FRAME *f )
     D(bug("RemoveAlpha( %08X )\n",f ));
 
     LOCK(f);
+#ifdef USE_OLD_ALPHA
     f->alpha = 0L;
+#endif
     UNLOCK(f);
 }
 
@@ -1737,13 +1781,14 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
 
     switch(how) {
         case ATTACH_ALPHA:
+#ifdef USE_OLD_ALPHA
             if(IsAttached(dst, src->ID) || IsAttached(src, dst->ID) ) {
                 Req(NEGNUL,NULL,"\nThe frame cannot be attached as an alpha channel\n"
                                 "because it already has been attached to it somehow.\n");
                 return FALSE;
             }
-
             dst->alpha = src->ID;
+#endif
             break;
 
         case ATTACH_SIMPLE:
@@ -1752,12 +1797,13 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
              *  Adds the srcframe to the end of simple attachment list
              *  BUG: Bloody slow.
              */
-
+#ifdef USE_OLD_ALPHA
             if( (dst->alpha == src->ID) || (src->alpha == dst->ID) ) {
                 Req(NEGNUL,NULL,"\nThis frame is already an alpha channel!\n"
                                 "You cannot attach it!\n" );
                 return FALSE;
             }
+#endif
 
             cur = dst;
             while( (next = FindFrame(cur->attached)) ) cur = next;
