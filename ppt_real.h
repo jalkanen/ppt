@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 2.3 $
-        $Date: 1997/01/12 00:18:16 $
+    $Revision: 2.4 $
+        $Date: 1997/01/12 22:35:11 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 2.3 1997/01/12 00:18:16 jj Exp $
+    $Id: ppt_real.h,v 2.4 1997/01/12 22:35:11 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -123,6 +123,7 @@ typedef struct GrayPixel_T {
 
 #define MAXPATHLEN          256     /* Std AmigaDOS path len */
 #define NAMELEN             40      /* Maximum length of frame name */
+#define MAXPATTERNLEN       80      /* The maximum length for PPTX_PostFixPattern */
 /*!!PRIVATE*/
 #define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
 #define SCRTITLELEN         80      /* Length of the screen title buffer in DISPLAY */
@@ -167,8 +168,8 @@ typedef struct {
     struct TagItem  *tags;
     ULONG           usecount;
     BOOL            islibrary;  /* If != 0, this is a newstyle library */
-    UBYTE           diskname[40];/* The real name on disk. */
-    UBYTE           realname[40];/* The name by which this is known */
+    UBYTE           diskname[NAMELEN+1];/* The real name on disk. */
+    UBYTE           realname[NAMELEN+1];/* The name by which this is known */
 } EXTERNAL;
 
 /* External types. Also double as Node types. Type is UBYTE  */
@@ -189,6 +190,8 @@ typedef struct {
     ULONG           saveformats;    /* Result of PPTX_SaveFormats query
                                        cached here upon startup. */
     BOOL            canload;        /* Result of PPTX_Load query cached here */
+    UBYTE           prefpostfix[NAMELEN+1];
+    UBYTE           postfixpat[MAXPATTERNLEN+1];
 } LOADER;
 
 
