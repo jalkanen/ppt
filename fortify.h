@@ -5,7 +5,7 @@
  *   fortify.h
  *
  * DESCRIPTION:
- *     Header file for fortify.c - A fortified shell for malloc, realloc, 
+ *     Header file for fortify.c - A fortified shell for malloc, realloc,
  *   calloc & free
  *
  * WRITTEN:
@@ -22,19 +22,19 @@ extern "C" {
 
 typedef void (*OutputFuncPtr)(char *);
 
-void *Fortify_malloc(size_t size, char *file, unsigned long line);
-void *Fortify_realloc(void *ptr, size_t new_size, char *file, unsigned long line);
-void *Fortify_calloc(size_t num, size_t size, char *file, unsigned long line);
-void  Fortify_free(void *uptr, char *file, unsigned long line);
+void * __stdargs Fortify_malloc(size_t size, char *file, unsigned long line);
+void * __stdargs Fortify_realloc(void *ptr, size_t new_size, char *file, unsigned long line);
+void * __stdargs Fortify_calloc(size_t num, size_t size, char *file, unsigned long line);
+void  __stdargs  Fortify_free(void *uptr, char *file, unsigned long line);
 
-int   Fortify_OutputAllMemory(char *file, unsigned long line);
-int   Fortify_CheckAllMemory(char *file, unsigned long line);
-int   Fortify_CheckPointer(void *uptr, char *file, unsigned long line);
-int   Fortify_Disable(char *file, unsigned long line);
-int   Fortify_SetMallocFailRate(int Percent);
-int   Fortify_EnterScope(char *file, unsigned long line);
-int   Fortify_LeaveScope(char *file, unsigned long line);
-int   Fortify_DumpAllMemory(int scope, char *file, unsigned long line);
+int __stdargs Fortify_OutputAllMemory(char *file, unsigned long line);
+int __stdargs Fortify_CheckAllMemory(char *file, unsigned long line);
+int __stdargs Fortify_CheckPointer(void *uptr, char *file, unsigned long line);
+int __stdargs Fortify_Disable(char *file, unsigned long line);
+int __stdargs Fortify_SetMallocFailRate(int Percent);
+int __stdargs Fortify_EnterScope(char *file, unsigned long line);
+int __stdargs Fortify_LeaveScope(char *file, unsigned long line);
+int __stdargs Fortify_DumpAllMemory(int scope, char *file, unsigned long line);
 
 typedef void (*Fortify_OutputFuncPtr)(const char *);
 Fortify_OutputFuncPtr Fortify_SetOutputFunc(Fortify_OutputFuncPtr Output);
@@ -64,7 +64,7 @@ Fortify_OutputFuncPtr Fortify_SetOutputFunc(Fortify_OutputFuncPtr Output);
 
 #define Fortify_OutputAllMemory()     0
 #define Fortify_CheckAllMemory()      0
-#define Fortify_CheckPointer(ptr)     1
+#define Fortify_CheckPointer(ptr)     (ptr != NULL)
 #define Fortify_Disable()             1
 #define Fortify_SetOutputFunc()       0
 #define Fortify_SetMallocFailRate(p)  0
