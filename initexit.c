@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 6.0 1999/09/05 02:21:44 jj Exp $
+    $Id: initexit.c,v 6.1 1999/10/02 16:35:42 jj Exp $
 
     Initialization and exit code.
 */
@@ -276,6 +276,7 @@ VOID OpenStartupWindow(VOID)
                                BITMAP_Height,   bmh->bmh_Height,
                                BITMAP_Remap,    TRUE,
                                BITMAP_Screen,   scr_Startup,
+                               BITMAP_Dither,   TRUE,
                                TAG_DONE);
         }
     }
@@ -379,6 +380,7 @@ VOID UpdateStartupWindow( const char *text )
     }
 }
 ///
+
 /// CloseStartupWindow
 Prototype VOID CloseStartupWindow(VOID);
 
@@ -392,7 +394,10 @@ VOID CloseStartupWindow(VOID)
 #ifdef USE_LOGOIMAGE
     if( dtobj ) { DisposeDTObject( dtobj ); dtobj = NULL; }
     // if( startupframe ) RemFrame( startupframe, globxd );
-    if( BGUIBitmapBase ) { CloseLibrary( BGUIBitmapBase ); BGUIBitmapBase = NULL; }
+    if( BGUIBitmapBase ) {
+        CloseLibrary( BGUIBitmapBase );
+        BGUIBitmapBase = NULL;
+    }
 #endif
 }
 ///
