@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.0 1999/09/05 02:22:46 jj Exp $
+    $Id: main.c,v 6.1 1999/09/05 17:08:45 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -3471,14 +3471,15 @@ int main(int argc, char **argv)
     globsigmask = 0L;
 
     UpdateStartupWindow( GetStr(mINIT_LOADING_IOMODULES) );
-    FetchExternals(globals->userprefs->modulepath,NT_LOADER);
-    FetchExternals("Contrib/modules/",NT_LOADER);
+
+    FetchExternals(globals->userprefs->modulepath,NT_LOADER, GetStr(mINIT_LOADING_IOMODULES) );
+    FetchExternals("Contrib/modules/",NT_LOADER, GetStr(mINIT_LOADING_IOMODULES) );
     UpdateStartupWindow( GetStr(mINIT_LOADING_EFFECTS) );
-    FetchExternals(globals->userprefs->modulepath,NT_EFFECT);
-    FetchExternals("Contrib/modules/",NT_EFFECT);
-    UpdateStartupWindow( GetStr(mINIT_LOADING_SCRIPTS) );
-    FetchExternals(globals->userprefs->rexxpath,NT_SCRIPT);
-    FetchExternals("Contrib/Rexx/",NT_SCRIPT);
+    FetchExternals(globals->userprefs->modulepath,NT_EFFECT, GetStr(mINIT_LOADING_EFFECTS) );
+    FetchExternals("Contrib/modules/",NT_EFFECT, GetStr(mINIT_LOADING_EFFECTS) );
+    UpdateStartupWindow( GetStr(mINIT_LOADING_SCRIPTS)  );
+    FetchExternals(globals->userprefs->rexxpath,NT_SCRIPT, GetStr(mINIT_LOADING_SCRIPTS) );
+    FetchExternals("Contrib/Rexx/",NT_SCRIPT, GetStr(mINIT_LOADING_SCRIPTS) );
 
     CloseStartupWindow();
 
