@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.5 1996/10/10 19:14:36 jj Exp $
+#       $Id: dmakefile,v 1.6 1996/11/02 15:38:12 jj Exp $
 #
 #####################################################################
 #
@@ -57,7 +57,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
 COPTS  = ignore=104 OBJECTNAME=$(OD) NOICONS IDIR=dinclude:pd \
-         NOCONSTLIB NOSTKCHK STREQV
+         CONSTLIB NOSTKCHK STREQV STRMERGE
 
 # a68k makes erroneous code!
 #AS     = das
@@ -92,8 +92,10 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #
 #  Release version
 #
+#  NB:  If compiling for 020+, then remove utillib from the command line
+#
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
-RCOPTS  = $(COPTS) cpu=68020 OPT OPTSCHED DEBUG=LINE STRCON
+RCOPTS  = cpu=68000 UTILLIB OPT OPTSCHED DEBUG=LINE STRCON PARMS=R UTILLIB
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
 
@@ -268,7 +270,7 @@ proto : $(SRCS)
 # Makes a backup from everything except for object files.
 
 backup :
-        lha -r u $(BACKUPDIR)ppt.lha ~(#?.o)
+        lha -r u $(BACKUPDIR)ppt.lha ~(#?.(o|lnk|gst))
         @beep
 
 # RCS update
@@ -281,10 +283,13 @@ rcs :
 dist : all release $(DISTDIR) docs
         dupdate $(MAINDIR) $(DISTDIR) FORCE
         Rename $(DISTDIR)/ppt_rel $(DISTDIR)/ppt
+        Rename $(DISTDIR)/ppt_rel.info $(DISTDIR)/ppt.info
         MakeDir $(DISTDIR)/libs
         Copy LIBS:bgui.library $(DISTDIR)/libs
         Copy SYS:Classes/Gadgets/palette_bgui.gadget $(DISTDIR)/libs
-        lha -r u RAM:PPT_dist.lha $(DISTDIR)/#?
+        Cd $(DISTDIR)
+        Copy $(MAINDIR)/ppt_dir.info /PPT.info
+        lha -r u RAM:PPT_dist.lha $(DISTDIR)/#? /PPT.info
         @beep
 
 $(DISTDIR) : $(DISTDIR)
