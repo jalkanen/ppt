@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.48 1997/10/26 23:09:09 jj Exp $
+    $Id: display.c,v 1.49 1997/12/06 22:49:19 jj Exp $
 
     Contains display routines.
 
@@ -141,7 +141,7 @@ VOID GetNameForDisplayID( ULONG id, UBYTE *buffer, LONG length )
     {
         strncpy( buffer, query.Name, length );
     } else {
-        strncpy( buffer, "Unknown display ID", length );
+        strncpy( buffer, GetStr(MSG_UNKNOWN_DISPLAY_ID), length );
     }
 }
 
@@ -1248,7 +1248,7 @@ PERROR DisplayFrame( FRAME *frame )
             if( ObtainFrame( frame, BUSY_READONLY ) == FALSE ) {
                 frame->reqrender = 1; /* Atomic */
                 D(bug("\tFrame is busy...\n"));
-                ShowText( frame, "Busy", globxd );
+                ShowText( frame, GetStr(MSG_BUSY), globxd );
             } else {
                 res = QuickDisplayFrame( frame );
 
@@ -1324,10 +1324,9 @@ struct Screen *OpenMainScreen( DISPLAY *d )
     if(!foo || errcode) {
         char *en;
 
-        en = (char *)GetTagData(TAG_USER+errcode, (ULONG)"Unknown reason", screenfailtext );
+        en = (char *)GetTagData(TAG_USER+errcode, (ULONG)GetStr(MSG_UNKNOWN_REASON), screenfailtext );
 
-        Req(NULL,NULL,ISEQ_C"\nGot error code %lu while opening screen:\n\n"
-                      ISEQ_I"%s\n\n",
+        Req(NULL,NULL,GetStr(MSG_OPENSCREEN_ERROR),
                       errcode, en);
         return NULL;
     }
@@ -1403,6 +1402,12 @@ struct Screen *OpenMainScreen( DISPLAY *d )
         return NULL;
     }
 
+    /*
+     *  Lastly, make the screen truly public.
+     */
+
+    PubScreenStatus( foo, 0 );
+
     return foo;
 }
 
@@ -1427,7 +1432,7 @@ PERROR CloseMainScreen( void )
                 MAINSCR = NULL;
             } else {
                 D(bug("Could not close main screen!!!\n"));
-                Req( NEGNUL, "Retry", "\nPlease close all windows from my screen!\n" );
+                Req( NEGNUL, GetStr(MSG_RETRY), GetStr(MSG_CLOSE_ALL_WINDOWS) );
             }
         }
     }
@@ -1548,10 +1553,7 @@ PERROR CloseDisplay()
     D(bug("CloseDisplay()\n"));
 
     if( HowManyThreads() != 0 ) {
-        Req(NEGNUL,NULL,"\nCannot close main screen!\n"
-                        "Please make sure there is no processing,\n"
-                        "loading, saving and/or rendering going on\n"
-                        "and try again.\n" );
+        Req(NEGNUL,NULL,GetStr(MSG_STILL_PROCESSES_LEFT) );
         return PERR_FAILED;
     }
 
@@ -1602,9 +1604,7 @@ PERROR CloseDisplay()
         WindowClose( selectw.Win );
 
     if( CloseMainScreen() != PERR_OK ) {
-        Req(NEGNUL,"Dang!", "\nThere are windows I cannot close on this\n"
-                            "screen. Please close all windows you can and\n"
-                            "try again.\n" );
+        Req(NEGNUL,GetStr(MSG_RETRY),GetStr(MSG_CLOSE_ALL_WINDOWS) );
         OpenDisplay();
         return PERR_FAILED;
     }
