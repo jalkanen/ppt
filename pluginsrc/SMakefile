@@ -1,0 +1,10 @@
+
+CC = sc
+CFLAGS = resetopts libcode noutillib opt nostackcheck cpu=000 IDIR=//include debug=symbol
+
+all : dummy68k.o boopsi.o
+
+dummy68k.o : dummy68k.c
+
+boopsi.o : boopsi.c
+
