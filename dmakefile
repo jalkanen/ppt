@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.12 1997/07/12 21:59:07 jj Exp $
+#       $Id: dmakefile,v 1.13 1997/10/19 22:08:44 jj Exp $
 #
 #####################################################################
 #
@@ -70,14 +70,15 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #CC     = dcc
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
-COPTS  = IGNORE=104 NOICONS IDIR=dinclude:pd IDIR=include \
-         CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT
+COPTS  = NOICONS IDIR=dinclude:pd IDIR=include \
+         CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT \
+         IGNORE=104
 
 # a68k makes erroneous code!
 #AS     = das
 #ASOPTS =
 AS     = SC
-ASOPTS =
+ASOPTS = DEBUG=LINE
 
 # LINK   = dcc
 # LINKOPTS = -lbgui -lm
@@ -111,17 +112,18 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #  NB:  If compiling for 020+, then remove utillib from the command line
 #
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
-RCOPTS  = OPT OPTSCHED DEBUG=LINE STRCON PARMS=R CPU=000 UTILLIB \
-          OPTINLOCAL GST=include:all.gst
+RCOPTS  = OPT OPTSCHED DEBUG=LINE PARMS=R CPU=000 UTILLIB \
+          GST=include:all.gst
 
-R2COPTS = OPT OPTSCHED DEBUG=LINE STRCON PARMS=R CPU=020 NOUTILLIB \
-          OPTINLOCAL GST=include:all.gst
+R2COPTS = OPT OPTSCHED DEBUG=LINE PARMS=R CPU=020 NOUTILLIB \
+          GST=include:all.gst
 
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 
 R2LDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
+STRIP2  = SLINK $(R2MAIN) TO $(R2MAIN).strip STRIPDEBUG NOICONS
 
 #
 #  Non-optimized code
@@ -154,8 +156,8 @@ LINKTO  = TO
 SRCS = initexit.c debug.c load.c edit.c frame.c main.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
        render.c preview.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
-       external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
-       ppt_cat.c askreq.c gui.c extensions.c
+       external.c prefs.c save.c palette_edit.c rexx.c ppt_cat.c \
+       askreq.c gui.c extensions.c dropareaclass.c renderareaclass.c colors.c
 
 # These are not compiled with optimization on.
 
@@ -369,18 +371,24 @@ rcs :
 
 # This makes a distribution
 
-dist : all release $(DISTDIR) docs
+dist : all release release020 $(DISTDIR) docs
         Copy $(RMAIN) $(RMAIN).debug
+        Copy $(R2MAIN) $(R2MAIN).debug
         $(STRIP)
+        $(STRIP2)
         Copy $(RMAIN).strip $(RMAIN)
         Delete $(RMAIN).strip
+        Copy $(R2MAIN).strip $(R2MAIN)
+        Delete $(R2MAIN).strip
         dupdate $(MAINDIR) $(DISTDIR) FORCE
         Cd $(DISTDIR)
         Copy $(MAINDIR)/ppt_dir.info /PPT.info
+        pgp -sba ppt -u jalkanen
         lha -r u $(ARCHIVEDIR)PPT_dist.lha $(DISTDIR)/#? /PPT.info
+        Copy $(DISTDIR)/ReleaseNotes $(DISTDIR)/README $(DISTDIR)/HISTORY $(ARCHIVEDIR)
         Cd $(MAINDIR)
         Copy $(ARCHIVEDIR)PPT_dist.lha tmp:pptarchive/pptdist.lha
-        lha u tmp:pptarchive/pptdist.lha $(RMAIN).debug
+        lha u tmp:pptarchive/pptdist.lha $(RMAIN).debug $(R2MAIN).debug
         @beep
 
 strip :
@@ -470,4 +478,12 @@ ppt.h : ppt_real.h
         extract ppt_real.h    include/ppt.h
         extract pptmessage.h  include/pptmessage.h
         touch externals
+
+#
+#   PGP signatures
+#
+
+pgpsig : dist
+        @cd $(DISTDIR)
+        pgp -sba ppt -u jalkanen
 
