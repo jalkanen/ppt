@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.6 $
-        $Date: 1998/12/15 21:22:00 $
+    $Revision: 1.7 $
+        $Date: 1999/01/13 22:54:38 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -45,7 +45,9 @@ struct PPTMessage {
 #define PPTMSGF_DONE            0x80000000 /* Set, if the message contains a death msg */
 
 /*
- *  Effect done.
+ *  Effect done.  The em_NewFrame field points to the new frame which
+ *  was created during the effect (it may be NULL), and em_Status
+ *  tells what actually happened.  See below for codes.
  */
 
 #define PPTMSG_EFFECTDONE       (PPTMSGF_DONE + 0x01)
@@ -56,9 +58,10 @@ struct EffectMessage {
     ULONG               em_Status;
 };
 
-#define EMSTATUS_FAILED         0L
-#define EMSTATUS_NEWFRAME       1L
-#define EMSTATUS_NOCHANGE       2L
+#define EMSTATUS_FAILED         0L  /* Effect failed.  em_NewFrame = NULL */
+#define EMSTATUS_NEWFRAME       1L  /* Effect succeeded. em_NewFrame = new frame */
+#define EMSTATUS_NOCHANGE       2L  /* Effect succeeded, but there was no change,
+                                       thus em_NewFrame = NULL */
 
 #define PPTMSG_LOADDONE         (PPTMSGF_DONE + 0x02)
 #define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
