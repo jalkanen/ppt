@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.2 1995/08/20 18:40:48 jj Exp $
+    $Id: load.c,v 1.3 1995/10/02 21:35:09 jj Exp $
 
     Code for loaders...
 */
@@ -36,12 +36,12 @@
 /*---------------------------------------------------------------------*/
 /* Prototypes */
 
-Local     PERROR      DoTheLoad( FRAME *, EXTDATA *, char *, char * );
+Local     PERROR      DoTheLoad( FRAME *, EXTDATA *, char *, char *, char * );
 Prototype PERROR      FetchExternals(const char *path, UBYTE type);
 Prototype __D0 PERROR BeginLoad( __A0 FRAME *,  __A6 EXTDATA * );
 Prototype void        EndLoad( __A0 FRAME *, __A6 EXTDATA * );
 Prototype void        LoadPicture( __A0 UBYTE * );
-Prototype FRAME *     RunLoad( char *fullname, UBYTE *argstr );
+Prototype FRAME *     RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
 
 
 /*---------------------------------------------------------------------*/
@@ -63,29 +63,42 @@ const char *external_patterns[] = {
     Works as a front end to the LoadPicture() call. argstr is
     for AREXX. Returns the frame address or NULL for failures.
 */
-FRAME *RunLoad( char *fullname, UBYTE *argstr )
+FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
 {
-    char argbuf[ARGBUF_SIZE];
-    struct Process *p;
+    char argbuf[ARGBUF_SIZE], t[80];
+    struct Process *p = NULL;
     FRAME *frame;
 
     D(bug("RunLoad()\n"));
 
     frame = NewFrame(0,0,0,globxd); /* Allocate with no buffers. */
+    if(frame == NULL) return NULL;
 
     if(ObtainFrame( frame, BUSY_LOADING ) == FALSE)
         return NULL;
 
-    strcpy(frame->fullname,fullname);
-    MakeFrameName( FilePart(fullname), frame->name, NAMELEN, globxd );
+    if( fullname ) {
+        strcpy(frame->fullname,fullname);
+        MakeFrameName( FilePart(fullname), frame->name, NAMELEN, globxd );
+    } else {
+        strcpy(frame->fullname,"");
+        MakeFrameName( NULL, frame->name, NAMELEN, globxd );
+    }
 
-    if(argstr)
-        sprintf(argbuf,"%lu PATH=\"%s\" ARGS=\"%s\"",frame,fullname,argstr);
-    else
-        sprintf(argbuf,"%lu PATH=\"%s\"",frame,fullname);
+    sprintf(argbuf,"%lu PATH=\"%s\"",frame,frame->fullname);
+
+    if(argstr) {
+        sprintf(t," ARGS=\"%s\"",argstr);
+        strcat( argbuf, t );
+    }
+
+    if(loader) {
+        sprintf(t," LOADER=\"%s\"", loader);
+        strcat( argbuf, t );
+    }
 
 #ifdef DEBUG_MODE
-    p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, TRUE, NP_Output, Open("dtmp:load.log",MODE_NEWFILE),
+    p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, TRUE, NP_Output, Open("dtmp:load.log",MODE_READWRITE),
                            NP_CloseOutput,TRUE, NP_Name, "PPT Load",
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #else
@@ -93,9 +106,11 @@ FRAME *RunLoad( char *fullname, UBYTE *argstr )
                            NP_CloseOutput, TRUE, NP_Name, "PPT Load",
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #endif
+
+errorexit:
     if(!p) {
         Req(NEGNUL,NULL,"Couldn't spawn a new process");
-        // DeleteInfoWindow(iw);
+        // DeleteInfoWindow( frame->mywin,globxd );
         ReleaseFrame( frame );
         RemFrame(frame,globxd);
         frame = NULL;
@@ -149,7 +164,7 @@ __geta4 void LoadPicture( __A0 UBYTE *argstr )
     APTR DOSBase;
     struct PPTMessage *msg;
     FRAME *frame;
-    char *fullname;
+    char *fullname = NULL, *loadername = NULL;
     int res = PERR_GENERAL;
     ULONG *optarray = NULL;
 
@@ -164,11 +179,14 @@ __geta4 void LoadPicture( __A0 UBYTE *argstr )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K", xd ) ) {
+    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K", xd ) ) {
         frame = (FRAME *) *( (ULONG *)optarray[0]) ;
-        if(optarray[1]) { /* A path was given */
+        if(optarray[1]) /* A path was given */
             fullname = (UBYTE *)optarray[1];
-        }
+
+        if(optarray[3]) /* The loader type was given */
+            loadername = (UBYTE *)optarray[3];
+
     } else {
         InternalError( "LoadPicture(): REXX message of incorrect format" );
         goto errorexit;
@@ -177,7 +195,7 @@ __geta4 void LoadPicture( __A0 UBYTE *argstr )
 
     DOSBase = xd->lb_DOS;
 
-    res = DoTheLoad( frame, xd, fullname, FilePart(fullname) );
+    res = DoTheLoad( frame, xd, fullname, FilePart(fullname), loadername );
 
 errorexit:
     if(optarray)
@@ -201,15 +219,15 @@ errorexit:
     point to valid directions.
 */
 
-PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name )
+PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *loadername )
 {
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
-    BPTR fh;
+    BPTR fh = NULL;
     static __D0 int (*L_Load)( __A0 FRAME *,__D0 BPTR, __A6 EXTDATA *, __A1 struct TagItem * );
-    LOADER *ld;
+    LOADER *ld = NULL;
     BOOL res = PERR_OK;
     char ec[80] = "";
-    int errcode;
+    int errcode = PERR_OK;
     struct TagItem loadertags[] = {
         { PPTX_ErrMsg, ec },
         {TAG_END}
@@ -218,24 +236,68 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name )
     if(!CheckPtr(frame,"DoTheLoad() - frame"))
         return PERR_ERROR;
 
-    D(bug("DoTheLoad(%s,%s)\n",fullname,name));
+    D(bug("DoTheLoad(%s,%s,%s)\n",fullname ? fullname : "NULL",
+                                  name ? name : "NULL",
+                                  loadername ? loadername : "NULL" ));
 
     OpenInfoWindow( frame->mywin, xd );
 
-    fh = Open( fullname, MODE_OLDFILE );
-    if( fh  ) {
-        D(bug("\tFile opened, attempting to get type...\n"));
-        UpdateProgress(frame,"Checking file type...",0L, xd);
-        if( ld = CheckFileH( xd, fh ) ) {
+    /*
+     *  Attempt to open the file, if one was specified.
+     */
+
+    if( fullname && fullname[0] != '\0') {
+        fh = Open( fullname, MODE_OLDFILE );
+        if(!fh) {
+            errcode = IoErr();
+            Fault( errcode, "", ec, 79 );
+            XReq(NEGNUL,NULL, "Failed to open file '%s' due to:\n"ISEQ_C"Error %ld %s", fullname, errcode, ec );
+            res = PERR_WONTOPEN;
+            goto errexit;
+        }
+        D(bug("\tOpened file\n"));
+    }
+
+    /*
+     *  Attempt to recognise the file, either from the user or the file.
+     */
+
+    if( res == PERR_OK  ) {
+
+        /*
+         *  Fetch the loader, if necessary
+         */
+
+        if( loadername ) {
+            SHLOCKGLOB();
+            ld = (LOADER *) FindName( &globals->loaders, loadername );
+            UNLOCKGLOB();
+        } else {
+            UpdateProgress(frame,"Checking file type...",0L, xd);
+            if( fh ) {
+                ld = CheckFileH( xd, fh );
+            } else {
+                InternalError("No file or loader specified!");
+                res = PERR_FAILED;
+            }
+        }
+
+        if( ld ) {
+
             D(bug("\tRecognised file type, now loading...\n"));
             L_Load = (FPTR)GetTagData( PPTX_Load, (ULONG)NULL, ld->info.tags );
             if(L_Load) {
                 ld->info.usecount++;
-                Seek(fh,0L,OFFSET_BEGINNING); /* Ensure we are in the beginning. */
+
+                if(fh) Seek(fh,0L,OFFSET_BEGINNING); /* Ensure we are in the beginning. */
+
                 frame->origtype = ld;
 
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
+                D(APTR foo);
+                D(foo=StartBench());
                 errcode = (*L_Load)( frame, fh, xd, loadertags );
+                D(StopBench(foo));
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
 
                 ld->info.usecount--;
@@ -260,7 +322,6 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name )
                     }
                     res = PERR_GENERAL;
                 }
-                ClearProgress( frame, xd );
 
             } else {
                 XReq(NEGNUL,NULL,"Loader %s cannot load?!?",ld->info.nd.ln_Name);
@@ -270,14 +331,11 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name )
             XReq(NEGNUL, NULL, "Cannot recognize file '%s'!", fullname );
             res = PERR_GENERAL;
         }
-errexit:
-        Close(fh);
-    } else {
-        errcode = IoErr();
-        Fault( errcode, "", ec, 79 );
-        XReq(NEGNUL,NULL, "Failed to open file '%s' due to:\n"ISEQ_C"Error %ld %s", fullname, errcode, ec );
-        res = PERR_WONTOPEN;
     }
+
+errexit:
+
+    if( fh ) Close(fh);
 
     CloseInfoWindow( frame->mywin, xd );
 
