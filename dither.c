@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.8 1996/10/10 19:07:58 jj Exp $
+    $Id: dither.c,v 1.9 1997/01/12 00:20:28 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -57,6 +57,7 @@ PERROR Dither_None( struct RenderObject *rdo )
     WORD width = rdo->frame->pix->width,col;
     ROWPTR cp = rdo->cp;
     UBYTE *dcp = rdo->buffer;
+    UBYTE colorspace = rdo->frame->pix->colorspace;
 
     // D(bug("\tDither_None(width=%d)\n",width));
 
@@ -65,6 +66,8 @@ PERROR Dither_None( struct RenderObject *rdo )
         UBYTE red,green,blue;
 
         rdo->currentcolumn = col;
+
+        if( colorspace == CS_ARGB ) cp++; /* Skip Alpha */
 
         red   = *cp++;
         green = *cp++;
@@ -108,11 +111,18 @@ PERROR Dither_NoneI( struct RenderObject *rdo )
 {
     D(bug("\tDither_NoneI()\n"));
 
-    rdo->Dither = Dither_None;
     rdo->DitherD = Dither_NoneD;
 
-    if( rdo->frame->pix->colorspace == CS_GRAYLEVEL )
-        rdo->Dither = Dither_NoneGray;
+    switch(rdo->frame->pix->colorspace) {
+        case CS_RGB:
+        case CS_ARGB:
+            rdo->Dither = Dither_None;
+            break;
+
+        case CS_GRAYLEVEL:
+            rdo->Dither = Dither_NoneGray;
+            break;
+    }
 
     return PERR_OK;
 }
@@ -201,8 +211,7 @@ PERROR Dither_FSD( struct RenderObject *rdo )
 }
 
 /*
-    Execution
-
+    Execution.  This will handle both RGB and ARGB images.
 */
 Local
 PERROR Dither_FS( struct RenderObject *rdo )
@@ -211,7 +220,7 @@ PERROR Dither_FS( struct RenderObject *rdo )
     UBYTE pixelsize = rdo->frame->pix->components;
     int *error_limit;
     FSERROR *errorptr;
-    int dir, dir3;
+    int dir, dir3, dirc;
     int cur0,cur1, cur2;
     int belowerr0, belowerr1, belowerr2;
     int bpreverr0, bpreverr1, bpreverr2;
@@ -227,13 +236,13 @@ PERROR Dither_FS( struct RenderObject *rdo )
     if(fs->odd_row) {
         cp += MULU16((width-1),pixelsize); /* Locate end of row */
         dcp += width-1; /* End of destination pointer */
-        dir = -1; dir3 = -3;
-        errorptr = fs->fserrors + MULU16((width+1),pixelsize);
+        dir = -1; dir3 = -3; dirc = -pixelsize;
+        errorptr = fs->fserrors + MULU16((width+1),3);
         fs->odd_row = FALSE;
     } else {
         UBYTE renderq = rdo->frame->disp->renderq;
 
-        dir = 1; dir3 = 3;
+        dir = 1; dir3 = 3; dirc = pixelsize;
         errorptr = fs->fserrors;
 
         /*
@@ -244,10 +253,21 @@ PERROR Dither_FS( struct RenderObject *rdo )
 
         if( renderq != RENDER_HAM6 && renderq != RENDER_HAM8 )
             fs->odd_row = TRUE;
+        else
+            fs->odd_row = FALSE;
     }
     cur0 = cur1 = cur2 = 0; /* Zero error values */
     belowerr0 = belowerr1 = belowerr2 = 0;
     bpreverr0 = bpreverr1 = bpreverr2 = 0;
+
+    /*
+     *  If this is an ARGB image, skip the Alpha channel
+     *  by shifting the entire row to the right by one
+     *  byte.
+     */
+
+    if( pixelsize == 4 )
+        cp++;
 
     for( col = width; col > 0; col-- ) {
 
@@ -260,10 +280,11 @@ PERROR Dither_FS( struct RenderObject *rdo )
         cur1 = error_limit[cur1];
         cur2 = error_limit[cur2];
         cur0 += cp[0]; cur1 += cp[1]; cur2 += cp[2];
+#if 1
         if(cur0 < 0) cur0 = 0; else if(cur0 > MAXSAMPLE) cur0 = MAXSAMPLE;
         if(cur1 < 0) cur1 = 0; else if(cur1 > MAXSAMPLE) cur1 = MAXSAMPLE;
         if(cur2 < 0) cur2 = 0; else if(cur2 > MAXSAMPLE) cur2 = MAXSAMPLE;
-#if 0
+#else
         cur0 = range_limit[cur0];
         cur1 = range_limit[cur1];
         cur2 = range_limit[cur2];
@@ -316,7 +337,7 @@ PERROR Dither_FS( struct RenderObject *rdo )
             cur2 += delta;          /* form error * 7 */
         }
 
-        cp += dir3;
+        cp += dirc;
         dcp += dir;
         errorptr += dir3;
     } /* for col */
@@ -453,6 +474,7 @@ PERROR Dither_FSI( struct RenderObject *rdo )
     switch( rdo->frame->pix->colorspace ) {
 
         case CS_RGB:
+        case CS_ARGB:
             rdo->DitherObject = (APTR) fs;
             rdo->Dither = Dither_FS;
             rdo->DitherD = Dither_FSD;
