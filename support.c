@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 1.19 1996/11/23 00:46:55 jj Exp $
+    $Id: support.c,v 1.20 1996/12/08 20:37:14 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -982,7 +982,7 @@ SAVEDS ASM VOID InitProgress( REG(a0) FRAME *f,
 {
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 #ifdef USE_TIMER_PROCESS
-    struct Library *TimerBase = ExtBase->lb_Timer;
+    struct Device *TimerBase = ExtBase->lb_Timer;
 #endif
 
     D(bug("InitProgress('%s',%lu,%lu)\n",txt,min,max));
@@ -1053,7 +1053,7 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
 {
     APTR DOSBase = ExtBase->lb_DOS;
     APTR SysBase = ExtBase->lb_Sys;
-    struct Library *TimerBase = ExtBase->lb_Timer;
+    struct Device *TimerBase = ExtBase->lb_Timer;
     struct PPTMessage *pmsg;
 #ifdef USE_TIMER_PROCESS
     struct EClockVal  ev, evold;
@@ -1112,6 +1112,13 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
             D(bug("***** BREAK *****\n"));
             SetErrorCode( f, PERR_BREAK );
             return TRUE;
+        }
+
+        if(CheckSignal(SIGBREAF_CTRL_F)) {
+            if( f->mywin ) {
+                WindowToFront(f->mywin->win);
+                ActivateWindow(f->mywin->win);
+            }
         }
     }
 
