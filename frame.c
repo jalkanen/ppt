@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.3 1998/01/04 16:33:34 jj Exp $
+    $Id: frame.c,v 4.4 1998/02/26 19:52:53 jj Exp $
 
     This contains frame handling routines
 
@@ -51,6 +51,8 @@ Prototype VOID          UnselectImage( FRAME * );
 Prototype BOOL          IsFrameBusy( FRAME * );
 Prototype ASM BOOL      AttachFrame( REG(a0) FRAME *,REG(a1) FRAME *,REG(d0) ULONG,REG(a6) EXTBASE * );
 Prototype ASM VOID      RemoveSimpleAttachments(REG(a0) FRAME * );
+
+VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
 
 /*-------------------------------------------------------------------*/
 /* Code */
@@ -729,8 +731,7 @@ PERROR MakeUndoFrame( FRAME *frame )
     if(!CheckPtr( frame->pix->vmh->data, "MakeUndoFrame(): vmh->data" ))
         return PERR_GENERAL;
 
-    pfree( frame->pix->vmh->data );
-    frame->pix->vmh->data = NULL;
+    FreeBuffers( frame, globxd );
 
     /*
      *  Reset some variables. BUG: I am not sure if these belong here.
@@ -1521,8 +1522,6 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 
 SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
-
     D(bug("RemFrame( frame = %08X )\n",f));
 
     if(f) {
@@ -1551,11 +1550,8 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
             if(CheckPtr(f->pix,"RemFrame(): Illegal PIXINFO pointer")) {
 
                 if(f->pix->vmh) {
-
-                    if(f->pix->vmh->data)
-                        pfree(f->pix->vmh->data);
-
                     DeleteVMData( f->pix->vmh, ExtBase );
+                    FreeBuffers( f, ExtBase );
                 }
 
 #ifdef TMPBUF_SUPPORTED
@@ -2017,7 +2013,10 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 
     if( p->vmh->data == NULL ) {
         D(bug("\tAllocating new VM page (%lu bytes)\n", bufsize));
-        if( NULL == (p->vmh->data = pmalloc( bufsize ))) {
+
+        p->vmh->data = pmalloc( bufsize );
+
+        if( NULL == p->vmh->data ) {
             SetErrorCode( frame, PERR_OUTOFMEMORY );
             FreeVMHandle( p->vmh, ExtBase );
             p->vmh = NULL;
@@ -2034,7 +2033,7 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
             if(CreateVMData( p->vmh, realsize, ExtBase ) != PERR_OK ) {
                 D(bug("\tCreateVMData() failed\n"));
                 SetErrorCode(frame,PERR_OUTOFMEMORY);
-                if( p->vmh->data ) pfree( p->vmh->data );
+                FreeBuffers( frame, ExtBase );
                 FreeVMHandle( p->vmh, ExtBase );
                 p->vmh = NULL;
                 return PERR_OUTOFMEMORY;
@@ -2047,6 +2046,15 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
     return PERR_OK;
 }
 
+VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase )
+{
+    PIXINFO *p = frame->pix;
+
+    if( p->vmh && p->vmh->data ) {
+        pfree( p->vmh->data );
+        p->vmh->data = NULL;
+    }
+}
 
 Prototype PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase );
 
