@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.1 1996/11/28 23:18:26 jj Exp $
+    $Id: frame.c,v 2.2 1996/12/08 20:33:36 jj Exp $
 
     This contains frame handling routines
 
@@ -674,14 +674,7 @@ BOOL FrameFree( FRAME *frame )
 {
 
     if( !frame ) {
-        STRPTR foo;
-
-        D(bug("Fetching string!\n"));
-        foo = GetStr( MSG_NO_FRAME_SELECTED );
-
-        D(bug("Got this string: '%s'\n",foo));
-        Req(NEGNUL, NULL, foo);
-
+        Req(NEGNUL, NULL, GetStr( MSG_NO_FRAME_SELECTED ) );
         return FALSE;
     }
 
@@ -696,14 +689,20 @@ BOOL FrameFree( FRAME *frame )
     }
 
     /*
-     *  If not, display a message to the user.
+     *  If not, display a message to the user, unless an external process
+     *  can be located, in which case a CTRL_F (wakeup) signal is sent.
      */
 
-    if( frame->currext == NEGNUL || frame->currext == NULL ) {
-        Req(GetFrameWin(frame), NULL, GetStr(MSG_FRAME_IN_USE), frame->nd.ln_Name);
+    if( frame->currproc ) {
+        Signal( frame->currproc, SIGBREAKF_CTRL_F );
+        DisplayBeep(MAINSCR);
     } else {
-        Req(GetFrameWin(frame), NULL, GetStr(MSG_FRAME_IN_USE_BY_XXX),
-            frame->nd.ln_Name, frame->currext->nd.ln_Name );
+        if( frame->currext == NEGNUL || frame->currext == NULL ) {
+            Req(GetFrameWin(frame), NULL, GetStr(MSG_FRAME_IN_USE), frame->nd.ln_Name);
+        } else {
+            Req(GetFrameWin(frame), NULL, GetStr(MSG_FRAME_IN_USE_BY_XXX),
+                frame->nd.ln_Name, frame->currext->nd.ln_Name );
+        }
     }
 
     return FALSE;
