@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 6.0 1999/10/04 00:01:52 jj Exp $
+    $Id: others.c,v 6.1 1999/11/28 18:21:35 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -215,7 +215,7 @@ ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, struct PPTBase *x
     APTR DOSBase = xd->lb_DOS;
     ULONG *optarray;
 
-    D(bug("ParseDOSArgs( %s, %s )\n",line,template));
+    D(bug("ParseDOSArgs( >>>[%s]<<<, >>>[%s]<<< )\n",line,template));
 
     if( template == NULL ) template = "";
 
