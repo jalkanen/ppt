@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 1.6 1996/10/25 01:39:11 jj Exp $
+    $Id: message.c,v 1.7 1996/11/23 00:45:10 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -162,7 +162,7 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
     }
 }
 
-/****** pptsupport/StartInput ******************************************
+/****i* pptsupport/StartInput ******************************************
 *
 *   NAME
 *       StartInput - Start up notification
@@ -314,7 +314,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
     return PERR_OK;
 }
 
-/****** pptsupport/StopInput ******************************************
+/****i* pptsupport/StopInput ******************************************
 *
 *   NAME
 *       StopInput - Stop sending input messages.
