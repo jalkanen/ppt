@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 6.4 1999/12/15 00:18:34 jj Exp $
+    $Id: rexx.c,v 6.5 2000/04/16 22:10:26 jj Exp $
 
     AREXX interface to PPT. Based heavily on ArexxBox
     by Michael Baltzer.
@@ -28,7 +28,7 @@
 #define STRING( x )     (UBYTE *)(x)
 
 #define MAX_REXX_ASKREQ_ITEMS       8
-#define MAX_REXX_ASKREQ_CYCLELABELS 20
+#define MAX_REXX_ASKREQ_CYCLELABELS 64
 
 /*
  *  This defines the value used in the ASKREQ rexx command for
@@ -408,7 +408,7 @@ PERROR parse_arstring(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
 Local
 PERROR parse_arcycle(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
 {
-    char *arg, gadgets[256], **labels;
+    char *arg, gadgets[1024], **labels;
     int i;
 
     labels = pzmalloc( (MAX_REXX_ASKREQ_CYCLELABELS+1)*sizeof(char *) );
@@ -430,7 +430,7 @@ PERROR parse_arcycle(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
 
     arg = rx_FetchString(rm,name,"LABELS","");
     if(!arg) return PERR_INVALIDARGS;
-    strncpy(gadgets,arg,256);
+    strncpy(gadgets,arg,1024);
     LOCKGLOB();
     for(arg = strtok(gadgets,"|"),i=0; arg && i<MAX_REXX_ASKREQ_CYCLELABELS; arg = strtok(NULL,"|"),i++ ) {
         labels[i] = smalloc(strlen(arg)+1);
