@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.5 $
-        $Date: 1997/10/24 22:57:44 $
+    $Revision: 4.6 $
+        $Date: 1998/02/26 19:54:01 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.5 1997/10/24 22:57:44 jj Exp $
+    $Id: ppt_real.h,v 4.6 1998/02/26 19:54:01 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -730,6 +730,10 @@ typedef struct ExtBase {
     struct Catalog  *catalog;       /* The PPT catalog */
     BOOL            opened;         /* TRUE, if the libbases were opened. */
 
+    struct Device   *lb_Timer;
+    struct timerequest *TimerIO;
+    struct Library  *lb_CyberGfx;   /* cybergraphics.library */
+
     /*!!PUBLIC*/
 
 /* PPT hyper-private experimental fields start here. Don't even think about reading.
@@ -737,9 +741,7 @@ typedef struct ExtBase {
    Your fault! */
 
     /*!!PRIVATE*/
-    struct Device   *lb_Timer;
-    struct timerequest *TimerIO;
-    struct Library  *lb_CyberGfx;   /* cybergraphics.library */
+    Class           *FloatClass;
     /*!!PUBLIC*/
 } EXTBASE;
 
