@@ -3,10 +3,9 @@
     MODULE:  rectangleselect.c
 
     This module contains the rectangular selection routines.  They're placed
-    here for easier profiling.  This code is always run
-    on the main task.
+    here for easier profiling.
 
-    $Id: rectangleselect.c,v 1.1 1999/05/30 18:15:06 jj Exp $
+    $Id: rectangleselect.c,v 1.2 1999/08/01 16:48:54 jj Exp $
 
  */
 
@@ -57,6 +56,8 @@ VOID DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULON
 
     if (x0 == x1 || y0 == y1)
         return;
+
+    if (!win ) return;
 
     /*
      *  Get the window size. If this is the bgui window on the main screen,
@@ -296,7 +297,7 @@ VOID LassoRectButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     sb->MaxY = sb->MinY;
     D(bug("Marked select begin (%d,%d)\n",xloc,yloc));
 
-    frame->selection.selstatus |= SELF_BUTTONDOWN;
+    selection->selstatus |= SELF_BUTTONDOWN;
 }
 ///
 /// LassoRectControlButtonDown
@@ -452,16 +453,22 @@ VOID LassoRectMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
 }
 ///
 /// LassoRectIsInArea
+/*
+ *  This function may be called from other tasks as well, which is why
+ *  profiling must be turned off.
+ */
 Local
-BOOL LassoRectIsInArea( FRAME *frame, struct MouseLocationMsg *msg )
+BOOL LassoRectIsInArea( FRAME *frame, WORD row, WORD col )
 {
-    if( msg->xloc > frame->selbox.MinX && msg->xloc < frame->selbox.MaxX &&
-        msg->yloc > frame->selbox.MinY && msg->xloc < frame->selbox.MaxY )
+    BOOL res = FALSE;
+
+    if( col >= frame->selbox.MinX && col < frame->selbox.MaxX &&
+        row >= frame->selbox.MinY && row < frame->selbox.MaxY )
     {
-        return TRUE;
+        res = TRUE;
     }
 
-    return FALSE;
+    return res;
 }
 ///
 
@@ -485,6 +492,24 @@ VOID LassoRectErase( FRAME *frame )
 }
 ///
 
+/*
+ *  Rescales the selection from src to dst, by using the image
+ *  sizes as a basis.
+ */
+
+VOID LassoRectRescale( FRAME *src, FRAME *dst )
+{
+    dst->selbox.MinX = src->selbox.MinX * dst->pix->width / src->pix->width;
+    dst->selbox.MaxX = src->selbox.MaxX * dst->pix->width / src->pix->width;
+    dst->selbox.MinY = src->selbox.MinY * dst->pix->height / src->pix->height;
+    dst->selbox.MaxY = src->selbox.MaxY * dst->pix->height / src->pix->height;
+}
+
+VOID LassoRectCopy( FRAME *src, FRAME *dst )
+{
+    dst->selbox = src->selbox;
+}
+
 Prototype PERROR InitLassoRectSelection( FRAME *frame );
 
 PERROR InitLassoRectSelection( FRAME *frame )
@@ -500,6 +525,8 @@ PERROR InitLassoRectSelection( FRAME *frame )
     s->EraseSelection    = LassoRectErase;
     s->MouseMove         = LassoRectMouseMove;
     s->IsInArea          = LassoRectIsInArea;
+    s->Rescale           = LassoRectRescale;
+    s->Copy              = LassoRectCopy;
 
     return PERR_OK;
 }
@@ -625,6 +652,8 @@ PERROR InitFixedRectSelection( FRAME *frame )
     s->EraseSelection    = FixedRectErase;
     s->MouseMove         = FixedRectMouseMove;
     s->IsInArea          = LassoRectIsInArea;
+    s->Rescale           = LassoRectRescale;
+    s->Copy              = LassoRectCopy;
 
     return PERR_OK;
 }
