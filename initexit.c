@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.36 1998/11/08 00:45:25 jj Exp $
+    $Id: initexit.c,v 1.37 1998/12/20 19:12:12 jj Exp $
 
     Initialization and exit code.
 */
@@ -541,6 +541,11 @@ int Initialize( void )
         return PERR_INITFAILED;
     }
 
+    if( NULL == (ToolbarClass = InitToolbarClass())) {
+        Req(NEGNUL,NULL,"\nUnable to allocate BGUI toolbar class!\n");
+        return PERR_INITFAILED;
+    }
+
     /*
      *  Act on user preferences: fonts
      *  If they do are not set, fall into default topaz 8.
@@ -879,6 +884,7 @@ int FreeResources (GLOBALS *g)
 
     if(DropAreaClass) FreeDropAreaClass( DropAreaClass );
     if(RenderAreaClass) FreeRenderAreaClass( RenderAreaClass );
+    if(ToolbarClass) FreeToolbarClass( ToolbarClass );
 
     /*
      *  Timer device
