@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.15 1998/11/08 00:50:26 jj Exp $
+    $Id: save.c,v 2.16 1999/03/14 20:59:46 jj Exp $
 */
 
 #include "defs.h"
@@ -125,6 +125,34 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
     D(bug("DoTheSave(%s,%s,%d)\n",frame->nd.ln_Name, ld->info.nd.ln_Name, mode));
 
     /*
+     *  Determine real file name.
+     */
+
+    strcpy(filename, frame->path);
+    AddPart(filename, frame->name, MAXPATHLEN);
+
+    DeleteNameCount(filename);
+
+    /*
+     *  Check, if file exists and query the user if he really wants to
+     *  overwrite it.
+     */
+
+    if( fh = Open(filename, MODE_OLDFILE) )  {
+        ULONG r;
+
+        Close(fh);
+
+        r = XReq( GetFrameWin(frame), "Save|Cancel",
+                  ISEQ_C"\nThere is already a file by that name.\n"
+                  "Are you sure you wish to save?\n" );
+        if( r == 0 ) {
+            return PERR_CANCELED;
+        }
+    }
+
+
+    /*
      *  Open up the module
      */
 
@@ -159,22 +187,6 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
 
 
     /*
-     *  Open save file
-     */
-
-    strcpy(filename, frame->path);
-    AddPart(filename, frame->name, MAXPATHLEN);
-
-    DeleteNameCount(filename);
-
-    fh = Open( filename, MODE_NEWFILE );
-    if(!fh) {
-        SetErrorMsg(frame, "Unable to open write file" );
-        res = PERR_FILEOPEN;
-        goto errexit;
-    }
-
-    /*
      *  Check the colorspace, if it matches
      */
 
@@ -199,6 +211,17 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
         }
     }
 
+    /*
+     *  Open file and start to save
+     */
+
+    fh = Open( filename, MODE_NEWFILE );
+    if(!fh) {
+        SetErrorMsg(frame, "Unable to open write file" );
+        res = PERR_FILEOPEN;
+        goto errexit;
+    }
+
     if( res == PERR_OK ) {
         res = IOSave( fh, format, frame, tags, ExtBase );
     } else {
@@ -213,6 +236,11 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
         delete = TRUE;
         goto errexit;
     }
+
+    /*
+     *  Check for the master quit flag (so that we won't show any
+     *  error messages.
+     */
 
     if(MasterQuit) {
         res = PERR_OK; /* For quick exit */
