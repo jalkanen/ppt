@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.28 1999/01/02 22:35:27 jj Exp $
+    $Id: prefs.c,v 1.29 1999/02/14 19:40:33 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -85,6 +85,7 @@ const char *PrefsOptions[] = {
     "OPENPALETTEREQUESTER",
     "SAVEPALETTEREQUESTER",
     "BEGINTOOLBAR",
+    "DITHERPREVIEW",
     NULL,
 };
 
@@ -117,7 +118,8 @@ typedef enum {
     OPENFILEREQUESTER,
     OPENPALETTEREQUESTER,
     SAVEPALETTEREQUESTER,
-    BEGINTOOLBAR
+    BEGINTOOLBAR,
+    DITHERPREVIEW
 } Option;
 
 
@@ -202,6 +204,7 @@ VOID InitPrefs( PREFS *p )
     p->extpriority      = DEFAULT_EXTPRIORITY;
     p->previewmode      = DEFAULT_PREVIEWMODE;
     p->confirm          = DEFAULT_CONFIRM;
+    p->ditherpreview    = FALSE;
     SetPreviewSize( p );
 }
 
@@ -356,6 +359,15 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                             p->colorpreview = FALSE;
                         }
                         D(bug("Preview mode : %d\n",p->colorpreview ));
+                        break;
+
+                    case DITHERPREVIEW:
+                        if( strncmp( s, "TRUE", 4 ) == 0 ) {
+                            p->ditherpreview = TRUE;
+                        } else {
+                            p->ditherpreview = FALSE;
+                        }
+                        D(bug("Preview dither : %d\n",p->colorpreview ));
                         break;
 
                     case MODULEPATH:
@@ -516,6 +528,7 @@ int SavePrefs( GLOBALS *g, char *pfile )
         WritePrefByID(fh,SCRDEPTH,"%u",d->depth);
         WritePrefByID(fh,MAXUNDO,"%u",p->maxundo );
         WritePrefByID(fh,COLORPREVIEW,"%s",p->colorpreview ? "TRUE" : "FALSE" );
+        WritePrefByID(fh,DITHERPREVIEW,"%s",p->ditherpreview ? "TRUE" : "FALSE" );
         WritePrefByID(fh,FLUSHLIBS,"%s",p->expungelibs ? "TRUE" : "FALSE" );
         WritePrefByID(fh,CONFIRMREQUESTERS,"%s",p->confirm ? "TRUE" : "FALSE" );
         WritePrefByID(fh,EXTSTACKSIZE,"%u",p->extstacksize);
