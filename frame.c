@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.4 1997/03/04 23:56:30 jj Exp $
+    $Id: frame.c,v 2.5 1997/03/15 23:07:41 jj Exp $
 
     This contains frame handling routines
 
@@ -252,8 +252,10 @@ PERROR AddFrame( FRAME *frame )
 
     LOCKGLOB();
     AddTail( &globals->frames, (struct Node *)frame );
-    AddEntryVisible( NULL, framew.Frames, frame->nd.ln_Name, LVAP_SORTED );
-    RefreshList( framew.win, framew.Frames );
+    if(framew.win) {
+        AddEntryVisible( framew.win, framew.Frames, frame->nd.ln_Name, LVAP_SORTED );
+        RefreshList( framew.win, framew.Frames );
+    }
     UNLOCKGLOB();
 
     return PERR_OK;

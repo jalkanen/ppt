@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.5 1997/03/13 18:51:45 jj Exp $
+    $Id: extensions.c,v 1.6 1997/03/15 23:07:59 jj Exp $
 */
 
 #include "defs.h"
@@ -154,10 +154,12 @@ PERROR GimmeEditWindow( EDITWIN *ew )
          */
 
         for( cn = extlist.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
-            AddEntry( NULL, ew->ExtList, cn->ln_Name, LVAP_TAIL );
+            DoMethod( ew->ExtList, LVM_ADDSINGLE, NULL, cn->ln_Name, LVAP_TAIL, 0L );
+            // AddEntry( NULL, ew->ExtList, cn->ln_Name, LVAP_TAIL );
         }
 
-        SortList( NULL, ew->ExtList );
+        DoMethod( ew->ExtList, LVM_SORT, 0L );
+        // SortList( NULL, ew->ExtList );
 
     } else {
         D(bug("Failed to open edit win\n"));
