@@ -1,7 +1,7 @@
 /*
     Hand - made prototypes for PPT
 
-    $Id: protos.h,v 1.21 1999/02/20 22:37:06 jj Exp $
+    $Id: protos.h,v 1.22 1999/02/21 20:31:44 jj Exp $
 */
 
 #ifndef PROTOS_H
@@ -68,6 +68,6 @@ extern const UBYTE *        ColorSpaceNames[];
 
 extern FRAME                *clipframe;
 
-extern struct ToolbarItem   PPTToolbar[];
+extern struct ToolbarItem   ToolbarList[];
 
 #endif /* PROTOS_H */
