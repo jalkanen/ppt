@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.13 1997/12/06 22:51:43 jj Exp $
+    $Id: external.c,v 2.14 1998/06/28 23:13:06 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -32,6 +32,7 @@
 
 #include "proto/module.h"
 #include "proto/effect.h"
+#include "powerup/proto/ppc.h"
 
 #include "libraries/ExecutiveAPI.h"
 
@@ -40,7 +41,7 @@
 
 Prototype int           AddExtEntries( EXTBASE *, struct Window *, Object *, UBYTE, ULONG );
 Prototype void          ShowExtInfo( EXTBASE *, EXTERNAL *, struct Window * );
-Prototype int           PurgeExternal( EXTERNAL *, BOOL );
+Prototype PERROR        PurgeExternal( EXTERNAL *, BOOL );
 Prototype PERROR        OpenExternal( const char *, UBYTE );
 Prototype void          RelExtBase( EXTBASE * );
 Prototype EXTBASE       *NewExtBase( BOOL );
@@ -250,14 +251,13 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
 
         if(add) {
             DoMethod(lv,LVM_ADDSINGLE,NULL,cn->ln_Name, LVAP_TAIL, 0L);
-            // AddEntry( win,lv,cn->ln_Name,LVAP_TAIL );
             count++;
         }
     }
 
     UNLOCKGLOB();
     SortList( win,lv );
-    // RefreshList(win,lv);
+
     return count;
 }
 
@@ -394,6 +394,7 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
     return PERR_OK;
 }
 
+
 /*
     Purges an external from memory, removing it from our
     lists, as well.
@@ -409,8 +410,9 @@ PERROR PurgeExternal( EXTERNAL *w, BOOL f )
 {
     if( w->islibrary || w->nd.ln_Type == NT_SCRIPT )
         return PurgeNewExternal( w, f );
-    else
+    else {
         return PurgeOldExternal( w, f );
+    }
 }
 
 
@@ -420,10 +422,9 @@ PERROR PurgeExternal( EXTERNAL *w, BOOL f )
     is then added to the main list.
 */
 
-PERROR InitOldExternal( const char *who )
+PERROR InitOldExternal( const char *who, BPTR seglist )
 {
     struct ModuleInfo *m;
-    BPTR seglist;
     int version,revision,res = PERR_OK, type;
     EXTERNAL *x;
     char *name;
@@ -543,9 +544,8 @@ PERROR InitScript( const char *who )
 /*
     Open new style external
 */
-PERROR InitNewExternal( const char *who )
+PERROR InitNewExternal( char *who, struct Library *ModuleBase )
 {
-    struct Library *ModuleBase = NULL;
     UWORD pptver;
     ULONG cpuflags, thiscpu;
     PERROR res = PERR_OK;
@@ -554,21 +554,6 @@ PERROR InitNewExternal( const char *who )
     EXTERNAL *x, *prev;
 
     D(bug("NewOpenExternal(%s)\n",who));
-
-    ModuleBase = OpenLibrary( who,0L );
-    if(!ModuleBase) {
-#if 0
-        D(bug("\tFailed to open library!\n"));
-        Req(NEGNUL,NULL,
-            ISEQ_C"Could not open '%s':\n"
-            "It is probably not a proper module!\n",
-            who);
-        return PERR_WONTOPEN;
-#else
-        D(bug("\tPassing to InitOldExternal()...\n"));
-        return( InitOldExternal( who ) );
-#endif
-    }
 
     /*
      *  Determine name
@@ -596,6 +581,7 @@ PERROR InitNewExternal( const char *who )
     cpuflags = Inquire( PPTX_CPU, globxd );
 #if 1
     thiscpu  = (ULONG)(SysBase->AttnFlags & 0xFF);
+    if( globxd->lb_PPC ) thiscpu |= AFF_PPC;
 #else
     thiscpu  = AFF_68010|AFF_68020|AFF_68030|AFF_68040|AFF_68881|AFF_68882|AFF_FPU40|AFF_68060;
     D(bug("\tMy CPU=%d, external code is optimized for %d\n",thiscpu,cpuflags));
@@ -703,17 +689,32 @@ PERROR InitNewExternal( const char *who )
     D(bug("\tOpened library OK.\n"));
 
 nogood:
-    if(ModuleBase) CloseModule( ModuleBase, globxd );
 
     return res;
 }
 
+
 PERROR OpenExternal( const char *who, UBYTE type )
 {
-    if( type == NT_SCRIPT )
-        return InitScript( who );
+    struct Library *ModuleBase;
+    struct Library *PPCLibBase = globxd->lb_PPC;
+    PERROR res;
+    BPTR seglist;
 
-    return InitNewExternal( who );
+    if( type == NT_SCRIPT ) {
+        res = InitScript( who );
+    } else if( ModuleBase = OpenLibrary( who, 0L ) ) {
+        res = InitNewExternal( who, ModuleBase );
+        CloseLibrary( ModuleBase );
+    } else if( seglist = NewLoadSeg( who, NULL ) ) {
+        res = InitOldExternal( who, seglist );
+    } else {
+        D(bug("Unable to open\n"));
+        Req(NEGNUL,NULL, GetStr(mNO_OBJECT_CODE),who);
+        res = PERR_WONTOPEN;
+    }
+
+    return res;
 }
 
 
@@ -742,6 +743,7 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTBASE *xd )
         DeleteIORequest( xd->TimerIO );
     }
 
+    if(xd->lb_PPC)      CloseLibrary(xd->lb_PPC);
     if(xd->lb_CyberGfx) CloseLibrary(xd->lb_CyberGfx);
     if(xd->lb_Locale)   CloseLibrary(xd->lb_Locale);
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
@@ -800,6 +802,7 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
     }
 
     xd->lb_CyberGfx = OpenLibrary("cybergraphics.library",40L);
+    xd->lb_PPC = OpenLibrary("ppc.library",45L);
 
     if(!xd->lb_GadTools || !xd->lb_DOS || !xd->lb_Utility ||
        !xd->lb_Intuition || !xd->lb_BGUI || !xd->lb_Gfx)
