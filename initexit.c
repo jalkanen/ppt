@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.44 1999/07/11 23:22:48 jj Exp $
+    $Id: initexit.c,v 6.0 1999/09/05 02:21:44 jj Exp $
 
     Initialization and exit code.
 */
@@ -66,7 +66,8 @@
 #define BREAK_HOW_MANY_TIMES    10
 #define BREAK_DELAY_PERIOD      15
 
-#undef USE_LOGOIMAGE
+#define USE_LOGOIMAGE
+#define LOGO_PATH "PROGDIR:GUI/banner"
 
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
@@ -132,8 +133,17 @@ struct TextFont *sfont2 = NULL;
 Object *Win_Startup = NULL, *GO_StartupText = NULL;
 struct Window *win_Startup;
 struct Screen *scr_Startup;
+
 #ifdef USE_LOGOIMAGE
-FRAME  *startupframe;
+Object *dtobj = NULL;
+static struct Library *BGUIBitmapBase = NULL;
+static Class  *BitmapClass = NULL;
+#include "bitmapclass.h"
+#include "pragmas/bguibitmap_pragmas.h"
+#include <datatypes/datatypes.h>
+#include <datatypes/datatypesclass.h>
+#include <datatypes/pictureclass.h>
+#include <proto/datatypes.h>
 #endif
 
 const char initblurb1[] =
@@ -151,7 +161,7 @@ const char initblurb3[] =
 /*----------------------------------------------------------------------*/
 /* Code */
 /// OpenStartupFrame
-#ifdef USE_LOGOIMAGE
+#ifdef USE_LOGOIMAGE_OLD
 FRAME *OpenStartupFrame(VOID)
 {
     FRAME *f;
@@ -179,6 +189,43 @@ FRAME *OpenStartupFrame(VOID)
 }
 #endif
 ///
+
+/// GetLogo()
+#ifdef USE_LOGOIMAGE
+
+Object *GetLogo(void)
+{
+    Object *obj;
+
+    if( !DataTypesBase ) return NULL;
+
+    if( obj = NewDTObject( LOGO_PATH,
+                           DTA_SourceType, DTST_FILE,
+                           DTA_GroupID, GID_PICTURE,
+                           PDTA_Remap, FALSE,
+                           TAG_DONE ))
+    {
+        struct BitMapHeader *bmh;
+
+        if( GetDTAttrs( obj,
+                        PDTA_BitMapHeader, &bmh,
+                        TAG_DONE ) == 1 )
+        {
+            if( DoDTMethod( obj, NULL, NULL, DTM_PROCLAYOUT, NULL, TRUE ) ) {
+
+                return obj;
+
+            } // PROCLAYOUT
+        }
+        DisposeDTObject( obj );
+    }
+
+    return NULL;
+}
+
+#endif
+///
+
 /// OpenStartupWindow
 /*
     I'm really bored.  So this is the new startup window:
@@ -188,9 +235,15 @@ FRAME *OpenStartupFrame(VOID)
 VOID OpenStartupWindow(VOID)
 {
     char *blurb2args[] = { RELEASE, VERSION, VERSDATE, COPYRIGHT };
+    Object *Image = NULL, *Splash;
 #ifdef USE_LOGOIMAGE
-    Object *Area;
+    struct BitMapHeader *bmh;
+    struct BitMap *bitmap;
+    struct ColorRegister *cr;
+    ULONG  nColors;
 #endif
+
+    if( globals->userprefs->splash == FALSE ) return;
 
     if( MAINSCR )
         scr_Startup = MAINSCR;
@@ -200,47 +253,83 @@ VOID OpenStartupWindow(VOID)
     sfont1 = OpenDiskFont( &startupwinfont1 ); // BGUI will fall back.
     sfont2 = OpenDiskFont( &startupwinfont2 );
 
+#ifdef USE_LOGOIMAGE
+
+    if( BGUIBitmapBase = OpenLibrary("Gadgets/bgui_bitmap.image",0L) ) {
+
+        BitmapClass = GetBitmapClassPtr();
+
+        if( dtobj = GetLogo() ) {
+            GetDTAttrs( dtobj, PDTA_BitMap, &bitmap,
+                               PDTA_ColorRegisters, &cr,
+                               PDTA_NumColors, &nColors,
+                               PDTA_BitMapHeader, &bmh,
+                               TAG_END );
+
+            D(bug("numColors=%d, width=%d, height=%d\n",nColors,bmh->bmh_Width,bmh->bmh_Height));
+
+            Image = NewObject( BitmapClass,     NULL,
+                               BITMAP_BitMap,   bitmap,
+                               BITMAP_NumColors,nColors,
+                               BITMAP_Colors,   cr,
+                               BITMAP_Width,    bmh->bmh_Width,
+                               BITMAP_Height,   bmh->bmh_Height,
+                               BITMAP_Remap,    TRUE,
+                               BITMAP_Screen,   scr_Startup,
+                               TAG_DONE);
+        }
+    }
+
+#endif
+
+    if( Image ) {
+        Splash = HGroupObject,
+           VarSpace(50),
+           StartMember,
+               ButtonObject,
+                   BUTTON_Image, Image,
+                   NoFrame,
+                   FRM_EdgesOnly, TRUE,
+               EndObject, FixMinSize,
+           EndMember,
+           VarSpace(50),
+        EndObject;
+    } else {
+        Splash = InfoObject,
+            INFO_TextFormat, GetStr(mINITBLURB1),
+            BT_TextAttr,     &startupwinfont1,
+            // FRM_BackFill,    SHINE_RASTER,
+            FRM_Type,        FRTYPE_NONE,
+            INFO_FixTextWidth, TRUE,
+        EndObject;
+    }
+
     Win_Startup = WindowObject,
         WINDOW_Screen,      scr_Startup,
         WINDOW_SizeGadget,  FALSE,
         WINDOW_Borderless,  TRUE,
         WINDOW_ScreenTitle, std_ppt_blurb,
-        WINDOW_ScaleWidth,  55,
-        WINDOW_ScaleHeight, 25,
         WINDOW_LockWidth,   TRUE,
         WINDOW_LockHeight,  TRUE,
         WINDOW_DragBar,     FALSE,
         WINDOW_CloseGadget, FALSE,
         WINDOW_DepthGadget, FALSE,
         WINDOW_MasterGroup,
-            HGroupObject,
-#ifdef USE_LOGOIMAGE
+            HGroupObject, StringFrame, Spacing(30), HOffset(30), VOffset(10),
                 StartMember,
-                    Area = AreaObject,
-                        AREA_MinWidth, logoimagec_width,
-                        AREA_MinHeight, logoimagec_height,
-                        ButtonFrame,
-                    EndObject, FixMinSize,
-                EndMember,
-#endif
-                StartMember,
-                    VGroupObject, StringFrame,
+                    VGroupObject, Spacing(10),
                         // GROUP_BackFill,SHINE_RASTER,
                         VarSpace(50),
                         StartMember,
-                            InfoObject,
-                                INFO_TextFormat, GetStr(mINITBLURB1),
-                                BT_TextAttr,     &startupwinfont1,
-                                // FRM_BackFill,    SHINE_RASTER,
-                                FRM_Type,        FRTYPE_NONE,
-                            EndObject,
+                            Splash,
                         EndMember,
-                        VarSpace(40),
+                        VarSpace(50),
                         StartMember,
                             InfoObject,
                                 INFO_TextFormat, GetStr(mINITBLURB2),
                                 INFO_Args,       blurb2args,
                                 INFO_MinLines,   4,
+                                INFO_FixTextWidth, TRUE,
                                 BT_TextAttr,     &startupwinfont2,
                                 // FRM_BackFill,    SHINE_RASTER,
                                 FRM_Type,        FRTYPE_NONE,
@@ -250,6 +339,7 @@ VOID OpenStartupWindow(VOID)
                         StartMember,
                             GO_StartupText = InfoObject,
                                 INFO_TextFormat, GetStr(mINITBLURB3),
+                                INFO_FixTextWidth, TRUE,
                                 BT_TextAttr,     &startupwinfont2,
                                 // FRM_BackFill,    SHINE_RASTER,
                                 FRM_Type,        FRTYPE_NONE,
@@ -261,19 +351,8 @@ VOID OpenStartupWindow(VOID)
     EndObject;
 
     if(Win_Startup) {
-        struct IBox *area;
-
         win_Startup = WindowOpen( Win_Startup );
         WindowBusy( Win_Startup );
-#ifdef USE_LOGOIMAGE
-        GetAttr( AREA_AreaBox, Area, (ULONG *)&area );
-        if(!startupframe)
-            startupframe = OpenStartupFrame();
-
-        if( startupframe && MAINSCR && scr_Startup == MAINSCR ) {
-            RenderFrame( startupframe, win_Startup->RPort, area, 0L, globxd );
-        }
-#endif
     } else {
         D(bug("\tWARNING! Couldn't open startup window!\n"));
     }
@@ -311,7 +390,9 @@ VOID CloseStartupWindow(VOID)
     if(sfont2) CloseFont( sfont2 );
     sfont1 = sfont2 = NULL;
 #ifdef USE_LOGOIMAGE
-    if( startupframe ) RemFrame( startupframe, globxd );
+    if( dtobj ) { DisposeDTObject( dtobj ); dtobj = NULL; }
+    // if( startupframe ) RemFrame( startupframe, globxd );
+    if( BGUIBitmapBase ) { CloseLibrary( BGUIBitmapBase ); BGUIBitmapBase = NULL; }
 #endif
 }
 ///
@@ -556,12 +637,6 @@ int Initialize( void )
     }
 
     /*
-     *  Open the startup window
-     */
-
-    OpenStartupWindow();
-
-    /*
      *  Clone WB screen attributes for our usage.
      *  It would be actually quite a lot neater to use SA_LikeWorkBench...
      */
@@ -593,8 +668,6 @@ int Initialize( void )
      *  Set up some things and
      *  load user preferences from the disk.
      */
-
-    UpdateStartupWindow( GetStr(mINIT_LOADING_PREFERENCES) );
 
     p->mfont.ta_Name = p->mfontname;
     p->lfont.ta_Name = p->lfontname;
@@ -653,8 +726,6 @@ int Initialize( void )
      *  Open main PPT display
      */
 
-    UpdateStartupWindow(GetStr(mINIT_OPENING_DISPLAY));
-
     D(bug("\tOpening Display\n"));
 
     if(OpenDisplay() != PERR_OK) {
@@ -670,6 +741,8 @@ int Initialize( void )
     }
 
     WindowBusy(globals->WO_main);
+
+    OpenStartupWindow();
 
     /*
      *  Delete old virtual memory files
