@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.91 1998/07/01 22:33:53 jj Exp $
+    $Id: main.c,v 1.92 1998/08/14 19:30:07 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2910,7 +2910,8 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
             break;
 
         /*
-         *  A new frame has been loaded.
+         *  A new frame has been loaded.  Note that it has already
+         *  been added to the main list by RunLoad().
          */
 
         case PPTMSG_LOADDONE:
@@ -2925,8 +2926,6 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
                 currframe = mymsg->frame;
                 D(bug("\tNew frame loaded @%08X\n",currframe));
                 ReleaseFrame( currframe ); // This will mark it non-busy.
-
-                // AddFrame( currframe );
                 DoMainList( currframe  );
                 GuessDisplay( currframe ); /* Install display etc. */
                 UpdateMainWindow( currframe );
@@ -3369,7 +3368,7 @@ int main(int argc, char **argv)
      *  Check for old version
      */
 
-    Nag();
+//    Nag();
 
     /*
      *  Begin Main Event Loop
