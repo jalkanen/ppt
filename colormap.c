@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.2 1995/09/14 22:40:46 jj Exp $
+    $Id: colormap.c,v 1.3 1995/09/17 22:59:27 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -13,14 +13,14 @@
 #include <defs.h>
 #include <render.h>
 
-Prototype UWORD GetColor_Normal( struct RenderObject *, UBYTE , UBYTE , UBYTE );
-Prototype UWORD GetColor_HAM( struct RenderObject *, UBYTE , UBYTE , UBYTE );
-Prototype UWORD GetColor_HAM8( struct RenderObject *, UBYTE , UBYTE , UBYTE  );
+Prototype __D0 UWORD GetColor_Normal( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
+Prototype __D0 UWORD GetColor_HAM( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
+Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE  );
 
-UWORD GetColor_HAM( struct RenderObject *rdo, UBYTE r, UBYTE g, UBYTE b )
+__D0 UWORD GetColor_HAM( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
 { return 0; }
 
-UWORD GetColor_HAM8( struct RenderObject *rdo, UBYTE r, UBYTE g, UBYTE b )
+__D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
 { return 0; }
 
 
@@ -28,7 +28,7 @@ UWORD GetColor_HAM8( struct RenderObject *rdo, UBYTE r, UBYTE g, UBYTE b )
     Returns the new color index & the new color values.
 */
 
-UWORD GetColor_Normal( struct RenderObject *rdo, UBYTE r, UBYTE g, UBYTE b )
+__D0 UWORD GetColor_Normal( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
 {
     HGRAM *hgrams = rdo->histograms;
     ULONG haddr;
