@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : rexx.h
 
-    $Id: rexx.h,v 1.6 1998/12/15 23:17:48 jj Exp $
+    $Id: rexx.h,v 1.7 1999/03/31 13:24:13 jj Exp $
 
     Definitions for AREXX port.
 */
@@ -97,7 +97,7 @@ struct RexxCommand {
 
 extern struct List RexxWaitList;
 extern struct RexxHost *rxhost;
-extern struct Library *RexxSysBase;
+extern struct RxsLib *RexxSysBase;
 
 #pragma msg 72 warn
 
