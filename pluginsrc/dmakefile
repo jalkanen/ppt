@@ -1,0 +1,111 @@
+
+WHAT=install
+
+install : iomods effects
+
+iomods:
+    cd plain
+    smake $(WHAT)
+    cd /png
+    smake $(WHAT)
+    cd /gif
+    smake $(WHAT)
+    cd /targa
+    smake $(WHAT)
+    cd /jpeg
+    smake $(WHAT)
+    cd /ilbm
+    smake $(WHAT)
+    cd /ppm
+    smake $(WHAT)
+    cd /datatypes
+    smake $(WHAT)
+    cd /c-code
+    smake $(WHAT)
+    cd /YUVN
+    smake $(WHAT)
+    cd /tiff
+    smake $(WHAT)
+    cd /psionpic
+    smake $(WHAT)
+    cd /bmp
+    smake $(WHAT)
+#
+#
+# Effects, still using DICE
+#
+
+effects:
+    cd /negative
+    dmake $(WHAT)
+#
+# Effects, using SAS/C
+#
+    cd /addalpha
+    smake $(WHAT)
+    cd /addconstant
+    smake $(WHAT)
+    cd /autocrop
+    smake $(WHAT)
+    cd /bitfield
+    smake $(WHAT)
+    cd /brightness
+    smake $(WHAT)
+    cd /colorchange
+    smake $(WHAT)
+    cd /colorcount
+    smake $(WHAT)
+    cd /colormix
+    smake $(WHAT)
+    cd /composite
+    smake $(WHAT)
+    cd /contrast
+    smake $(WHAT)
+    cd /convolute
+    smake $(WHAT)
+    cd /crop
+    smake $(WHAT)
+    cd /embedfile
+    smake $(WHAT)
+    cd /extract
+    smake $(WHAT)
+    cd /extractfile
+    smake $(WHAT)
+    cd /flip
+    smake $(WHAT)
+    cd /gamma
+    smake $(WHAT)
+    cd /gray
+    smake $(WHAT)
+    cd /histeq
+    smake $(WHAT)
+    cd /median
+    smake $(WHAT)
+    cd /noise
+    smake $(WHAT)
+    cd /resize
+    smake $(WHAT)
+    cd /rip
+    smake $(WHAT)
+    cd /roll
+    smake $(WHAT)
+    cd /rotate
+    smake $(WHAT)
+    cd /scale
+    smake $(WHAT)
+    cd /shear
+    smake $(WHAT)
+    cd /shift
+    smake $(WHAT)
+    cd /text
+    smake $(WHAT)
+    cd /threshold
+    smake $(WHAT)
+    cd /transparency
+    smake $(WHAT)
+    cd /TrueColor
+    smake $(WHAT)
+    cd /twirl
+    smake $(WHAT)
+
+
