@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.45 1997/10/26 21:10:36 jj Exp $
+    $Id: gui.c,v 1.46 1997/10/26 23:07:43 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1058,7 +1058,7 @@ Object *GimmePrefsWindow( VOID )
                              *  b) VM buffer size
                              */
                                 PageMember,
-                                    VGroupObject, NormalSpacing,
+                                    VGroupObject, NarrowSpacing,
                                         VarSpace( 50 ),
                                         StartMember,
                                             VGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
@@ -1197,12 +1197,12 @@ Object *GimmePrefsWindow( VOID )
                                  *  d)  Main display mode
                                  */
                                 PageMember,
-                                    VGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                                    VGroupObject, NarrowSpacing, NormalHOffset, NormalVOffset,
                                         /*
                                          *  Group: Fonts
                                          */
                                         StartMember,
-                                            VGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                                            VGroupObject, NarrowSpacing, NormalHOffset, NormalVOffset,
                                             FrameTitle("Fonts"),
                                             NeXTFrame,
                                             StartMember,
@@ -1258,7 +1258,7 @@ Object *GimmePrefsWindow( VOID )
                                          */
 
                                         StartMember,
-                                            VGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                                            VGroupObject, NarrowSpacing, NormalHOffset, NormalVOffset,
                                             FrameTitle("Main screen mode"),
                                             NeXTFrame,
                                             StartMember,
@@ -1318,7 +1318,7 @@ Object *GimmePrefsWindow( VOID )
                                  */
 
                                 PageMember,
-                                    VGroupObject, NormalSpacing, NormalVOffset, NormalHOffset,
+                                    VGroupObject, NarrowSpacing, NormalVOffset, NormalHOffset,
                                         VarSpace(50),
                                         StartMember,
                                             prefsw.MaxUndo = StringObject, GA_ID, GID_PW_MAXUNDO,
@@ -1702,7 +1702,7 @@ PERROR GimmeSelectWindow(VOID)
                 EndMember,
 
                 StartMember,
-                    HGroupObject, NarrowSpacing,
+                    HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
                         StartMember,
                             InfoObject, INFO_TextFormat, "Area size:",
                                         INFO_VertOffset, 3,
@@ -1741,7 +1741,7 @@ PERROR GimmeSelectWindow(VOID)
                         EndMember,
                     EndObject,
                 EndMember,
-                EndObject,
+            EndObject,
         EndObject;
 
     if( selectw.Win )
