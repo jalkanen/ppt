@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.9 1997/09/07 21:10:26 jj Exp $
+    $Id: vm.c,v 4.1 1997/12/06 22:53:20 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -56,6 +56,37 @@
 /* Code */
 
 /*
+    Allocates the vmem handle and initializes it to sensible values
+ */
+
+Prototype VMHANDLE *AllocVMHandle(EXTBASE *);
+
+VMHANDLE *AllocVMHandle(EXTBASE *ExtBase)
+{
+    VMHANDLE *vmh;
+
+    vmh = smalloc( sizeof(VMHANDLE) );
+    if(!vmh)
+        return NULL;
+
+    bzero( vmh, sizeof(VMHANDLE) );
+
+    return vmh;
+}
+
+/*
+    Frees the vmem handle allocated by AllocVMHandle()
+    BUG: Does not remove resources.
+ */
+
+Prototype VOID FreeVMHandle( VMHANDLE *vmh, EXTBASE * );
+
+VOID FreeVMHandle( VMHANDLE *vmh, EXTBASE *ExtBase )
+{
+    if( vmh ) sfree(vmh);
+}
+
+/*
     This routine will load a chunk to the memory. Loads data
     from offset to offset + size.
 
@@ -73,6 +104,10 @@ PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
     LONG dir;
 
     V(bug("LoadVMData()\n"));
+
+    if( vmh->vm_fh == 0L ) {
+        return PERR_OK; /* No file handle */
+    }
 
     bufsiz  = vmh->end - vmh->begin;
 
@@ -135,6 +170,11 @@ PERROR SaveVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
     struct DosLibrary *DOSBase = xd->lb_DOS;
 
     V(bug("SaveVMData()\n"));
+
+    if( !vmh->vm_fh ) {
+        return PERR_OK;
+    }
+
     bufsiz = vmh->end - vmh->begin;
     seekpos = (LONG)offset;
 
@@ -176,30 +216,21 @@ PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
     Creates a new VM file for usage. The frame must be initialized properly
     before calling (that is, xsize and ysize must be correct)
     The file handle is left to point at the beginning of the file.
-
-    Returns NULL on failure.
 */
 
-Prototype VMHANDLE *CreateVMData( const ULONG, EXTBASE * );
+Prototype PERROR CreateVMData( VMHANDLE *, const ULONG, EXTBASE * );
 
-VMHANDLE *CreateVMData( const ULONG size, EXTBASE *ExtBase )
+PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *ExtBase )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     struct Library *UtilityBase = ExtBase->lb_Utility;
     BOOL tmp_name_ok = FALSE;
-    VMHANDLE *vmh;
     static ULONG id = 0;
     ULONG siz = size;
 
     D(bug("CreateVMData( size = %lu )\n",size));
-
-    vmh = smalloc( sizeof(VMHANDLE) );
-    if(!vmh)
-        return NULL;
-
-    bzero( vmh, sizeof(VMHANDLE) );
 
     /*
      *  Create VM file name by using vm_id tag.
@@ -253,9 +284,8 @@ VMHANDLE *CreateVMData( const ULONG size, EXTBASE *ExtBase )
 
     if(!fh) {
         D(bug("Couldn't open file %s\n",vmfile));
-        XReq( NEGNUL, NULL, "Couldn't open swap file!\n\nPlease check VM settings and directory.");
-        sfree(vmh);
-        return NULL;
+        XReq( NEGNUL, NULL, XGetStr(mVM_NO_SWAP_FILE) );
+        return PERR_FILEOPEN;
     }
 
     D(bug("\tPreparing file '%s' as VM (%lu bytes)\n",vmfile,size));
@@ -263,17 +293,42 @@ VMHANDLE *CreateVMData( const ULONG size, EXTBASE *ExtBase )
     if(SetFileSize(fh,size,OFFSET_BEGINNING ) == -1) {
         D(bug("\tSetFileSize() failed!\n"));
         DeleteVMData( vmh, ExtBase );
-        XReq( NEGNUL, NULL, ISEQ_C"Unable to create virtual memory!\n(You are probably low on disk space)\n\nI need %lu bytes free",size);
-        return NULL;
+        XReq( NEGNUL, NULL, XGetStr(mVM_CANNOT_CREATE_FILE),size);
+        return PERR_OUTOFMEMORY;
     }
 
 
     Seek( fh, vmh->end, OFFSET_BEGINNING );
 
-    return vmh;
+    return PERR_OK;
 }
 
 
+Prototype PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *ExtBase );
+
+PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *ExtBase )
+{
+    char vmfile[MAXPATHLEN],t[30];
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+
+    if( vmh->vm_fh ) {
+        strcpy(vmfile,globals->userprefs->vmdir);
+        sprintf(t,"%s.%X",VM_FILENAME,vmh->vm_id);
+        AddPart(vmfile,t,MAXPATHLEN);
+
+        D(bug("\tDeleting file '%s'...",vmfile));
+
+        if(Close(vmh->vm_fh) != FALSE) {
+            if( DeleteFile(vmfile) == FALSE) {
+                D(bug("WARNING! Unable to delete VM file %s\n",vmfile));
+            }
+            vmh->vm_fh = NULL;
+        } else {
+            D(bug("WARNING! Unable to close filehandle\n"));
+        }
+    }
+    return PERR_OK;
+}
 
 /*
     Handle the closing of the vm file. Do not use the VMHANDLE for
@@ -284,26 +339,12 @@ Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
 
 PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 {
-    char vmfile[MAXPATHLEN],t[30];
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
 
     D(bug("DeleteVMData()\n"));
 
-    strcpy(vmfile,globals->userprefs->vmdir);
-    sprintf(t,"%s.%X",VM_FILENAME,vmh->vm_id);
-    AddPart(vmfile,t,MAXPATHLEN);
-
-    D(bug("\tDeleting file '%s'...",vmfile));
-
-    if(Close(vmh->vm_fh) != FALSE) {
-        if( DeleteFile(vmfile) == FALSE) {
-            D(bug("WARNING! Unable to delete VM file %s\n",vmfile));
-        }
-    } else {
-        D(bug("WARNING! Unable to close filehandle\n"));
-    }
-
-    sfree( vmh );
+    CloseVMFile( vmh, ExtBase );
+    FreeVMHandle(vmh, ExtBase);
 
     D(bug("Done!\n"));
 
@@ -329,13 +370,16 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 
     V(bug("SanitizeVMData()\n"));
 
-    if(size > (vmh->end - vmh->begin) )
-        size = vmh->end - vmh->begin;
+    if( vmh->vm_fh ) {
 
-    Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
-    vmh->begin = 0;
-    vmh->end   = size;
-    LoadVMData( vmh, 0L, ExtBase );
+        if(size > (vmh->end - vmh->begin) )
+            size = vmh->end - vmh->begin;
+
+        Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
+        vmh->begin = 0;
+        vmh->end   = size;
+        LoadVMData( vmh, 0L, ExtBase );
+    }
 
     return PERR_OK;
 }
