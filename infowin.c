@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.10 1996/11/17 22:08:11 jj Exp $
+    $Id: infowin.c,v 1.11 1997/05/06 00:09:48 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -304,6 +304,7 @@ GimmeInfoWindow( EXTBASE *xd, INFOWIN *iw )
                 WINDOW_HelpNode,    "Infowindow",
                 WINDOW_LockHeight,  TRUE,
                 WINDOW_SmartRefresh,FALSE,
+                WINDOW_Activate,    FALSE,
                 posntag,            posnval, /* Window position */
                 WINDOW_MasterGroup,
                     MyVGroupObject, HOffset(4), VOffset(4), Spacing(4),
