@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.2 $
-        $Date: 1997/05/27 22:20:56 $
+    $Revision: 1.3 $
+        $Date: 1997/06/07 21:18:16 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -58,7 +58,7 @@ struct PPTMessage {
 /*!!PRIVATE*/
 
 #define PPTMSG_STOP_INPUT       0x100L
-#define PPTMSG_ACK_INPUT        0x101L
+#define PPTMSG_START_INPUT      0x101L
 
 #define PPTMSG_OPENINFOWINDOW   0x200L
 #define PPTMSG_CLOSEINFOWINDOW  0x201L
