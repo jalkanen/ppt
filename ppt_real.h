@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.8 $
-        $Date: 1998/06/30 19:58:34 $
+    $Revision: 4.9 $
+        $Date: 1998/09/05 11:31:35 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.8 1998/06/30 19:58:34 jj Exp $
+    $Id: ppt_real.h,v 4.9 1998/09/05 11:31:35 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -887,7 +887,7 @@ struct LocaleString {
 
 #define PERR_NOTINIMAGE    17 /* An out-of-bounds error happened when
                                  indexing an image */
-
+#define PERR_UNKNOWNCOLORSPACE 18 /* An unsupported colorspace was met */
 /*!!PRIVATE*/
 #define PERR_UNKNOWNCPU    1000 /* This CPU is not supported */
 
