@@ -2,11 +2,11 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.6 1995/10/15 23:42:03 jj Exp $
+    $Id: ppt_real.h,v 1.7 1996/01/03 00:42:33 jj Exp $
 
     Main definitions for PPT.
 
-    This file is (C) Janne Jalkanen 1994.
+    This file is (C) Janne Jalkanen 1994-1996.
 
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
@@ -45,6 +45,9 @@
 #include <bgui.h>
 #endif
 
+#ifndef LIBRARIES_LOCALE_H
+#include <libraries/locale.h>
+#endif
 
 /*------------------------------------------------------------------*/
 /* Types we will use everywhere */
@@ -52,7 +55,7 @@
 typedef UBYTE *     ROWPTR;         /* Sample row pointer */
 typedef void *      FPTR;           /* Function pointer */
 typedef int         PERROR;         /* Error code */
-
+typedef ULONG       ID;             /* Identification code */
 
 /* Useful macros and definitions */
 
@@ -60,7 +63,7 @@ typedef int         PERROR;         /* Error code */
 #define POKE(s,v)   ( (*(s)) = (v) )
 #define MIN(a,b)    ( ((a) < (b)) ? (a) : (b) )
 #define MAX(a,b)    ( ((a) > (b)) ? (a) : (b) )
-#define SYSBASE()   (APTR)(* ((ULONG *)4L))
+#define SYSBASE()   (struct Library *)(* ((ULONG *)4L))
 #define MULU16(x,y) ( (UWORD)(x) * (UWORD)(y) ) /* To get DCC compile fast code */
 #define MULS16(x,y) ( (WORD)(x) * (WORD)(y) )
 #define MULUW       MULU16
@@ -201,7 +204,10 @@ typedef struct {
 
     /* The fields beyond this point are PRIVATE! */
 
-    VMHANDLE        *vmh;
+    VMHANDLE        *vmh;       /* For virtual memory */
+
+    ROWPTR          tmpbuf;     /* This contains a temporary area into which the
+                                   image data is copied when processing. */
 
 } PIXINFO;
 
@@ -246,6 +252,8 @@ typedef struct {
     char            scrtitle[SCRTITLELEN]; /* Reserved for screen title */
     struct Hook     qhook;      /* Quickrender hook for areashow */
     VMHANDLE        *bitmaphandle;  /* Rendering on disk utilizes this handle */
+    UBYTE           palettepath[MAXPATHLEN]; /* Keeps the pointer at the palette */
+    BOOL            forcebw;    /* TRUE, if Force Black/White is enabled */
 } DISPLAY;
 
 /* Dithering methods. FS only currently implemented. */
@@ -256,10 +264,11 @@ typedef struct {
 
 /* Render quality */
 
-#define RENDER_QUICK        0
-#define RENDER_NORMAL       1
-#define RENDER_HAM          2
+#define RENDER_NORMAL       0
+#define RENDER_EHB          1
+#define RENDER_HAM6         2
 #define RENDER_HAM8         3
+#define RENDER_QUICK        0xFF
 
 /* Types  */
 
@@ -270,7 +279,7 @@ typedef struct {
 
 #define CMAP_MEDIANCUT          0   /* Heckbert Median Cut. Slow but accurate. Default. */
 #define CMAP_POPULARITY         1   /* Popularity algorithm. Fast but not accurate */
-#define CMAP_FORCEPALETTE       2   /* Forces the colormap currently in disp->colortable */
+#define CMAP_FORCEPALETTE       2   /* Forces the colormap named in palettepath  */
 
 
 
@@ -313,21 +322,28 @@ typedef struct Frame_t {
     /* All data beyond this point is PRIVATE! */
 
     ULONG           busy;           /* See below for definitions */
-    ULONG           ID;             /* Frame ID, an unique code that will last.*/
+    ID              ID;             /* Frame ID, an unique code that will last.*/
     struct DispPrefsWindow *dpw;    /* Display prefs window. May be NULL */
     struct PaletteWindow *pw;       /* Palette window. May be NULL */
     INFOWIN         *mywin;         /* This frame's infowindow. NULL, if not yet created */
     APTR            renderobject;   /* see render.h */
-    UBYTE           selstatus;      /* 0 if not visible, 1 if visible */
+    UBYTE           selstatus;      /* see defs.h */
     UBYTE           reqrender;      /* != 0, if a render has been requested but not made */
-    UBYTE           reserved[2];    /* Unused */
+    BOOL            doerror;        /* TRUE, if the error has not been displayed yet */
+    PERROR          errorcode;
+    UBYTE           errormsg[ERRBUFLEN];
     struct Frame_t  *lastframe;     /* The last before modifications. Undo frame. */
     struct Frame_t  *parent;        /* If the frame is a fresh copy, then you can find
                                        it's parent here. */
     ULONG           progress_min;   /* Store values for Progress() */
     ULONG           progress_diff;
     ULONG           progress_old;
-    PERROR          lasterror;      /* internal functions will set this. */
+
+    ID              alpha;          /* This frames alpha channel frame */
+
+    ID              alphaparents[10]; /* All the frames this frames is an alpha channel to.
+                                         End the list with 0L. */
+
 } FRAME;
 
 /*
@@ -363,6 +379,8 @@ typedef struct {
     BOOL            iwonload;
     BOOL            disponload;
     UWORD           maxundo;        /* Maximum amount of undo levels */
+    struct TextFont *maintf;        /* These two are the same as the TextAttr - structs */
+    struct TextFont *listtf;        /* above, but these contain valid pointers. */
 } PREFS;
 
 
@@ -419,17 +437,43 @@ typedef struct {
     struct Library  *lb_BGUI;       /* bgui.library */
     struct Library  *lb_GadTools;   /* gadtools.library */
 
+    /*
+     *  The following fields are for the AmigaOS localization system,
+     *  available from OS 2.1 (V38) onwards. If your system does not
+     *  support localization, locales could not be opened or your
+     *  external module does not support localization at all, some or
+     *  all of these fields may be NULL. Always check before using!
+     *
+     *  For more information on how the PPT submodule localization works,
+     *  see the autodoc for pptsupp/GetStr().
+     */
+
+    struct Library  *lb_Locale;     /* locale.library */
+    struct Locale   *locale;        /* The current locale. */
+    struct Catalog  *extcatalog;    /* This external's own catalog, opened by PPT */
+
 /* PPT private fields start here. Don't even read. */
 
-    BOOL            opened;
+    struct Catalog  *catalog;       /* The PPT catalog */
+    BOOL            opened;         /* TRUE, if the libbases were opened. */
 
 /* PPT hyper-private experimental fields start here. Don't even think about reading. */
 
 } EXTBASE;
 
-/* For old source code compatability (V0) */
+/* For old source code compatibility (V0) */
 
 #define EXTDATA     EXTBASE
+
+/*------------------------------------------------------------------------*/
+/*
+    The locale subsystem. See the autodoc on pptsupp/GetStr()
+*/
+
+struct LocaleString {
+    LONG    ID;
+    STRPTR  Str;
+};
 
 /*------------------------------------------------------------------------*/
 /*
@@ -465,6 +509,10 @@ typedef struct {
 #define ARSLIDER_Max        (AR_Dummy + 1001)   /* LONG */
 #define ARSLIDER_Default    (AR_Dummy + 1002)   /* LONG */
 
+/* String object tag values */
+
+#define ARSTRING_InitialString (AR_Dummy + 1100) /* STRPTR */
+#define ARSTRING_MaxChars   (AR_Dummy + 1101)    /* LONG */
 
 #define MAX_AROBJECTS 30 /* Maximum amount of objects you may create */
 
@@ -565,6 +613,8 @@ typedef struct {
 #define PERR_FILEWRITE     14
 #define PERR_FILECLOSE     15
 
+#define PERR_WARNING       16 /* If something non-fatal happened */
+
 #define PERR_GENERAL       PERR_FAILED  /* Obsolete */
 #define PERR_ERROR         PERR_FAILED  /* Obsolete */
 
@@ -583,6 +633,22 @@ typedef struct {
 #define EDITCMD_CUTFRAME    4
 
 /*------------------------------------------------------------------*/
+/* Interprocess communication */
+
+struct PPTMessage {
+    struct Message  msg;
+    FRAME           *frame;         /* Who does this message concern? */
+    ULONG           code;           /* See below */
+    APTR            data;           /* code-dependent. */
+};
+
+#define PPTMSG_EFFECTDONE   1L      /* External has died. data contains a
+                                       pointer to a new frame. */
+#define PPTMSG_PICKPOINT    2L      /* NOP */
+#define PPTMSG_LOADDONE     3L      /* NOP */
+#define PPTMSG_RENDERDONE   4L      /* NOP */
+#define PPTMSG_SAVEDONE     5L      /* Save complete. */
+
 
 #endif /* PPT_H */
 
