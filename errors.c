@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.6 1996/11/23 00:42:58 jj Exp $
+    $Id: errors.c,v 1.7 1998/09/05 11:33:25 jj Exp $
 
     Error handling routines.
 */
@@ -63,6 +63,8 @@ ASM UBYTE *ErrorMsg( REG(d0) ULONG code, REG(a6) EXTBASE *ExtBase )
             return XGetStr(MSG_PERR_FILEWRITE);
         case PERR_FILECLOSE:
             return XGetStr(MSG_PERR_FILECLOSE);
+        case PERR_UNKNOWNCOLORSPACE:
+            return XGetStr(MSG_PERR_UNKNOWNCSPACE);
         case PERR_OK:
             return XGetStr(MSG_PERR_OK);
         default:
