@@ -2,7 +2,9 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.14 1996/11/04 19:28:43 jj Exp $
+    $Revision: 1.15 $
+    $Date: 1996/11/15 21:59:24 $
+    $Author: jj $
 
     Main definitions for PPT.
 
@@ -11,7 +13,11 @@
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
 
+    !!PRIVATE
+    $Id: ppt_real.h,v 1.15 1996/11/15 21:59:24 jj Exp $
+
     This file contains also the PRIVATE fields in the structs.
+    !!PUBLIC
  */
 
 #ifndef PPT_H
@@ -82,6 +88,7 @@ typedef ULONG       ID;             /* Identification code */
 #define ROWLEN(a) \
     ( ((PIXINFO *)(a))->bytes_per_row )
 
+/*!!PRIVATE*/
 /* Main window and main screen */
 
 #define MAINWIN       globals->maindisp->win
@@ -89,12 +96,17 @@ typedef ULONG       ID;             /* Identification code */
 
 
 /*------------------------------------------------------------------*/
+/*!!PUBLIC*/
+/* Definitions */
 
 #define MAXPATHLEN          256     /* Std AmigaDOS path len */
 #define NAMELEN             40      /* Maximum length of frame name */
+/*!!PRIVATE*/
 #define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
 #define SCRTITLELEN         80      /* Length of the screen title buffer in DISPLAY */
 #define MAXSCRTITLENAMELEN  40      /* Max length of file name when shown on screen title */
+
+/*!!PUBLIC*/
 
 /*------------------------------------------------------------------*/
 
@@ -117,7 +129,6 @@ struct ModuleInfo {
 
 /*------------------------------------------------------------------*/
 
-
 /*
     A common structure to ease handling of external modules.
 */
@@ -127,11 +138,12 @@ typedef struct {
     BPTR            seglist;    /* Actual code */
     struct TagItem  *tags;
     ULONG           usecount;
+    /*!!PRIVATE*/
     BOOL            islibrary;  /* If != 0, this is a newstyle library */
     UBYTE           diskname[40];/* The real name on disk. */
     UBYTE           realname[40];/* The name by which this is known */
+    /*!!PUBLIC*/
 } EXTERNAL;
-
 
 /* External types. Also double as Node types. Type is UBYTE  */
 
@@ -140,7 +152,6 @@ typedef struct {
 #define NT_SCRIPT           (NT_USER - 2)
 
 /* Values reserved from NT_USER - 2 downwards. */
-
 
 /*------------------------------------------------------------------*/
 /* Loader stuff */
@@ -152,6 +163,7 @@ typedef struct {
 } LOADER;
 
 
+/*!!PRIVATE*/
 
 /*------------------------------------------------------------------*/
 /*  Filters... */
@@ -185,6 +197,7 @@ typedef struct {
     BOOL            chflag;
 } VMHANDLE;
 
+/*!!PUBLIC*/
 
 /*
     This structure contains information on the picture data itself.
@@ -210,11 +223,14 @@ typedef struct {
 
     /* The fields beyond this point are PRIVATE! */
 
+    /*!!PRIVATE*/
+
     VMHANDLE        *vmh;       /* For virtual memory */
 
     ROWPTR          tmpbuf;     /* This contains a temporary area into which the
                                    image data is copied when processing. */
 
+    /*!!PUBLIC*/
 } PIXINFO;
 
 /* Possible color spaces. */
@@ -234,11 +250,13 @@ typedef struct {
     The display structure contains necessary info to open a given
     screen/display.
 
+    !!PRIVATE
     NOTE: Do not keep here anything that is not shared between
           instances, as this structure is passed down to the child.
 
     NB: If you make any modifications, please check MakeFrame() to see
         what should be done with the new fields.
+    !!PUBLIC
  */
 
 typedef struct {
@@ -252,6 +270,7 @@ typedef struct {
     UBYTE           depth;      /* The depth the screen should use */
 
     /* All fields below this point are PRIVATE */
+    /*!!PRIVATE*/
 
     UBYTE           renderq;    /* See below */
     UBYTE           dither;     /* Dithering method. */
@@ -269,9 +288,10 @@ typedef struct {
     BOOL            forcebw;    /* TRUE, if Force Black/White is enabled */
 
     ULONG           selpt;      /* Draw selection pattern for SetDrPt() */
-
+    /*!!PUBLIC*/
 } DISPLAY;
 
+/*!!PRIVATE*/
 /* Dithering methods. FS only currently implemented. */
 
 #define DITHER_NONE         0
@@ -297,7 +317,9 @@ typedef struct {
 #define CMAP_POPULARITY         1   /* Popularity algorithm. Fast but not accurate */
 #define CMAP_FORCEPALETTE       2   /* Forces the colormap named in palettepath  */
 
+/*!!PUBLIC*/
 
+/*!!PRIVATE*/
 /*
     This structure contains the necessary information on how to deal with
     information windows.
@@ -316,7 +338,7 @@ typedef struct {
     struct SignalSemaphore lock;
 } INFOWIN;
 
-
+/*!!PUBLIC*/
 
 /*
     The main frame structure holds all necessary information to handle a
@@ -336,7 +358,7 @@ typedef struct Frame_t {
     struct Rectangle selbox;        /* This contains the area currently selected. */
 
     /* All data beyond this point is PRIVATE! */
-
+    /*!!PRIVATE*/
     ULONG           busy;           /* See below for definitions */
     LONG            busycount;      /* Number of times this item is busy with non-exclusive locks */
 
@@ -381,7 +403,10 @@ typedef struct Frame_t {
 
     struct EClockVal eclock;
 
+    /*!!PUBLIC*/
 } FRAME;
+
+/*!!PRIVATE*/
 
 /*
     Definitions for frame->busy field:
@@ -397,6 +422,7 @@ typedef struct Frame_t {
 #define BUSY_RENDERING          5L
 #define BUSY_EDITING            6L
 
+/*!!PUBLIC*/
 
 /*
     This structure contains info about user preferred values. sizeof(PREFS)
@@ -412,6 +438,8 @@ typedef struct {
     UWORD           vmbufsiz;       /* In kb. */
 
     /* PRIVATE data only beyond this point */
+
+    /*!!PRIVATE*/
 
     UBYTE           *pubscrname;    /* NULL, if use default public screen or open own. Currently not used. */
     BOOL            iwonload;
@@ -443,7 +471,7 @@ typedef struct {
     UBYTE           rexxpath[MAXPATHLEN]; /* All scripts reside here */
 
     struct IBox     initialpos;     /* Main window initial position */
-
+    /*!!PUBLIC*/
 } PREFS;
 
 
@@ -465,12 +493,13 @@ typedef struct {
                     effects;
 
     /* PRIVATE data beyond this point*/
-
+    /*!!PRIVATE*/
     Object          *WO_main;       /* Main window object */
     Object          *LV_frames;
     struct List     tempframes;
     struct Process  *maintask;
     struct List     scripts;
+    /*!!PUBLIC*/
 } GLOBALS;
 
 
@@ -519,14 +548,18 @@ typedef struct {
 
 /* PPT private fields start here. Don't even read. */
 
+    /*!!PRIVATE*/
     struct Catalog  *catalog;       /* The PPT catalog */
     BOOL            opened;         /* TRUE, if the libbases were opened. */
 
+    /*!!PUBLIC*/
+
 /* PPT hyper-private experimental fields start here. Don't even think about reading. */
 
+    /*!!PRIVATE*/
     struct Device   *lb_Timer;
     struct timerequest *TimerIO;
-
+    /*!!PUBLIC*/
 } EXTBASE;
 
 /* For old source code compatibility (V0) */
@@ -650,6 +683,7 @@ struct LocaleString {
 
 #define DFF_COPYDATA        0x01
 
+/*!!PRIVATE*/
 
 /*------------------------------------------------------------------*/
 /* Edit commands */
@@ -695,6 +729,7 @@ struct ProgressMsg {
     UBYTE  text[256];
 };
 
+/*!!PUBLIC*/
 
 /*------------------------------------------------------------------*/
 /* The input handler system */
