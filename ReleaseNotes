@@ -1,13 +1,25 @@
 
-RELEASE NOTES FOR PPT RELEASE C-2
+RELEASE NOTES FOR PPT RELEASE C-6
 ---------------------------------
 
-This is just a simple bug-fix release for now.  I'm currently
-helping Manuel in bringing BGUI back to the line of serious
-GUI packages, and thus things have been progressing quite slowly.
+This version fixes a number of bugs that got into the last release
+(mainly due to the hurry I had to get it out by Christmas).  See
+HISTORY for more info.
 
-Please continue sending your suggestions...
+In addition, I have added the possibility to use images in the toolbar.
+You'll need OS V3.x for it, though.  I'll add V37 support, if someone
+*really* wants it.
 
+Other cool stuff includes:
+- dithered previews (and possibility to use ordered dither in rendering)
+- AppIcon
+- A number of icons contributed by A. Tolonen.  Yes, you can now
+  make your own icons =)
+
+Known bugs:
+- the images in toolbar may not function correctly in all places.  This
+  is caused by a combination of bugs in CyberGfx, BGUI, and PPT.  I'll
+  try to fix them as much as I can for the next release.
 
 /Janne
 
