@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.9 1997/05/11 16:09:39 jj Exp $
+    $Id: load.c,v 2.10 1997/05/13 00:39:33 jj Exp $
 
     Code for loaders...
 */
@@ -46,7 +46,6 @@ Prototype ASM PERROR     BeginLoad( REG(a0) FRAME *,  REG(a6) EXTBASE * );
 Prototype ASM VOID       EndLoad( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM VOID       LoadPicture( REG(a0) UBYTE * );
 Prototype FRAME *        RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
-Prototype UBYTE *        AskFile( EXTBASE *, STRPTR );
 
 /*---------------------------------------------------------------------*/
 /* Global variables */
@@ -66,86 +65,6 @@ const char *external_patterns[] = {
 
 /*---------------------------------------------------------------------*/
 /* Code */
-
-/*
-    Ask for a file, then returning a full path to it. This routine does
-    remember old files. Returns NULL on error or if user cancelled.
-
-    BUG: Not re-entrant at the moment.
-    BUG: Should protect the variables with semaphores.
-
-    Don't forget to free the memory with sfree()!
-*/
-
-/// AskFile
-
-UBYTE *AskFile( EXTBASE *ExtBase, STRPTR initialpattern )
-{
-    static char Drawer[MAXPATHLEN+1] = "UNSET";
-    static char File[NAMELEN+1] = "";
-    static ULONG Top = 0, Left = 0, Height = 0, Width = 0;
-    Object *freq;
-    UBYTE *path, *buffer = NULL;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
-
-    /*
-     *  Initialize default values.  This is a bit kludgish.
-     */
-
-    if( Height == 0 ) Height = globals->maindisp->height * 3 / 4;
-    if( Width  == 0 ) Width  = globals->maindisp->width / 3;
-
-    if( strcmp(Drawer,"UNSET") == 0 )
-        strncpy(Drawer, globals->userprefs->startupdir, MAXPATHLEN);
-
-    freq = FileReqObject,
-        ASLFR_Window,           globals->maindisp->win,
-        ASLFR_InitialDrawer,    Drawer,
-        ASLFR_InitialFile,      File,
-        ASLFR_InitialHeight,    Height,
-        ASLFR_InitialWidth,     Width,
-        ASLFR_InitialTopEdge,   Top,
-        ASLFR_InitialLeftEdge,  Left,
-        ASLFR_Locale,           ExtBase->locale,
-        ASLFR_TitleText,        "Open File",
-        ASLFR_InitialPattern,   initialpattern,
-        ASLFR_DoPatterns,       initialpattern ? TRUE : FALSE,
-        EndObject;
-
-    if(freq) {
-
-        BusyAllWindows( ExtBase );
-
-        if( DoRequest( freq ) == FRQ_OK ) {
-            buffer = smalloc( MAXPATHLEN + 1 );
-            if(buffer) {
-                GetAttr( FRQ_Path, freq, (ULONG *) &path );
-                strncpy( buffer, path, MAXPATHLEN );
-            }
-
-            /*
-             *  Save the requester attributes
-             */
-
-            GetAttr( FRQ_Drawer, freq, (ULONG *) &path );
-            GetAttr( FRQ_Top, freq, &Top );
-            GetAttr( FRQ_Left, freq, &Left );
-            GetAttr( FRQ_Height, freq, &Height );
-            GetAttr( FRQ_Width, freq, &Width );
-
-            strncpy( Drawer, path, MAXPATHLEN );
-            strncpy( File, FilePart( buffer ), NAMELEN );
-            strncpy( globals->userprefs->startupdir, path, MAXPATHLEN );
-        }
-
-        AwakenAllWindows( ExtBase );
-        DisposeObject( freq );
-    }
-
-    return buffer;
-}
-
-///
 
 /*
     Works as a front end to the LoadPicture() call. argstr is
@@ -267,7 +186,6 @@ Local
 LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
 {
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
-    struct Library *UtilityBase = ExtBase->lb_Utility;
     struct Library *IOModuleBase = NULL;
     ULONG res;
 
