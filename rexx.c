@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 6.1 1999/11/25 23:18:47 jj Exp $
+    $Id: rexx.c,v 6.2 1999/11/28 18:23:43 jj Exp $
 
     AREXX interface to PPT. Based heavily on ArexxBox
     by Michael Baltzer.
@@ -121,7 +121,7 @@ struct RexxCommand rx_commands[] = {
     "SETAREA",      "FRAME/A/N,XBEGIN/N,YBEGIN/N,XEND/N,YEND/N,ALL/S",
                                                 rx_setarea,
 
-    "ASKFILE",      "TITLE/A,POSITIVE=POS,INITIALDRAWER=ID/K,INITIALFILE=IF/K,INITIALPATTERN=IP/K,SAVE/S",
+    "ASKFILE",      "TITLE/A,POSITIVE=POS,INITIALDRAWER=ID/K,INITIALFILE=IF/K,INITIALPATTERN=IP/K,SAVE/S,DIRONLY/S",
                                                 rx_askfile,
     "ASKREQ",       "TEXT/A,POSITIVE=POS/K,NEGATIVE=NEG/K,GAD1,GAD2,GAD3,GAD4,GAD5,GAD6,GAD7,GAD8,GAD9",
                                                 rx_askreq,
@@ -1052,6 +1052,7 @@ void rx_loaderinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
             rx_DecodeColorSpaceBits(buf, IOInquire( PPTX_ColorSpaces, globxd ) );
             AddStemItem( stem, "SAVEFORMATS", (ULONG)buf, ASI_STRING );
             AddStemItem( stem, "PREFERREDPOSTFIX", IOInquire( PPTX_PreferredPostFix, globxd), ASI_STRING );
+            AddStemItem( stem, "GETARGS", IOInquire( PPTX_SupportsGetArgs, globxd), ASI_INT );
             CloseModule( IOModuleBase, globxd );
         }
         ra->stem = stem;
@@ -1220,10 +1221,10 @@ void rx_copyframe( PPTREXXARGS *ra, struct RexxMsg *rm )
 }
 ///
 
-/// File handling
+/// File handling, ASKFILE, LOADFRAME, SAVEFRAMEAS
 
 /*
-    TITLE/A,POSITIVE=POS,INITIALDRAWER=ID/K,INITIALFILE=IF/K,INITIALPATTERN=IP/K,SAVE/S
+    TITLE/A,POSITIVE=POS,INITIALDRAWER=ID/K,INITIALFILE=IF/K,INITIALPATTERN=IP/K,SAVE/S,DIRONLY/S
  */
 
 
@@ -1231,6 +1232,9 @@ Local
 void rx_askfile( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     UBYTE *initialdrawer, *initialfile, *path;
+    BOOL dironly;
+
+    dironly = ra->args[6] ? TRUE : FALSE;
 
     if( !RexxFileReq ) {
         GetAttr( FRQ_Drawer, gvLoadFileReq.Req, (ULONG *)&initialdrawer );
@@ -1260,13 +1264,18 @@ void rx_askfile( PPTREXXARGS *ra, struct RexxMsg *rm )
               ASLFR_InitialPattern,ra->args[4] ? ra->args[4] : (LONG)"#?",
               ASLFR_DoPatterns,   ra->args[4] ? TRUE : FALSE,
               ASLFR_DoSaveMode,   ra->args[5],
+              ASLFR_DrawersOnly,  dironly,
               TAG_DONE );
 
     if( DoRequest(RexxFileReq) != FRQ_OK ) {
         ra->rc = -5;
         ra->rc2 = (LONG)ErrorMsg(PERR_CANCELED,globxd);
     } else {
-        GetAttr(FRQ_Path, RexxFileReq, (ULONG *)&path );
+        if( dironly )
+            GetAttr( FILEREQ_Drawer, RexxFileReq, (ULONG *)&path );
+        else
+            GetAttr( FRQ_Path, RexxFileReq, (ULONG *)&path );
+
         strncpy(result, path, MAXPATHLEN);
         ra->result = result;
     }
@@ -1438,7 +1447,7 @@ void rx_process( PPTREXXARGS *ra, struct RexxMsg *rm )
     UNLOCK(frame);
 }
 ///
-
+/// GETARGS
 /*
     Get the arguments from the external module.
  */
@@ -1474,23 +1483,25 @@ void rx_getargs( PPTREXXARGS *ra, struct RexxMsg *rm )
         return;
     }
 
-    if( module = (EXTERNAL *)FindIName( &globals->effects, (UBYTE *)ra->args[1] ) ) {
-        sprintf(argstr,"%lu",rxargs);
-        if( RunGetArgs( frame, module, argstr ) != PERR_OK) {
-            ra->rc = -10; ra->rc2 = (long)"Cannot spawn subtask";
-            ra->proc = NULL;
-        } else {
-            ra->frame = frame;
-            ra->proc  = frame->currproc;
-            ra->process_args = rxargs;
+    if( NULL == ( module = (EXTERNAL *)FindIName( &globals->effects, (UBYTE *)ra->args[1] )) ) {
+        if( NULL == (module = (EXTERNAL *)FindIName( &globals->loaders, (UBYTE *)ra->args[1]))) {
+            ra->rc = -10;
+            ra->rc2 = (long)"External not found";
+            return;
         }
-    } else if( module = (EXTERNAL *)FindIName( &globals->loaders, (UBYTE *)ra->args[1] )) {
+    }
 
+    sprintf(argstr,"%lu",rxargs);
+    if( RunGetArgs( frame, module, argstr ) != PERR_OK) {
+        ra->rc = -10; ra->rc2 = (long)"Cannot spawn subtask";
+        ra->proc = NULL;
     } else {
-        ra->rc = -10;
-        ra->rc2 = (long)"External not found";
+        ra->frame = frame;
+        ra->proc  = frame->currproc;
+        ra->process_args = rxargs;
     }
 }
+///
 
 /// HIDE & SHOW
 
@@ -1550,7 +1561,8 @@ BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, PPTREXXARGS *ra )
     ra->frame = NULL;
 
     /*
-     *  Parse messages.
+     *  Parse messages.  args is guaranteed to exist after
+     *  this point.
      */
 
     args = strchr( arg0, ' ' ); /* Take away first cmd */
@@ -1586,15 +1598,22 @@ BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, PPTREXXARGS *ra )
             /*
              *  Check if the command requires a frame. If it does,
              *  extract the info and store it in the rexxargs structure.
+             *
+             *  If the frame is not required, but used, then no error
+             *  is raised if it doesn't exist.
              */
 
             if( rx_commands[i].args ) {
                 if( strncmp( rx_commands[i].args, "FRAME", 5 ) == 0 ) {
+                    BOOL requireframe = FALSE;
 
-                    if( args ) {
+                    if( strncmp( rx_commands[i].args, "FRAME/A", 7 ) == 0 )
+                        requireframe = TRUE;
+
+                    if( optarray[0] ) {
                         FRAME *frame;
-
                         frame = FindFrame( FRAMEID(optarray[0]) );
+
                         if(!frame) {
                             ra->rc = -10; ra->rc2 = (long)"Frame not found";
                             goto fail;
@@ -1606,8 +1625,10 @@ BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, PPTREXXARGS *ra )
                         }
                         ra->frame = frame;
                     } else {
-                        ra->rc = -10; ra->rc2 = (long)"Expected a frame id";
-                        goto fail;
+                        if( requireframe ) {
+                            ra->rc = -10; ra->rc2 = (long)"Expected a frame id";
+                            goto fail;
+                        }
                     }
                 }
             }
