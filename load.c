@@ -2,13 +2,13 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.4 1995/10/05 21:17:35 jj Exp $
+    $Id: load.c,v 1.5 1996/11/03 01:53:40 jj Exp $
 
     Code for loaders...
 */
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
 #ifndef DOS_DOS_H
 #include <dos/dos.h>
@@ -31,20 +31,20 @@
 #include <clib/utility_protos.h>
 #include <clib/alib_protos.h>
 
-#include <gui.h>
+#include "gui.h"
 
 #include <ctype.h>
 
 /*---------------------------------------------------------------------*/
 /* Prototypes */
 
-Local     PERROR      DoTheLoad( FRAME *, EXTDATA *, char *, char *, char * );
-Prototype PERROR      FetchExternals(const char *path, UBYTE type);
-Prototype __D0 PERROR BeginLoad( __A0 FRAME *,  __A6 EXTDATA * );
-Prototype void        EndLoad( __A0 FRAME *, __A6 EXTDATA * );
-Prototype void        LoadPicture( __A0 UBYTE * );
-Prototype FRAME *     RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
-Prototype UBYTE *     AskFile( EXTBASE * );
+Local     PERROR         DoTheLoad( FRAME *, EXTBASE *, char *, char *, char * );
+Prototype PERROR         FetchExternals(const char *path, UBYTE type);
+Prototype ASM PERROR     BeginLoad( REG(a0) FRAME *,  REG(a6) EXTBASE * );
+Prototype ASM VOID       EndLoad( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype ASM VOID       LoadPicture( REG(a0) UBYTE * );
+Prototype FRAME *        RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
+Prototype UBYTE *        AskFile( EXTBASE * );
 
 /*---------------------------------------------------------------------*/
 /* Global variables */
@@ -58,7 +58,7 @@ Prototype UBYTE *     AskFile( EXTBASE * );
    patterns, change PPNCBUFSIZE */
 
 const char *external_patterns[] = {
-    "#?.loader","#?.effect"
+    "#?.loader","#?.effect","#?."REXX_EXTENSION
 };
 
 
@@ -96,6 +96,7 @@ UBYTE *AskFile( EXTBASE *ExtBase )
         ASLFR_InitialWidth,     Width,
         ASLFR_InitialTopEdge,   Top,
         ASLFR_InitialLeftEdge,  Left,
+        ASLFR_Locale,           ExtBase->locale,
         EndObject;
 
     if(freq) {
@@ -105,7 +106,7 @@ UBYTE *AskFile( EXTBASE *ExtBase )
         if( DoRequest( freq ) == FRQ_OK ) {
             buffer = smalloc( MAXPATHLEN + 1 );
             if(buffer) {
-                GetAttr( FRQ_Path, freq, &path );
+                GetAttr( FRQ_Path, freq, (ULONG *) &path );
                 strncpy( buffer, path, MAXPATHLEN );
             }
 
@@ -113,7 +114,7 @@ UBYTE *AskFile( EXTBASE *ExtBase )
              *  Save the requester attributes
              */
 
-            GetAttr( FRQ_Drawer, freq, &path );
+            GetAttr( FRQ_Drawer, freq, (ULONG *) &path );
             GetAttr( FRQ_Top, freq, &Top );
             GetAttr( FRQ_Left, freq, &Left );
             GetAttr( FRQ_Height, freq, &Height );
@@ -136,7 +137,7 @@ UBYTE *AskFile( EXTBASE *ExtBase )
 */
 FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
 {
-    char argbuf[ARGBUF_SIZE], t[80];
+    char argbuf[ARGBUF_SIZE], t[MAXPATHLEN];
     struct Process *p = NULL;
     FRAME *frame;
 
@@ -145,18 +146,26 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
     frame = NewFrame(0,0,0,globxd); /* Allocate with no buffers. */
     if(frame == NULL) return NULL;
 
-    if(ObtainFrame( frame, BUSY_LOADING ) == FALSE)
+    if(ObtainFrame( frame, BUSY_LOADING ) == FALSE) {
+        RemFrame( frame, globxd );
         return NULL;
+    }
 
     if( fullname ) {
-        strcpy(frame->fullname,fullname);
+        UBYTE *s;
+
+        /* BUG: Stupid way of setting the zero at the end of the string */
+        bzero( frame->path, MAXPATHLEN );
+        s = PathPart( fullname );
+        strncpy(frame->path,fullname, (s-fullname));
+
         MakeFrameName( FilePart(fullname), frame->name, NAMELEN, globxd );
     } else {
-        strcpy(frame->fullname,"");
+        strcpy(frame->path,"");
         MakeFrameName( NULL, frame->name, NAMELEN, globxd );
     }
 
-    sprintf(argbuf,"%lu PATH=\"%s\"",frame,frame->fullname);
+    sprintf(argbuf,"%lu PATH=\"%s\" NAME=\"%s\"",frame,frame->path, frame->name);
 
     if(argstr) {
         sprintf(t," ARGS=\"%s\"",argstr);
@@ -168,8 +177,26 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
         strcat( argbuf, t );
     }
 
+    /*
+     *  Info window allocation must be done by this task, otherwise
+     *  the BGUI messages can go haywire
+     */
+
+    if(AllocInfoWindow( frame, globxd ) != PERR_OK ) {
+        ReleaseFrame(frame);
+        RemFrame(frame,globxd);
+        return NULL;
+    }
+
+    /*
+     *  Lock the frame so that the other task will block until we've
+     *  added this frame to the temporary frame list.
+     */
+
+    LOCK(frame);
+
 #ifdef DEBUG_MODE
-    p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, TRUE, NP_Output, Open("dtmp:load.log",MODE_READWRITE),
+    p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, FALSE, NP_Output, OpenDebugFile( DFT_Load ),
                            NP_CloseOutput,TRUE, NP_Name, "PPT Load",
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #else
@@ -178,15 +205,29 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #endif
 
-errorexit:
     if(!p) {
         Req(NEGNUL,NULL,"Couldn't spawn a new process");
-        // DeleteInfoWindow( frame->mywin,globxd );
+        DeleteInfoWindow( frame->mywin,globxd );
         ReleaseFrame( frame );
         RemFrame(frame,globxd);
         frame = NULL;
     } else {
         frame->currproc = p;
+
+        /*
+         *  Add the frame into the temporary frame list, from which it will
+         *  be moved to the real system list if the loading succeeds.
+         *  In the end, we'll release the lock and allow the other
+         *  task to proceed.
+         */
+
+        LOCKGLOB();
+        D(bug("\tAdding %08X to templist...\n",frame));
+
+        AddTail( &globals->tempframes, (struct Node *)frame );
+
+        UNLOCKGLOB();
+        UNLOCK(frame);
     }
 
     return frame;
@@ -201,9 +242,9 @@ errorexit:
  */
 
 Local
-LOADER *CheckFileH( EXTDATA *xd, BPTR fh )
+LOADER *CheckFileH( EXTBASE *xd, BPTR fh )
 {
-    static __D0 int (*L_Check)( __D0 BPTR, __A6 EXTDATA * );
+    static ASM int (*L_Check)( REG(d0) BPTR, REG(a6) EXTBASE * );
     struct Node *cn;
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility;
 
@@ -214,7 +255,7 @@ LOADER *CheckFileH( EXTDATA *xd, BPTR fh )
         L_Check = (FPTR)GetTagData( PPTX_Check,(ULONG)NULL,((LOADER *)cn)->info.tags );
         if(L_Check) {
             Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
-            if( (*L_Check)( fh, xd ) == TRUE ) {
+            if( (*L_Check)( fh, xd ) ) {
                 D(bug("\tMatch found by %s\n", cn->ln_Name ));
                 return (LOADER *)cn;
             }
@@ -229,13 +270,13 @@ LOADER *CheckFileH( EXTDATA *xd, BPTR fh )
 /*
     This is just a simple front-end to the loader routines.
 */
-__geta4 void LoadPicture( __A0 UBYTE *argstr )
+SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
 {
     EXTDATA *xd;
     APTR DOSBase;
     struct PPTMessage *msg;
     FRAME *frame;
-    char *fullname = NULL, *loadername = NULL;
+    char *path = NULL, *name = NULL, *loadername = NULL;
     int res = PERR_GENERAL;
     ULONG *optarray = NULL;
 
@@ -250,10 +291,13 @@ __geta4 void LoadPicture( __A0 UBYTE *argstr )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K", xd ) ) {
+    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K", xd ) ) {
         frame = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) /* A path was given */
-            fullname = (UBYTE *)optarray[1];
+            path = (UBYTE *)optarray[1];
+
+        if(optarray[4]) /* A name was given */
+            name = (UBYTE *)optarray[4];
 
         if(optarray[3]) /* The loader type was given */
             loadername = (UBYTE *)optarray[3];
@@ -266,23 +310,25 @@ __geta4 void LoadPicture( __A0 UBYTE *argstr )
 
     DOSBase = xd->lb_DOS;
 
-    res = DoTheLoad( frame, xd, fullname, FilePart(fullname), loadername );
+    res = DoTheLoad( frame, xd, path, name, loadername );
 
 errorexit:
     if(optarray)
         FreeDOSArgs( optarray, xd );
 
-    msg = InitPPTMsg();
+    msg = AllocPPTMsg( sizeof(struct PPTMessage), xd );
     msg->frame = frame;
     msg->code = PPTMSG_LOADDONE;
     msg->data = (APTR)res;
 
     /* Send the message */
-    DoPPTMsg( globals->mport, msg );
+    SendPPTMsg( globals->mport, msg, xd );
 
-    PurgePPTMsg( msg ); /* Remove it */
+    WaitDeathMessage( xd );
 
-    RelExtBase(xd);
+    EmptyMsgPort( xd->mport, xd );
+
+    if(xd) RelExtBase(xd);
 }
 
 /*
@@ -290,41 +336,69 @@ errorexit:
     point to valid directions.
 */
 
-PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *loadername )
+Local
+PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername )
 {
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
     BPTR fh = NULL;
-    static __D0 int (*L_Load)( __A0 FRAME *,__D0 BPTR, __A6 EXTDATA *, __A1 struct TagItem * );
+    auto PERROR (* ASM L_Load)( REG(a0) FRAME *, REG(d0) BPTR, REG(a6) EXTDATA *, REG(a1) struct TagItem * );
     LOADER *ld = NULL;
+    char ec[80];
     BOOL res = PERR_OK;
-    char ec[80] = "";
-    int errcode = PERR_OK;
+    PERROR errcode = PERR_OK;
     struct TagItem loadertags[] = {
-        { PPTX_ErrMsg, ec },
         {TAG_END}
     };
+    char fullname[MAXPATHLEN];
+    int a;
+
 
     if(!CheckPtr(frame,"DoTheLoad() - frame"))
         return PERR_ERROR;
 
-    D(bug("DoTheLoad(%s,%s,%s)\n",fullname ? fullname : "NULL",
+    D(bug("DoTheLoad(%s,%s,%s)\n",path ? path : "NULL",
                                   name ? name : "NULL",
                                   loadername ? loadername : "NULL" ));
 
+    if( loadername ) {
+        SHLOCKGLOB();
+        ld = (LOADER *) FindIName( &globals->loaders, loadername );
+        UNLOCKGLOB();
+    }
+
     /*
      *  Attempt to open the file, if one was specified.
+     *  BUG: What if there was none???
      */
 
-    if( fullname && fullname[0] != '\0') {
-        fh = Open( fullname, MODE_OLDFILE );
-        if(!fh) {
-            errcode = IoErr();
-            Fault( errcode, "", ec, 79 );
-            XReq(NEGNUL,NULL, "Failed to open file '%s' due to:\n"ISEQ_C"Error %ld %s", fullname, errcode, ec );
-            res = PERR_WONTOPEN;
-            goto errexit;
+    if( (ld == NULL) || ( GetTagData(PPTX_NoFile, FALSE, ld->info.tags ) == FALSE ) ) {
+
+        if( path && name && name[0] != '\0' ) {
+
+            strcpy(fullname, path);
+            AddPart(fullname, name, MAXPATHLEN);
+
+            DeleteNameCount( fullname );
+
+            fh = Open( fullname, MODE_OLDFILE );
+            if(!fh) {
+                errcode = IoErr();
+                Fault( errcode, "", ec, 79 );
+                XReq(NEGNUL,NULL,
+                    ISEQ_C ISEQ_HIGHLIGHT "ERROR!" ISEQ_TEXT
+                    "\nFailed to open file\n"
+                    "'%s'\n"
+                    "due to:\nError %ld %s", fullname, errcode, ec );
+                res = PERR_WONTOPEN;
+                goto errexit;
+            }
+            D(bug("\tOpened file\n"));
+        } else {
+            InternalError("Unimplemented feature while loading!");
+            return PERR_FAILED;
         }
-        D(bug("\tOpened file\n"));
+    } else {
+        D(bug("\tLoader does not need a file!\n"));
     }
 
     /*
@@ -334,15 +408,15 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *l
     if( res == PERR_OK  ) {
 
         /*
-         *  Fetch the loader, if necessary
+         *  Make a guess about the loader by asking each of them separately
+         *  if they can recognize this file.  Unless we were told which
+         *  loader to use, naturally.
          */
 
-        if( loadername ) {
-            SHLOCKGLOB();
-            ld = (LOADER *) FindName( &globals->loaders, loadername );
-            UNLOCKGLOB();
-        } else {
+        if( !ld ) {
             UpdateProgress(frame,"Checking file type...",0L, xd);
+            OpenInfoWindow(frame->mywin,xd);
+
             if( fh ) {
                 ld = CheckFileH( xd, fh );
             } else {
@@ -356,6 +430,8 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *l
             D(bug("\tRecognised file type, now loading...\n"));
             L_Load = (FPTR)GetTagData( PPTX_Load, (ULONG)NULL, ld->info.tags );
             if(L_Load) {
+                D(APTR foo);
+
                 ld->info.usecount++;
 
                 if(fh) Seek(fh,0L,OFFSET_BEGINNING); /* Ensure we are in the beginning. */
@@ -363,7 +439,6 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *l
                 frame->origtype = ld;
 
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
-                D(APTR foo);
                 D(foo=StartBench());
                 errcode = (*L_Load)( frame, fh, xd, loadertags );
                 D(StopBench(foo));
@@ -374,39 +449,80 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *l
                 if(MasterQuit)
                     goto errexit;
 
-                if( errcode == PERR_OK && strlen(ec) == 0) {
-                    D(bug("Load successfull\n"));
-                } else {
-                    D(bug("Loader reports error\n"));
-                    if( frame->lasterror )
-                        frame->lasterror = PERR_OK; /* clear error. */
-                    else {
-                        if(strlen(ec) != 0) {
-                            XReq(NEGNUL,NULL,"Loader %s reports error while reading file\n"ISEQ_C"'%s':\n\n%s",
-                                              ld->info.nd.ln_Name, fullname, ec);
-                        } else {
-                            XReq(NEGNUL,NULL,"Loader %s reports error while reading file\n"ISEQ_C"'%s':\n\n%s",
-                                              ld->info.nd.ln_Name, fullname, ErrorMsg(errcode) );
-                        }
-                    }
-                    res = PERR_GENERAL;
-                }
+                switch(errcode) {
+                    case PERR_OK:
+                        D(bug("Load successfull\n"));
+                        break;
+
+                    case PERR_WARNING:
+
+                        /*
+                         *  Display an error message.
+                         */
+
+                        a = XReq( NEGNUL, "Keep It|Discard",
+                              ISEQ_C ISEQ_HIGHLIGHT"WARNING!\n\n" ISEQ_TEXT
+                              "A non-fatal error occurred during loading file\n\n"
+                              "'%s'\n\n"
+                              "and the image may be corrupted. What should I do?\n\n"
+                              ISEQ_I"%s\n",
+                              fullname, GetErrorMsg(frame,xd) );
+
+                        if( a == 0 )
+                            res = PERR_FAILED;
+                        else
+                            res = PERR_OK;
+
+                        break;
+
+                    case PERR_BREAK:
+                    case PERR_CANCELED:
+                        D(bug("Break or cancel\n"));
+                        res = PERR_FAILED;
+                        break;
+
+                    default:
+                        D(bug("Loader reports error\n"));
+
+                        if( frame->doerror && frame->errorcode != PERR_CANCELED
+                            && frame->errorcode != PERR_BREAK ) {
+
+                                XReq(NEGNUL,NULL,
+                                    ISEQ_C ISEQ_HIGHLIGHT "ERROR WHILE LOADING!\n\n" ISEQ_TEXT
+                                    "Loader %s reports error while reading file\n"
+                                    "'%s':\n\n"
+                                    ISEQ_I"%s",
+                                    ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,xd) );
+
+                            }
+
+                        res = PERR_FAILED;
+                        break;
+
+                } /* switch */
+
+                ClearError( frame );
 
             } else {
-                XReq(NEGNUL,NULL,"Loader %s cannot load?!?",ld->info.nd.ln_Name);
-                res = PERR_GENERAL;
+                XReq(NEGNUL,NULL,"\nLoader %s cannot load?!?\n",ld->info.nd.ln_Name);
+                res = PERR_FAILED;
             }
         } else {
-            XReq(NEGNUL, NULL, "Cannot recognize file '%s'!", fullname );
-            res = PERR_GENERAL;
+            XReq(NEGNUL, NULL, ISEQ_C "\nCannot recognize file\n'%s'\n", fullname );
+            res = PERR_FAILED;
         }
     }
 
 errexit:
 
-    if( fh ) Close(fh);
+    if( fh ) {
+        Close(fh);
+        D(bug("Closed file\n"));
+    }
 
     CloseInfoWindow( frame->mywin, xd );
+
+    ClearProgress( frame, xd );
 
     return res;
 }
@@ -430,6 +546,11 @@ errexit:
 *       and then call BeginLoad() so that PPT can initialize all necessary
 *       internal data structures like virtual memory.
 *
+*       Even if you're not handling image data yet, note that the
+*       machine will die if you try to call any other frame handling
+*       function except for SetErrorCode() / SetErrorMsg() before
+*       calling this function.
+*
 *   INPUTS
 *       frame - a FILLED FRAME structure for which the loading is about
 *           to commence.
@@ -440,6 +561,8 @@ errexit:
 *   EXAMPLE
 *
 *   NOTES
+*       THIS ROUTINE IS OBSOLETE!  Use plain InitFrame() instead!
+*       MAY BE REMOVED IN V2!
 *
 *   BUGS
 *
@@ -450,29 +573,15 @@ errexit:
 *
 */
 
-__geta4 __D0 PERROR BeginLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
+SAVEDS ASM PERROR BeginLoad( REG(a0) FRAME *frame, REG(a6) EXTBASE *xd )
 {
-    APTR SysBase = xd->lb_Sys, DOSBase = xd->lb_DOS;
+    APTR SysBase = xd->lb_Sys;
     int res;
 
     D(bug("BeginLoad( %08X )\n",frame));
 
     /*
-     *  Add the frame into the temporary frame list, from which it will
-     *  be moved to the real system list if the loading succeeds. We must
-     *  do this so that EndLoad() won't release us from an non-existant list.
-     */
-
-    LOCKGLOB();
-    D(bug("\tAdding %08X to templist...\n",frame));
-
-    AddTail( &globals->tempframes, (struct Node *)frame );
-
-    UNLOCKGLOB();
-
-
-    /*
-     *  Next, initialize the frame
+     *  Initialize the frame
      */
 
     if( (res = InitFrame( frame, xd )) != PERR_OK) {
@@ -484,9 +593,11 @@ __geta4 __D0 PERROR BeginLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
      *  Update Info window
      */
 
+    LOCK(frame);
     frame->disp->depth = frame->pix->origdepth;
     if(frame->disp->depth > 8) frame->disp->depth = 8;
     frame->disp->ncolors = 1 << frame->disp->depth;
+    UNLOCK(frame);
 
     UpdateInfoWindow( frame->mywin, xd );
 
@@ -509,6 +620,10 @@ __geta4 __D0 PERROR BeginLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
 *       routine. It does not matter whether your loading failed or
 *       not, just call it so that PPT knows about it.
 *
+*       Note that you shall not call any PPT routines except
+*       for SetErrorCode() / SetErrorMsg() after calling this
+*       function!
+*
 *   INPUTS
 *       frame - obvious?
 *
@@ -517,6 +632,8 @@ __geta4 __D0 PERROR BeginLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
 *   EXAMPLE
 *
 *   NOTES
+*       THIS ROUTINE IS OBSOLETE!  DO NOT USE, IT WILL BE REMOVED
+*       IN V2.
 *
 *   BUGS
 *
@@ -527,19 +644,9 @@ __geta4 __D0 PERROR BeginLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
 *
 */
 
-__geta4 void EndLoad( __A0 FRAME *frame, __A6 EXTDATA *xd )
+SAVEDS ASM VOID EndLoad( REG(a0) FRAME *frame, REG(a6) EXTBASE *xd )
 {
-    APTR SysBase = xd->lb_Sys;
-
     D(bug("EndLoad(%08X)\n",frame));
-
-    if(!frame) return;
-
-    SHLOCKGLOB();
-
-    Remove((struct Node *)frame); /* Remove it from the tempframes list */
-
-    UNLOCKGLOB();
 }
 
 
@@ -612,8 +719,8 @@ PERROR FetchExternals(const char *path, UBYTE type)
             if (ead->ed_Type < 0) { /* Is file? */
                 strncpy( filename,path, MAXPATHLEN );
                 AddPart( filename, ead->ed_Name, MAXPATHLEN );
-                D(bug("\t\tLoading file %s\n",filename));
-                if( OpenExternal(filename) != PERR_OK ) {
+                D(bug("Loading file %s\n",filename));
+                if( OpenExternal(filename,type) != PERR_OK ) {
                     Req(NEGNUL,NULL,"Loading external %s failed!",filename);
                 }
 
@@ -630,3 +737,7 @@ PERROR FetchExternals(const char *path, UBYTE type)
     UnLock(lock);
     return PERR_OK;
 }
+/*----------------------------------------------------------------------*/
+/*                            END OF CODE                               */
+/*----------------------------------------------------------------------*/
+
