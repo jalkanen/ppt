@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.1 1998/12/15 23:19:39 jj Exp $
+    $Id: support.c,v 5.2 1998/12/20 19:13:32 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -57,16 +57,11 @@
 Prototype ASM BOOL       Progress( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype ASM VOID       ClearProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM VOID       FinishProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
-Prototype ASM ROWPTR     GetPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a6) EXTBASE * );
 Prototype ASM UWORD      GetNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
 Prototype ASM VOID       PutNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
 Prototype ASM APTR       GetPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a6) EXTBASE * );
 Prototype ASM VOID       PutPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a1) APTR, REG(a6) EXTBASE * );
 Prototype ASM UBYTE *    MakeFrameName( REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) ULONG,REG(a6) EXTBASE * );
-Prototype ASM VOID       PutPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a1) ROWPTR, REG(a6) EXTBASE * );
-Prototype ASM ULONG      TagData( REG(d0) Tag, REG(a0) struct TagItem *, REG(a6) EXTBASE * );
-Prototype ASM VOID       PlanarToChunky( REG(a0) UBYTE **source, REG(a1) ROWPTR dest, REG(d0) ULONG width,   REG(d1) UWORD depth, REG(a6) EXTBASE * );
-Prototype ASM STRPTR     GetStr_External( REG(a0) struct LocaleString *, REG(a6) EXTBASE * );
 
 Prototype VOID OpenExtCatalog( EXTERNAL *, STRPTR, LONG, EXTBASE * );
 Prototype VOID CloseExtCatalog( EXTERNAL *, EXTBASE * );
@@ -176,8 +171,10 @@ APTR ExtLibData[] = {
 *
 */
 
-SAVEDS ASM STRPTR GetStr_External(REG(a0) struct LocaleString *ls,
-                                  REG(a6) EXTBASE *ExtBase )
+Prototype ASM STRPTR GetStr_External( REGDECL(a0,struct LocaleString *), REGDECL(a6,EXTBASE *) );
+
+SAVEDS ASM STRPTR GetStr_External(REGPARAM(a0,struct LocaleString *,ls),
+                                  REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     STRPTR defaultstr;
     LONG strnum;
@@ -283,9 +280,11 @@ VOID CloseExtCatalog( EXTERNAL *ext, EXTBASE *ExtBase )
 *   the data, with the start location moved each time.
 */
 
-SAVEDS ASM VOID PlanarToChunky( REG(a0) UBYTE **source, REG(a1) ROWPTR dest,
-                                REG(d0) ULONG width,    REG(d1) UWORD depth,
-                                REG(a6) EXTBASE *ExtBase )
+Prototype ASM VOID PlanarToChunky( REGDECL(a0,UBYTE **), REGDECL(a1,ROWPTR), REGDECL(d0,ULONG),REGDECL(d1,UWORD),REGDECL(a6,EXTBASE *) );
+
+SAVEDS ASM VOID PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR,dest),
+                                REGPARAM(d0,ULONG,width),REGPARAM(d1,UWORD,depth),
+                                REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     UWORD numpasses = ((depth-1)>>3)+1;
     UWORD i;
@@ -344,9 +343,11 @@ SAVEDS ASM VOID PlanarToChunky( REG(a0) UBYTE **source, REG(a1) ROWPTR dest,
 *
 */
 
-SAVEDS ASM ULONG TagData( REG(d0) Tag value,
-                          REG(a0) struct TagItem *list,
-                          REG(a6) EXTBASE *ExtBase )
+Prototype ASM ULONG TagData( REGDECL(d0,Tag), REGDECL(a0,struct TagItem *), REGDECL(a6,EXTBASE *) );
+
+SAVEDS ASM ULONG TagData( REGPARAM(d0,Tag,value),
+                          REGPARAM(a0,struct TagItem *,list),
+                          REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     APTR UtilityBase = ExtBase->lb_Utility;
 
@@ -393,11 +394,11 @@ SAVEDS ASM ULONG TagData( REG(d0) Tag value,
 *   BUG: Does not have any background selector.
 */
 
-Prototype ASM PERROR GetBackgroundColor( REG(a0) FRAME *, REG(a1) ROWPTR, REG(a6) EXTBASE * );
+Prototype ASM PERROR GetBackgroundColor( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
-PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
-                           REG(a6) EXTBASE *ExtBase )
+PERROR GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
+                           REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     PERROR res = PERR_OK;
     RGBPixel *rgb, prgb[4];
@@ -478,7 +479,11 @@ PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
 *   are counting on it.  Do not use SetError*()!
 */
 
-SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBASE *xd )
+Prototype ASM ROWPTR GetPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a6,EXTBASE *) );
+
+SAVEDS ASM ROWPTR GetPixelRow( REGPARAM(a0,FRAME *,f),
+                               REGPARAM(d0,WORD,row),
+                               REGPARAM(a6,EXTBASE *,xd) )
 {
     ULONG offset;
     PIXINFO *p;
@@ -579,6 +584,8 @@ SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBA
 *   BUG: Do we really need arg: data?
 *
 */
+
+Prototype ASM VOID PutPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a1) ROWPTR, REG(a6) EXTBASE * );
 
 SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
                              REG(d0) WORD row,
