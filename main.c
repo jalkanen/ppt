@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.87 1998/06/29 22:31:54 jj Exp $
+    $Id: main.c,v 1.88 1998/06/30 20:01:26 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -606,7 +606,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
          */
 
         case MID_QUIT:
-            if( res = Req(win, GetStr(MSG_YESNO_GAD), GetStr(MSG_QUIT))) {
+            if( !DOCONFIRM || Req(win, GetStr(MSG_YESNO_GAD), GetStr(MSG_QUIT)) ) {
                 D(bug("\nUser wishes to quit\n"));
                 result = HANDLER_QUIT;
             }
@@ -614,7 +614,10 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
         case MID_DELETE:
             if( FrameFree( frame ) ) {
-                res = Req(win,GetStr(MSG_YESNO_GAD),GetStr(MSG_DELETE), frame->nd.ln_Name);
+                res = 1;
+
+                if( DOCONFIRM ) res = Req(win,GetStr(MSG_YESNO_GAD),GetStr(MSG_DELETE), frame->nd.ln_Name);
+
                 if(res) {
                     DeleteFrame(frame);
                     ClearMouseLocation(); /* BUG: Should actually be in frame.c */
@@ -760,15 +763,14 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
              *  Toggles existence of this window
              */
 
-            if( frame->disp->win ) {
-                UndisplayFrame( frame ); /* BUG: possible NULL hit? */
-                frame->selstatus = 0;
-                frame->keephidden = TRUE;
-                return HANDLER_DELETED; /* Signal: No longer exists */
-            } else {
-                frame->keephidden = FALSE;
-                if( MakeDisplayFrame( frame ) == PERR_OK )
-                    DisplayFrame( frame );
+            if( frame->disp ) {
+                if( frame->disp->win ) {
+                    HideDisplayWindow( frame );
+                    frame->selstatus = 0;
+                    return HANDLER_DELETED; /* Signal: No longer exists */
+                } else {
+                    ShowDisplayWindow( frame );
+                }
             }
             break;
 
@@ -1042,10 +1044,12 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 if(frame->currproc) {
                     Signal(&(frame->currproc->pr_Task), SIGBREAKF_CTRL_C);
                 } else {
-                    Req( win, NULL, GetStr(MSG_NO_CURRENT_PROCESS ));
+                    if( DOCONFIRM ) Req( win, NULL, GetStr(MSG_NO_CURRENT_PROCESS ));
+                    else DisplayBeep(NULL);
                 }
             } else {
-                Req( win, NULL, GetStr(MSG_NO_FRAME_SELECTED) );
+                if( DOCONFIRM) Req( win, NULL, GetStr(MSG_NO_FRAME_SELECTED) );
+                else DisplayBeep( NULL );
             }
             break;
 
@@ -1306,9 +1310,7 @@ int HandleMainIDCMP( ULONG rc )
             if( clicked == lastclicked ) {
                 CurrentTime( &secs1, &ms1 );
                 if( DoubleClick( secs0, ms0, secs1, ms1 ) && frame ) {
-                    frame->keephidden = FALSE;
-                    MakeDisplayFrame( frame ); /* Make sure it exists */
-                    DisplayFrame( frame );
+                    ShowDisplayWindow( frame ); /* Make sure it's visible */
                 }
             }
             CurrentTime( &secs0, &ms0 );
@@ -1690,10 +1692,12 @@ int HandlePrefsIDCMP( ULONG rc )
                         if( depth > 24 ) depth = 24; /* KLUDGE! */
                         if( depth > 8 && tmpdisp.depth < depth ) {
                             tmpdisp.depth = depth;
-                            Req(NEGNUL,NULL,ISEQ_C"\nHi- and Truecolor CyberGFX screens are\n"
-                                            "always used to their full potential.  So,\n"
-                                            "I am using a %ld -bit depth, even if you\n"
-                                            "specified otherwise.\n", depth );
+                            if( DOCONFIRM ) {
+                                Req(NEGNUL,NULL,ISEQ_C"\nHi- and Truecolor CyberGFX screens are\n"
+                                                "always used to their full potential.  So,\n"
+                                                "I am using a %ld -bit depth, even if you\n"
+                                                "specified otherwise.\n", depth );
+                            }
                         }
                     }
                 }
@@ -1714,6 +1718,11 @@ int HandlePrefsIDCMP( ULONG rc )
             GetAttr( CYC_Active, prefsw.PreviewMode, &tmp );
             tmpprefs.previewmode = tmp;
             SetPreviewSize( &tmpprefs );
+            break;
+
+        case GID_PW_CONFIRM:
+            GetAttr( GA_Selected, prefsw.Confirm, &tmp );
+            tmpprefs.confirm = (BOOL) tmp;
             break;
 
         case GID_PW_FLUSHLIBS:
@@ -2314,9 +2323,10 @@ int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
 
         case GID_EDIT_EXTREMOVE:
             GetAttr( STRINGA_TextVal, ew->ExtName, (ULONG *) &s );
-            if( Req( GetFrameWin(ew->frame), "Remove|Cancel",
-                     ISEQ_C"\nAre you sure you wish to remove extension\n"
-                     "called '%s'?\n", s ) ) {
+            if( !DOCONFIRM || Req( GetFrameWin(ew->frame), "Remove|Cancel",
+                                   ISEQ_C"\nAre you sure you wish to remove extension\n"
+                                   "called '%s'?\n", s ) ) {
+
                 RemoveExtension( ew->frame, s, globxd );
                 RemoveSelected( ew->win, ew->ExtList );
                 SetGadgetAttrs(GAD(ew->ExtRemove), ew->win, NULL, GA_Disabled, TRUE, TAG_DONE );
