@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.81 1997/10/24 18:31:09 jj Exp $
+    $Id: main.c,v 1.82 1997/10/24 22:58:48 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -759,6 +759,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 RemoveSelectBox( frame );
                 SelectWholeImage( frame );
                 UpdateIWSelbox(frame);
+                DrawSelectBox( frame, 0L );
             }
             break;
 
@@ -806,6 +807,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                     } else {
                         newheight = (LONG)frame->pix->height * (LONG)ib.Width / frame->pix->width;
                     }
+                    newheight = newheight * globals->maindisp->DPIX / globals->maindisp->DPIY;
+
                     newwidth  = (LONG)frame->pix->width  * (LONG)ib.Height / frame->pix->height;
 
                     if( newheight > MAINSCR->Height ) {
@@ -2349,9 +2352,13 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
                      *  erase the corner handles
                      */
 
-                    frame->selstatus |= SELF_BUTTONDOWN;
-                    RemoveSelectBox( frame );
-                    frame->selstatus &= ~SELF_BUTTONDOWN;
+                    if( frame->selstatus & SELF_BUTTONDOWN ) {
+                        RemoveSelectBox( frame );
+                    } else {
+                        frame->selstatus |= SELF_BUTTONDOWN;
+                        RemoveSelectBox( frame );
+                        frame->selstatus &= ~SELF_BUTTONDOWN;
+                    }
 
                     if( (frame->disp->selpt >>= 1) == (0xF0F0F0F0>>8) )
                         frame->disp->selpt = 0xF0F0F0F0;
