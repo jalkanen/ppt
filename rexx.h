@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : rexx.h
 
-    $Id: rexx.h,v 1.3 1996/09/30 02:43:50 jj Exp $
+    $Id: rexx.h,v 1.4 1996/12/08 20:27:44 jj Exp $
 
     Definitions for AREXX port.
 */
@@ -13,6 +13,10 @@
 
 #ifndef EXEC_PORTS_H
 #include <exec/ports.h>
+#endif
+
+#ifndef EXEC_LIBRARIES_H
+#include <exec/libraries.h>
 #endif
 
 #ifndef PPT_H
@@ -84,10 +88,16 @@ struct RexxCommand {
 };
 
 
-
+/*
+    For some weird reason, SAS/C seems to complain about RexxSysBase
+    being of strange type...
+*/
+#pragma msg 72 ignore
 
 extern struct List RexxWaitList;
 extern struct RexxHost *rxhost;
 extern struct Library *RexxSysBase;
+
+#pragma msg 72 warn
 
 #endif /* REXX_H */
