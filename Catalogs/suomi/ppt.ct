@@ -1,0 +1,661 @@
+## rcsid $Date: 1998/01/14 23:17:35 $ $Revision: 1.1 $ $Id: ppt.ct,v 1.1 1998/01/14 23:17:35 jj Exp $
+## language suomi
+## codeset 0
+## chunk AUTH Finnish Catalog translation by Janne Jalkanen (jalkanen@iki.fi)
+;
+;
+;  This is a base for the locale file for PPT
+;
+;  $Id: ppt.ct,v 1.1 1998/01/14 23:17:35 jj Exp $
+;
+;
+;
+;  main.c
+;
+;
+MSG_ABOUT
+\033c\nPPT on %s\n\
+Tämä on V%s, painos %s\n\
+(Käännetty %s)\
+%s\
+\nMinut voi tavoittaa internetistä osoitteesta\n\
+Janne.Jalkanen@hut.fi\n\n\
+Vapaata grafiikkamuistia:%ld tavua\n\
+Vapaata muuta muistia:%ld tavua\n\
+\nThere %s %s frame%s and %s thread%s\n\
+\033b\033u\nHUOMIO!\n\033n\
+This program is in pre-Alpha stage\n\
+and thus may not be spread without\n\
+express permission from the author\n\
+\033i\nAll hail the Drummer Bunny!\n
+;\ec\nPPT is %s\n\
+;This is V%s, release %s, compiled on %s\
+;%s\n\
+;PPT support on the Internet is available via WWW at\n\
+;http://www.iki.fi/~jalkanen/PPT.html\n\
+;or e-mail: Janne.Jalkanen@iki.fi\n\
+;\nFrames: %ld,  Threads: %ld\n\
+;\n\eb\euIMPORTANT!\n\en\
+;This program is in Beta stage and thus may not be\n\
+;spread without express permission from the author\n\
+;\n\eiAll hail the Drummer Bunny!\n
+;
+MSG_QUIT
+\nHaluatko todellakin lopettaa?\n
+;\nDo you \033ireally\033n wish to quit?\n
+;
+MSG_DELETE
+Oletko varma että haluat hävittää kuvan nimeltä\n\
+'%s'?\n
+;\033c\nAre you sure you wish to \033bclose\033n frame\n\
+;'%s'?\n
+;----------------------------------------------------------------------
+;
+;   Simple gadgets.
+;
+MSG_YESNO_GAD
+Kyllä|Ei
+;Yes|No
+;
+MSG_OK_GAD
+Selvä
+;OK
+;
+MSG_LOAD_GAD
+Avaa
+;Open
+;
+MSG_CANCEL_GAD
+Peru
+;Cancel
+;
+MSG_INFO_GAD
+Info
+;Info
+;
+MSG_SAVE_GAD
+Tallenna
+;Save
+;
+MSG_USE_GAD
+Käytä
+;Use
+;
+MSG_PROCESS_GAD
+Prosessoi
+;Process
+;
+MSG_KEEP_DISCARD_GAD
+Pidä|Poista
+;Keep It|Discard
+;
+MSG_PICK_FRAME
+
+;Pick a Frame
+;
+MSG_MAINWIN_INFO
+
+;%ldx%ld %s data\n\
+;%ld bits/channel
+;
+MSG_MAIN_NOFRAME
+
+;\033cNo frame\nselected
+;
+;-------------------------------------------------
+; save.c
+;
+MSG_PICK_SAVE_FORMAT_LAB
+
+;Pick format
+;
+MSG_PICK_SAVE_MODE_LAB
+
+;Save Mode
+;
+;---------------------------------------------------
+;
+; DispPrefs window
+;
+MSG_DISPLAY_PREFERENCES_LAB
+
+;\033c\033bDisplay Preferences
+;
+MSG_SCREENMODE_LAB
+
+;_Screen Mode:
+;
+MSG_DITHER_LAB
+
+;Dither:
+;
+MSG_COLORS_LAB
+
+;Colors:
+;
+MSG_FORCE_BW_LAB
+
+;Force B/W?
+;
+MSG_PALETTE_LAB
+
+;Palette
+;
+;----------------------------------------------------
+;
+; FX window
+;
+MSG_EFFECTS_LIST_LAB
+
+;Pick effect
+;
+MSG_EXECUTE_GAD
+
+;Execute
+;
+MSG_IDLE_GAD
+
+;«idle»
+;
+MSG_BREAK_GAD
+
+;Break
+;
+;-----------------------------------------------------
+;
+;  Infowindow
+;
+MSG_COULD_NOT_ALLOC_INFOWINDOW
+
+;\nUnable to allocate info window\n
+;
+;-----------------------------------------------------------------------
+;
+; Windows
+;
+MSG_MAIN_WINDOW
+
+;List of frames currently in memory
+;
+MSG_TOOLBAR_WINDOW
+
+;Toolbar
+;
+MSG_LOADAS_WINDOW
+
+;Open As
+;
+MSG_SAVEAS_WINDOW
+
+;Save frame
+;
+;-----------------------------------------------------------------------
+;
+;  ReqA()
+;
+MSG_PPT_REQUEST
+PPT pyyntö
+;PPT Request
+;
+MSG_PPT_INFORMATION
+PPT tiedoitus
+;PPT Information
+;-----------------------------------------------------------------------
+;
+;  Informational messages
+;
+MSG_NO_AREA_SELECTED
+\33cEt ole valinnut aluetta!\n\
+(Käytä hiirtä tai valikoita merkitäksesi\n\
+ haluamasi alueen)\n
+;\033cNo area has been selected!\n\
+;\n\
+;(Use the mouse or the menu to mark the area\n\
+; you wish to select)\n
+;
+MSG_NO_FRAME_SELECTED
+\33c\nValitse ensin kuva!\n
+;\033c\nNo frame has been selected!\n\n\
+;(Pick one from the main list or activate\n\
+; an image window)\n
+;
+MSG_FRAME_IN_USE
+
+;\033c\nFrame '\033i%s\033n'\nis currently in use!\n
+;
+MSG_FRAME_IN_USE_BY_XXX
+
+;\033c\nFrame '\033i%s\033n'\nis currently in use by external\n\033i'%s'\n
+;
+MSG_IS_A_DIRECTORY
+
+;\n'%s' is a directory!\n
+;
+MSG_CANNOT_OPEN_INFOWINDOW
+
+;\nCannot open Information window!\n
+;
+MSG_CANNOT_OPEN_PREFSWINDOW
+
+;\nCannot open Preferences window!\n
+;
+MSG_CANNOT_OPEN_LOADASWINDOW
+
+;\nCannot open Open-As -window!\n
+;
+MSG_CANNOT_OPEN_DISPPREFSWINDOW
+
+;\nCannot open Display preferences window!\n
+;
+MSG_NO_CURRENT_PROCESS
+
+;\nThere is no current process for this frame\n
+;---------------------------------------------------------------------------
+;
+; Displays
+;
+MSG_FRAME_SCREEN_TITLE
+
+;PPT: '%s' %lux%lux%lu %s image (%lu bytes)
+;
+;---------------------------------------------------------------------------
+;
+; Tool tips
+;
+MSG_MOUSECOORDS_TT
+
+;The current mouse location within the image
+;
+;---------------------------------------------------------------------------
+;
+;  Errors
+;
+MSG_PERR_UNKNOWNTYPE
+
+;Unknown type!
+;
+MSG_PERR_INUSE
+
+;Object is in use.
+;
+MSG_PERR_INITFAILED
+
+;Initialization phase failed.
+;
+MSG_PERR_CANCELED
+
+;Cancelled operation
+;
+MSG_PERR_OUTOFMEMORY
+
+;Out of memory!
+;
+MSG_PERR_BREAK
+
+;User break.
+;
+MSG_PERR_WONTOPEN
+
+;Cannot open resource!
+;
+MSG_PERR_FAILED
+
+;A generic error occurred.
+;
+MSG_PERR_MISSINGCODE
+
+;No code?!?
+;
+MSG_PERR_INVALIDARGS
+
+;Invalid arguments!
+;
+MSG_PERR_WINDOWOPEN
+
+;Couldn't open window!
+;
+MSG_PERR_FILEOPEN
+
+;Couldn't open file!
+;
+MSG_PERR_FILEREAD
+
+;Error while reading file!
+;
+MSG_PERR_FILEWRITE
+
+;Error while writing to file!
+;
+MSG_PERR_FILECLOSE
+
+;Error while closing file!
+;
+MSG_PERR_NO_NEW_PROCESS
+
+;\nCould not start a new process!\n
+;
+MSG_PERR_OK
+
+;Soft Error: Everything was really OK?!?\n\
+;(If you see this message, there's a bug in PPT\n\
+;which needs to be reported!\n
+;
+;---------------------------------------------------------------------------
+;
+; Miscallaneous
+;
+MSG_UNKNOWN
+
+;Unknown
+;
+MSG_SELECT_VALUES
+
+;\033cSelect values
+;
+MSG_AR_WEIRDOBJECT
+
+;\nReally weird Object type %ld in ReadARGadgets()\n
+;
+MSG_AR_UNKNOWNTYPE
+
+;\nUnknown object type %08X specified in AskReq()\n
+;
+;---------------------------------------------------------------------------
+;
+;  frame.c
+;
+MSG_FRAME_REPLACE_CURRENT_ALPHA
+
+;\nReplace current alpha channel\n'with '%s'?\n
+;
+MSG_FRAME_ALPHA_CHANNELS_NOT
+
+;\nAlpha channels on others than\nRGB images are not allowed (yet)\n
+;
+MSG_NO_MORE_UNDO_LEVELS
+
+;\nThere are no more Undo levels!\n
+;
+MSG_BUILDING_NEW_FRAME
+
+;Building new frame...
+;
+MSG_CANNOT_ATTACH_TO_ITSELF
+
+;\nYou cannot attach a frame to itself!\n
+;
+;---------------------------------------------------------------------
+;
+;  display.c
+MSG_UNKNOWN_DISPLAY_ID
+
+;Unknown display ID
+;
+MSG_BUSY
+
+;Busy
+;
+MSG_OPENSCREEN_ERROR
+
+;\033c\nGot error code %lu while opening screen:\n\n\033i%s\n\n
+;
+MSG_UNKNOWN_REASON
+
+;Unknown reason
+;
+MSG_RETRY
+
+;Retry
+;
+MSG_CLOSE_ALL_WINDOWS
+
+;\nThere are windows I cannot close on this\n\
+;screen.  Please close all windows you can\n\
+;and try again!\n
+;
+MSG_STILL_PROCESSES_LEFT
+
+;\nCannot close main screen!\n\
+;Please make sure there is no processing,\n\
+;loading, saving and/or rendering going on\n\
+;and try again.\n
+;
+;--------------------------------------------------------------------------
+;
+; palette.c
+;
+MSG_BUILDING_HISTOGRAMS
+
+;Building histograms...
+;
+MSG_SELECTING_PALETTE
+
+;Selecting palette...
+;
+MSG_PALETTE_FORCE_ON_RGB
+
+;\033c\nPalette can be forced only onto\nRGB or ARGB images!\n"
+;
+;--------------------------------------------------------------------------
+;
+;  palette_edit.c
+;
+mKEEP_DISCARD_COLORS
+
+;Keep extra colors|Discard extra colors
+;
+mDIFFERENT_AMOUNT_OF_COLORS
+
+;\033c\nIt would seem that the palette you just loaded\n\
+;contained a different amount of colors than you\n\
+;have rendered the image with.  What would you like\n\
+;me to do about it?\n\n
+;
+mLOADING_PALETTE
+
+;Loading palette...
+;
+mNO_COLORMAP
+
+;\nThis file contains no colormap information!\n
+;
+mNO_ILBM_FILE
+
+;\nThis file is not a proper ILBM file!\n
+;
+mSAVING_PALETTE
+
+;Saving palette...
+;
+mCANNOT_OPEN_IFF_FILE
+
+;\nCannot open IFF file!\n
+;
+;---------------------------------------------------------------------------
+;
+;  rendermod.c
+;
+mFAILED_TO_START_RENDER
+
+;\033cERROR: Failed to start rendering due to:\n%s
+;
+mINITIALIZING_RENDER
+
+;Initializing render...
+;
+mRENDERING
+
+;Rendering...
+;
+;--------------------------------------------------------------------------------
+;
+;  debug.c
+;
+mPPT_SOFT_ERROR
+
+;\033c\033bPPT Soft Error:   \n\n\033n\
+;File '%s', line %ld.\n\n\
+;%s\n\n\
+;\033c\033iThere is really no way of telling how badly\n\
+;the system is damaged.  If the software still\n\
+;works after this, you should quit as soon as\n\
+;you can and restart.  If you can duplicate this\n\
+;error, then please submit a bug report!\n
+;
+; mPPT_MEMORY_ERROR
+;
+;
+;-----------------------------------------------------------------------------
+;
+;  dither.c   1900->
+;
+;--------------------------------------------------------------------------------
+;
+;  edit.c     2000->
+;
+;---------------------------------------------------------------------------------------
+;
+;  external.c 2100->
+;
+mEXTERNAL_INFO_FORMAT
+
+;\033c\033b%s v%ld.%ld\n\n\
+;\033n%s\n\n\
+;\033c\033iAuthor: %s\n
+;
+mAUTHOR_UNKNOWN
+
+;Unknown
+;
+mNO_OBJECT_CODE
+
+;\033c\nCould not load '%s':\nIt probably is not even object code...\n
+;
+mNOT_A_PPT_MODULE
+
+;\033c\033b\n'%s' is not a recognized module.\n\n\
+;This might also occur because the module\n\
+;could not open all of its own resources.\n\
+;Use SnoopDOS to figure out what is missing.\n
+;
+mREQUIRES_OS_X
+
+;\nExternal %s requires at least OS %d+\n
+;
+mREQUIRES_PPT_X
+
+;\nExternal %s requires at least PPT v%d+\n
+;
+;-----------------------------------------------------------------------
+;
+;  filter.c     2200->
+;
+mEXECUTING_EASYEXEC
+
+;Executing %s...
+;
+mFILTER_INCORRECT_ARGS
+
+;Filter(): Incorrect ARGS received.\n\
+;If you were running a REXX script, check that all\n\
+;your quotes are in correct places.\n
+;
+mUNKNOWN_EFFECT
+
+;Unknown effect '%s'
+;
+mCOULDNT_OPEN_EFFECT_WINDOW
+
+;\nUnable to open effect window!\n
+;
+mEFFECT_DOESNT_SUPPORT_CSPACE
+
+;\033c\nEffect '%s' does not have support for\n\
+;the %s colorspace!\n\n\
+;\033n\033i(You should change the colorspace using a suitable effect)\n
+;
+mINVALID_ARGS_EXPECTED_X
+
+;Invalid args: Expected '%s'.
+;
+mEFFECT_REPORTS_ERROR
+
+;\nEffect %s reports error while processing frame\n\033c'%s'\n\n%s
+;
+;-------------------------------------------------------------------------
+;
+; vm.c          2300->
+;
+mVM_NO_SWAP_FILE
+
+;\nCouldn't open swap file!\n\nPlease check VM settings and directory\n
+;
+mVM_CANNOT_CREATE_FILE
+
+;\n\033cUnable to create virtual memory!\nYou're probably low on disk space\n\
+;I need %lu bytes free.\n
+;
+;----------------------------------------------------------------------------
+;
+;   rexx.c      2400->
+;
+mRX_REQUEST
+
+;REXX Request
+;
+mRX_ERROR_ON_LINE
+
+;\033c\non line %ld.\n
+;
+mRX_SHOWERROR_TEXT
+
+;REXX SCRIPT ERROR
+;
+;--------------------------------------------------------------------------
+;
+;   prefs.c     2500->
+;
+mPREFS_EXTSTACK_LOW
+
+;\nYou have specified a stack size less than %lu bytes\n\
+;in your preferences file.  Unfortunately, that might\n\
+;prevent PPT modules to work correctly, so I have set it\n\
+;back to the minimum.\n
+;
+;--------------------------------------------------------------------------
+;
+;   initexit.c  2600->
+;
+mRETRY_IGNORE
+
+;Retry|Ignore
+;
+mEXTERNAL_DIDNT_DIE
+
+;\033c\033bWARNING\n\
+;\n\
+;\033nExternal '%s' refused to die...\n\
+;\n\
+;\033iThis either means that the thread has hanged\n\
+;and you should reboot the machine, OR the external module\n\
+;simply hasn't gotten around to checking the break signal\n\
+;yet.\n
+;
+mINITBLURB1
+
+;\033c\033b\033d8Welcome to PPT!
+;
+mINITBLURB2
+
+;\033c\033d2Release %s (v%s, %s)\n\
+;%s\n\n\
+;\033iPPT is starting... Please wait!
+;
+mINITBLURB3
+
+;Initializing...
+;
+mFOOBAR
+
+;Fooing bar...
+;
