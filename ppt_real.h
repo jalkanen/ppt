@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.0 $
-        $Date: 1997/01/17 23:48:10 $
+    $Revision: 3.1 $
+        $Date: 1997/02/02 00:06:25 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.0 1997/01/17 23:48:10 jj Exp $
+    $Id: ppt_real.h,v 3.1 1997/02/02 00:06:25 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -297,7 +297,7 @@ typedef struct {
 typedef struct {
     struct Screen   *scr;       /* NULL, if not opened */
     struct Window   *win;       /* Render to this windows rastport. */
-    UBYTE           *colortable;/* Colortable in LoadRGB8() format. */
+    UBYTE           *colortable;/* Colortable in RGB8 format */
     UWORD           height,width;  /* Sizes. */
     ULONG           dispid;     /* Standard display ID */
     UWORD           ncolors;    /* Number of colors. May be somewhere between 2...depth */
@@ -434,6 +434,8 @@ typedef struct Frame_t {
                                        not the user. BUG: Is there really no other way? */
 
     BOOL            loading;        /* TRUE, if this frame is currently being loaded */
+
+    BOOL            keephidden;     /* TRUE, if this frame should be kept hidden */
 
     ID              attached;       /* Simple attachment list. End with 0L */
 
