@@ -5,7 +5,7 @@
     This file contains the input-handlers of PPT for the external
     modules.
 
-    $Id: input.c,v 1.6 1999/10/02 16:33:07 jj Exp $
+    $Id: input.c,v 1.7 2000/04/16 22:09:29 jj Exp $
 
  */
 
@@ -23,7 +23,7 @@ Prototype VOID ASM         StopInput( REGDECL(a0,FRAME *), REGDECL(a6,struct PPT
 
 /// StartInput()
 
-/****i* pptsupport/StartInput ******************************************
+/****u* pptsupport/StartInput ******************************************
 *
 *   NAME
 *       StartInput - Start up notification
@@ -203,7 +203,7 @@ SAVEDS ASM StartInput( REGPARAM(a0,FRAME *,frame),
 
 /// StopInput()
 
-/****i* pptsupport/StopInput ******************************************
+/****u* pptsupport/StopInput ******************************************
 *
 *   NAME
 *       StopInput - Stop sending input messages.
