@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: ellipseselect.c,v 6.0 1999/09/08 22:47:17 jj Exp $
+    $Id: ellipseselect.c,v 6.1 1999/11/02 21:38:18 jj Exp $
 
  */
 
@@ -202,11 +202,20 @@ VOID LassoCircleControlButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
 
     if (IsFrameBusy(frame)) return;
 
-    if( (SQR(xloc - selection->circlex) + SQR( yloc - selection->circley )) < SQR(selection->circleradius) ) {
-        WORD xx, yy;
+    if( (SQR(xloc - selection->circlex) + SQR( yloc - selection->circley )) <= SQR(selection->circleradius) ) {
+        LONG xx, yy;
+        struct IBox *abox;
+        WORD winwidth, winheight;
+
+        GetAttr( AREA_AreaBox, frame->disp->RenderArea, (ULONG *) &abox );
+
+        winwidth = abox->Width;
+        winheight = abox->Height;
 
         EraseSelection( frame );
-        CalcMouseCoords( frame, selection->circlex, selection->circley, &xx, &yy );
+
+        xx = (LONG) (MULS16(selection->circlex, winwidth)+winwidth/2) / (WORD) (frame->zoombox.Width);
+        yy = (LONG) (MULS16(selection->circley, winheight)+winheight/2) / (WORD) frame->zoombox.Height;
 
         selection->fixoffsetx   = mousex - xx;
         selection->fixoffsety   = mousey - yy;
@@ -218,7 +227,9 @@ VOID LassoCircleControlButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
 ///
 
 /// MakeBoundingBox
-Local
+
+Prototype VOID LassoCircleMakeBoundingBox( FRAME *frame );
+
 VOID LassoCircleMakeBoundingBox( FRAME *frame )
 {
     struct Selection *selection = &frame->selection;
@@ -251,11 +262,21 @@ VOID LassoCircleButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
         UpdateIWSelbox( frame, TRUE );
         selection->selstatus &= ~(SELF_BUTTONDOWN|SELF_DRAWN);
     } else {
-        ULONG radius;
         EraseSelection( frame );
 
-        radius = sqrt( (double)SQR(selection->circlex-xloc) + (double)SQR(selection->circley-yloc) );
-        selection->circleradius = radius;
+        if( selection->selstatus & SELF_CONTROLDOWN ) {
+            WORD xx, yy;
+
+            CalcMouseCoords( frame, selection->fixoffsetx, selection->fixoffsety, &xx, &yy );
+            selection->circlex = xloc - xx;
+            selection->circley = yloc - yy;
+        } else {
+            ULONG radius;
+
+            radius = sqrt( (double)SQR(selection->circlex-xloc) +
+                           (double)SQR(selection->circley-yloc) );
+            selection->circleradius = radius;
+        }
 
         LassoCircleMakeBoundingBox( frame );
 
@@ -289,7 +310,8 @@ VOID LassoCircleMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
             selection->circley = yloc - yy;
 
         } else {
-            radius = sqrt( (double)SQR(selection->circlex-xloc) + (double)SQR(selection->circley-yloc) );
+            radius = sqrt( (double)SQR(selection->circlex-xloc) +
+                           (double)SQR(selection->circley-yloc) );
             selection->circleradius = radius;
         }
         LassoCircleMakeBoundingBox( frame );
