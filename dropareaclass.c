@@ -5,7 +5,7 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
-    $Id: dropareaclass.c,v 1.5 1996/09/17 20:35:53 jj Exp $
+    $Id: dropareaclass.c,v 1.6 1996/12/02 22:26:31 jj Exp $
 */
 
 #include "defs.h"
@@ -187,7 +187,7 @@ SAVEDS ASM ULONG DropAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a
              *  Allow drops from the main listview only and if we're droppable.
              */
 
-            if( QUERY( msg )->bmdp_Source == globals->LV_frames && data->AllowDrop ) {
+            if( QUERY( msg )->bmdp_Source == framew.Frames && data->AllowDrop ) {
                 rc = BQR_ACCEPT;
             } else {
                 rc = BQR_REJECT;
