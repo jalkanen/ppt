@@ -1,5 +1,5 @@
 /*
-    $Id: dispdevs.c,v 1.16 1998/08/14 19:28:15 jj Exp $
+    $Id: dispdevs.c,v 1.17 1998/12/15 21:22:41 jj Exp $
 
     Has code for different display devices.
 
@@ -229,7 +229,7 @@ PERROR Device_BitMappedScreenClose( struct RenderObject *rdo )
 
 PERROR Device_BitMappedScreenOpen( struct RenderObject *rdo )
 {
-    APTR IntuitionBase = rdo->ExtBase->lb_Intuition;
+    struct IntuitionBase *IntuitionBase = rdo->ExtBase->lb_Intuition;
     struct Screen *scr;
     struct Window *win;
     FRAME *     frame = rdo->frame;
