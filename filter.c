@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.22 1997/12/06 22:48:27 jj Exp $
+    $Id: filter.c,v 1.23 1998/01/04 16:37:52 jj Exp $
 
     Code containing effects stuff.
 
@@ -82,7 +82,7 @@ PERROR RunFilter( FRAME *frame, UBYTE *argstr )
 {
     char argbuf[ARGBUF_SIZE];
     struct Process *p;
-    int res = PERR_OK;
+    PERROR res = PERR_OK;
 
     D(bug("RunFilter( %08X, %s )\n",frame,(argstr) ? argstr : (STRPTR)"NULL" ));
 
@@ -99,36 +99,38 @@ PERROR RunFilter( FRAME *frame, UBYTE *argstr )
      *  Reserve frame and lock windows
      */
 
-    ObtainFrame( frame, BUSY_READONLY );
+    if(ObtainFrame( frame, BUSY_READONLY )) {
 
-    if(argstr)
-        sprintf(argbuf,"%lu %s",frame,argstr);
-    else
-        sprintf(argbuf,"%lu",frame);
+        if(argstr)
+            sprintf(argbuf,"%lu %s",frame,argstr);
+        else
+            sprintf(argbuf,"%lu",frame);
 
 #ifdef DEBUG_MODE
-    p = CreateNewProcTags( NP_Entry, Filter, NP_Cli, FALSE,
-        NP_Output, frame->debug_handle = OpenDebugFile( DFT_Effect ),
-        NP_CloseOutput,TRUE, NP_Name, frame->nd.ln_Name,
-        NP_StackSize, globals->userprefs->extstacksize,
-        NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
+        p = CreateNewProcTags( NP_Entry, Filter, NP_Cli, FALSE,
+            NP_Output, frame->debug_handle = OpenDebugFile( DFT_Effect ),
+            NP_CloseOutput,TRUE, NP_Name, frame->nd.ln_Name,
+            NP_StackSize, globals->userprefs->extstacksize,
+            NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
 #else
-    p = CreateNewProcTags( NP_Entry, Filter, NP_Cli, FALSE,
-        NP_Output, Open("NIL:",MODE_NEWFILE),
-        NP_CloseOutput, TRUE, NP_Name, frame->nd.ln_Name,
-        NP_StackSize, globals->userprefs->extstacksize,
-        NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
+        p = CreateNewProcTags( NP_Entry, Filter, NP_Cli, FALSE,
+            NP_Output, Open("NIL:",MODE_NEWFILE),
+            NP_CloseOutput, TRUE, NP_Name, frame->nd.ln_Name,
+            NP_StackSize, globals->userprefs->extstacksize,
+            NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
 #endif
 
-    if(!p) {
-        ReleaseFrame( frame );
-        D(bug("\tCouldn't create a new process.\n"));
-        res = PERR_GENERAL;
+        if(!p) {
+            ReleaseFrame( frame );
+            D(bug("\tCouldn't create a new process.\n"));
+            res = PERR_GENERAL;
+        } else {
+            SetFrameStatus( frame, 1 );
+            LOCK(frame);
+            frame->currproc = p;
+            UNLOCK(frame);
+        }
     }
-
-    LOCK(frame);
-    frame->currproc = p;
-    UNLOCK(frame);
 
     UNLOCKGLOB();
 
