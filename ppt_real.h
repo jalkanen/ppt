@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.4 $
-        $Date: 1997/02/23 14:44:31 $
+    $Revision: 3.5 $
+        $Date: 1997/03/01 12:08:50 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.4 1997/02/23 14:44:31 jj Exp $
+    $Id: ppt_real.h,v 3.5 1997/03/01 12:08:50 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -605,6 +605,7 @@ typedef struct ExtBase {
     /*!!PRIVATE*/
     struct Device   *lb_Timer;
     struct timerequest *TimerIO;
+    struct Library  *lb_CyberGfx;   /* cybergraphics.library */
     /*!!PUBLIC*/
 } EXTBASE;
 
