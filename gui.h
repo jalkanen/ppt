@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.34 1998/12/20 19:10:35 jj Exp $
+    $Id: gui.h,v 1.35 1999/02/14 19:37:38 jj Exp $
 */
 
 #ifndef GUI_H
@@ -33,6 +33,7 @@
 #endif
 
 #include "toolbar.h"
+#include "bitmapclass.h"
 
 #ifndef FLOATGADGET_H
 #include "floatgadget/floatgadget.h"
@@ -178,7 +179,7 @@ struct PrefsWindow {
 
     Object          *AvailButtons, *ToToolbar, *FromToolbar,
                     *ToolbarList, *ToolItemType, *ToolItemFile,
-                    *ToolItemFileGroup;
+                    *ToolItemFileGroup, *DitherPreview;
 
     Object          *Save, *Use, *Cancel;
 };
@@ -396,6 +397,7 @@ extern const ULONG dpcol_fl2sl[];
 #define GID_PW_TOOLITEMTYPE (PGIDB + 28)
 #define GID_PW_TOOLITEMFILE (PGIDB + 29)
 #define GID_PW_GETTOOLITEMFILE (PGIDB + 30)
+#define GID_PW_DITHERPREVIEW (PGIDB + 31)
 
 /* Filter window */
 #define FGIDB               (4000)
