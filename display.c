@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.61 1999/02/21 20:49:46 jj Exp $
+    $Id: display.c,v 1.62 1999/03/13 17:33:04 jj Exp $
 
     Contains display routines.
 
@@ -1075,6 +1075,9 @@ PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
      */
 
     if(!frame->disp->Win) {
+        UBYTE screenbarheight = MAINSCR->BarHeight+1;
+        UBYTE windowbarheight = screenbarheight;
+
         /*
          *  First, create the Hook structure to be used in IDCMP hook.
          */
@@ -1096,8 +1099,8 @@ PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
          *  BUG: Will overflow at some point.
          */
 
-        winbox.Top    = (frame->ID % 10) * 8 + (frame->ID/10)*8;
-        winbox.Left   = (frame->ID % 10) * 8;
+        winbox.Top    = screenbarheight + (frame->ID % 10 - 1) * windowbarheight + (frame->ID/10)*windowbarheight;
+        winbox.Left   = (frame->ID % 10 - 1) * windowbarheight;
         winbox.Width  = p->width;
 
         if( p->DPIX && p->DPIY )
