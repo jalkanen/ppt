@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.93 1998/09/05 11:33:07 jj Exp $
+    $Id: main.c,v 1.94 1998/09/05 12:21:12 nobody Exp $
 
     Main PPT code for GUI handling.
 */
@@ -133,6 +133,10 @@ const UBYTE *ColorSpaceNames[] = {
 
 BOOL loader_close = TRUE; /* TRUE, if the Loader window should be closed
                              after the first selection. */
+
+#ifdef DEBUG_MODE
+BPTR debug_fh, old_fh;
+#endif
 
 /*------------------------------------------------------------------------*/
 /*  Internal variables */
@@ -3296,9 +3300,7 @@ int main(int argc, char **argv)
     ULONG globsigmask;
     struct AppMessage *apm;
     struct PPTMessage *mymsg;
-#ifdef DEBUG_MODE
-    BPTR debug_fh, old_fh;
-#endif
+
     if(argv[1]) SetDebugDir(argv[1]);
 
     DeleteDebugFiles();
@@ -3365,7 +3367,7 @@ int main(int argc, char **argv)
      *  Check for old version
      */
 
-//    Nag();
+    D(Nag());
 
     /*
      *  Begin Main Event Loop
