@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.28 1998/06/29 22:33:29 jj Exp $
+    $Id: gui.h,v 1.29 1998/06/30 19:58:11 jj Exp $
 */
 
 #ifndef GUI_H
@@ -161,7 +161,7 @@ struct PrefsWindow {
     Object          *VMDir, *PageSize, *ExtStackSize,
                     *MainFont, *ListFont, *DispName, *ColorPreview,
                     *MaxUndo, *FlushLibs, *ExtNiceVal, *ExtNiceValI,
-                    *ExtPriority, *ExtPriorityI, *PreviewMode;
+                    *ExtPriority, *ExtPriorityI, *PreviewMode, *Confirm;
 
     Object          *Save, *Use, *Cancel;
 };
@@ -337,6 +337,7 @@ extern const ULONG dpcol_fl2sl[];
 #define GID_PW_EXTNICEVAL   (PGIDB + 20)
 #define GID_PW_EXTPRIORITY  (PGIDB + 21)
 #define GID_PW_PREVIEWMODE  (PGIDB + 22)
+#define GID_PW_CONFIRM      (PGIDB + 23)
 
 /* Filter window */
 #define FGIDB               (4000)
