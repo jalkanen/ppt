@@ -1,0 +1,116 @@
+;
+;  PPT Installer script
+;
+;  $Revision: 1.1 $
+;      $Date: 1996/11/17 19:51:35 $
+;
+
+(message "\n"
+	 "IMPORTANT!\n"
+	 "\n"
+	 "This is a pre-release version of PPT and\n"
+	 "\n"
+	 "NOT TO BE DISTRIBUTED\n"
+	 "\n"
+	 "without the written permission of the author"
+	 (all)
+	 )
+
+(welcome "This is the PPT Installation utility."
+         "Thank you for choosing to test it.")
+
+;
+;  Set defaults
+;
+
+(set ##installdir "Work:")
+
+; Processor
+
+(set ##use020 (not (patmatch "68000|68010" (database "cpu"))))
+
+; If user-level is expert, ask which versions to install.
+
+(if (= @user-level 2) 
+    (set ##use020
+	 (askbool
+	  (prompt "\n"
+		  "Do you wish to use the 68020+ optimized\n"
+		  "versions of the BGUI library and PPT?")
+	  (help @askbool-help)
+	  (default ##use020)
+	  )
+	 )
+  )
+
+(debug "Use020 : " ##use020)
+
+;
+;  Ask the directory to be installed in
+;
+
+(set ##installdir
+    (askdir
+        (prompt "Choose the directory you wish to install\n"
+                "PPT in.  A directory called 'PPT' will be\n"
+                "created for you in this directory"
+        )
+        (help   @askdir-help)
+        (default ##installdir)
+    )
+)
+
+(debug "You chose" ##installdir)
+
+;
+;   Tack on the dir name
+;
+
+(set @default-dest (tackon ##installdir "PPT"))
+(debug "You chose" @default-dest)
+
+;
+;   Copy files.
+;
+
+(copyfiles
+    (prompt "Copying PPT executables & modules")
+    (source "")
+    (dest @default-dest)
+    (pattern "~(libs)")
+    (help   @copyfiles-help)
+)
+
+(copyfiles
+    (prompt "Installing icons")
+    (source "/PPT.info")
+    (dest   (tackon @default-dest "/"))
+    (help   @copyfiles-help)
+    (infos)
+)
+
+;
+;   Install libraries
+;
+
+(copylib
+    (prompt "Copying BGUI library")
+    (confirm)
+    (source (if (= ##cpu020 1) ("libs/bgui.library_e") ("libs/bgui.library") ))
+    (dest   "libs:")
+    (newname "bgui.library")
+    (help   @copylib-help)
+)
+
+(copylib
+    (prompt "Copying BGUI support gadgets")
+    (confirm)
+    (source "libs/bgui_palette.gadget")
+    (dest   "SYS:Classes/Gadgets")
+    (help   @copylib-help)
+)
+
+
+;
+;   The END.
+;
