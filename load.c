@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.5 1997/03/13 00:13:06 jj Exp $
+    $Id: load.c,v 2.6 1997/03/16 13:42:42 jj Exp $
 
     Code for loaders...
 */
@@ -437,6 +437,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
         goto errorexit;
     }
 
+    if(NewTaskProlog(frame,xd) != PERR_OK) goto errorexit;
 
     DOSBase = xd->lb_DOS;
 
