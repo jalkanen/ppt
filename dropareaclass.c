@@ -5,6 +5,7 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
+    $Id: dropareaclass.c,v 1.2 1995/07/23 21:52:09 jj Exp $
 */
 
 #include <defs.h>
