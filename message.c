@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 6.0 1999/09/08 22:49:47 jj Exp $
+    $Id: message.c,v 6.1 1999/10/02 16:33:07 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -45,7 +45,7 @@ Prototype LONG              EmptyMsgPort( struct MsgPort *, EXTBASE * );
 
 Prototype struct PPTMessage *AllocPPTMsg( ULONG, EXTBASE * );
 
-struct PPTMessage *AllocPPTMsg( ULONG size, EXTBASE *ExtBase )
+struct PPTMessage *AllocPPTMsg( ULONG size, EXTBASE *PPTBase )
 {
     struct PPTMessage *msg = NULL;
 
@@ -53,15 +53,15 @@ struct PPTMessage *AllocPPTMsg( ULONG size, EXTBASE *ExtBase )
         bzero( msg, size );
         msg->msg.mn_Node.ln_Type = NT_MESSAGE;
         msg->msg.mn_Length       = size;
-        msg->msg.mn_ReplyPort    = ExtBase->mport;
+        msg->msg.mn_ReplyPort    = PPTBase->mport;
     }
 
     return msg;
 }
 
-Prototype VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase );
+Prototype VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *PPTBase );
 
-VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase )
+VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *PPTBase )
 {
     if( pmsg ) {
         DB(bug("FreePPTMsg(%08X) : code %lX\n", pmsg, pmsg->code ));
@@ -71,9 +71,9 @@ VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase )
 
 Prototype VOID SendPPTMsg( struct MsgPort *, struct PPTMessage *, EXTBASE * );
 
-VOID SendPPTMsg( struct MsgPort *mp, struct PPTMessage *pmsg, EXTBASE *ExtBase )
+VOID SendPPTMsg( struct MsgPort *mp, struct PPTMessage *pmsg, EXTBASE *PPTBase )
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     DB(bug("SendPPTMsg(%08X) : code %lX\n",pmsg, pmsg->code ));
 
@@ -178,11 +178,11 @@ VOID SendInputMsg( FRAME *f, struct PPTMessage *pmsg )
     This empties a message port from all messages. The message count
     is returned.
 */
-LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *ExtBase )
+LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *PPTBase )
 {
     struct Message *msg;
     LONG count = 0;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("EmptyMsgPort()\n"));
 
@@ -190,7 +190,7 @@ LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *ExtBase )
         if( msg->mn_Node.ln_Type != NT_REPLYMSG ) {
             ReplyMsg( msg );
         } else {
-            FreePPTMsg( (struct PPTMessage *)msg, ExtBase );
+            FreePPTMsg( (struct PPTMessage *)msg, PPTBase );
         }
         ++count;
     }
@@ -207,10 +207,10 @@ LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *ExtBase )
 
 Prototype VOID WaitDeathMessage( EXTBASE * );
 
-VOID WaitDeathMessage( EXTBASE *ExtBase )
+VOID WaitDeathMessage( EXTBASE *PPTBase )
 {
-    struct MsgPort *mp = ExtBase->mport;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct MsgPort *mp = PPTBase->mport;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     ULONG sig;
     struct Message *msg;
     BOOL  quit = FALSE;
@@ -227,7 +227,7 @@ VOID WaitDeathMessage( EXTBASE *ExtBase )
                 if( ((struct PPTMessage *)msg)->code & PPTMSGF_DONE ) {
                     quit = TRUE;
                 }
-                FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
+                FreePPTMsg( (struct PPTMessage *) msg, PPTBase );
             } else {
                 ReplyMsg( msg );
             }
@@ -242,10 +242,10 @@ VOID WaitDeathMessage( EXTBASE *ExtBase )
 
 Prototype VOID WaitForReply( ULONG, EXTBASE * );
 
-VOID WaitForReply( ULONG code, EXTBASE *ExtBase )
+VOID WaitForReply( ULONG code, EXTBASE *PPTBase )
 {
-    struct MsgPort *mp = ExtBase->mport;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct MsgPort *mp = PPTBase->mport;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     ULONG sig;
     struct Message *msg;
     BOOL  quit = FALSE;
@@ -268,7 +268,7 @@ VOID WaitForReply( ULONG code, EXTBASE *ExtBase )
                     quit = TRUE;
                 }
                 D(bug("\t\tFreeing message\n"));
-                FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
+                FreePPTMsg( (struct PPTMessage *) msg, PPTBase );
             } else {
                 D(bug("\t\ta strange message, replying\n"));
                 ReplyMsg( msg );

@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 6.1 1999/09/08 22:48:39 jj Exp $
+    $Id: gui.c,v 6.2 1999/10/02 16:33:07 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -545,11 +545,11 @@ PERROR GimmePaletteWindow( FRAME *frame, ULONG depth )
 
 
 SAVEDS Object *
-GimmeSaveWindow( FRAME *frame, EXTBASE *ExtBase, struct SaveWin *gads )
+GimmeSaveWindow( FRAME *frame, EXTBASE *PPTBase, struct SaveWin *gads )
 {
-    EXTBASE *xd = ExtBase; /* BUG */
-    struct IntuitionBase *IntuitionBase = ExtBase->lb_Intuition;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    EXTBASE *xd = PPTBase; /* BUG */
+    struct IntuitionBase *IntuitionBase = PPTBase->lb_Intuition;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     char buf[MAXPATHLEN+1], initialfile[NAMELEN+1];
 
     D(bug("GimmeSaveWindow()\n"));
@@ -1011,7 +1011,7 @@ GimmeExtInfoWindow( const char *title, const char *ok, struct ExtInfoWin *ei )
 struct Window *
 GimmeFilterWindow( EXTBASE *xd, FRAME *frame, ULONG *sigmask, struct EffectWindow *fw )
 {
-    EXTBASE *ExtBase = xd; /* BUG */
+    EXTBASE *PPTBase = xd; /* BUG */
     struct Window *win = NULL, *twin = NULL;
     struct IBox pos;
     struct IntuitionBase *IntuitionBase = xd->lb_Intuition;

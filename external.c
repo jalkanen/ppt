@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.17 1999/01/02 23:31:52 jj Exp $
+    $Id: external.c,v 2.18 1999/10/02 16:33:07 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -59,16 +59,16 @@ Prototype EXTBASE       *NewExtBase( BOOL );
     Set the NICE value of a task
 */
 
-Prototype PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase );
+Prototype PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *PPTBase );
 
-PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase )
+PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *PPTBase )
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     struct ExecutiveMessage em = {0};
     struct MsgPort *executiveport;
     ULONG  sig, quit = 0;
 
-    em.message.mn_ReplyPort = ExtBase->mport;
+    em.message.mn_ReplyPort = PPTBase->mport;
     em.message.mn_Length = sizeof(struct ExecutiveMessage);
     em.command = EXAPI_CMD_SET_NICE;
     em.task    = task;
@@ -80,14 +80,14 @@ PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase )
         PutMsg( executiveport, (struct Message *) &em );
         Permit();
         while(!quit) {
-            sig = Wait( SIGBREAKF_CTRL_C|(1<<ExtBase->mport->mp_SigBit));
+            sig = Wait( SIGBREAKF_CTRL_C|(1<<PPTBase->mport->mp_SigBit));
             if( sig & SIGBREAKF_CTRL_C ) {
                 return PERR_BREAK;
             }
-            if( sig & (1<<ExtBase->mport->mp_SigBit)) {
+            if( sig & (1<<PPTBase->mport->mp_SigBit)) {
                 struct Message *msg;
 
-                while( msg = GetMsg( ExtBase->mport ) ) {
+                while( msg = GetMsg( PPTBase->mport ) ) {
                     if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
                         quit = TRUE; /* BUG: Does not check for errors */
                     } else {
@@ -111,9 +111,9 @@ PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase )
 
 Prototype PERROR NewTaskProlog( FRAME *frame, EXTBASE * );
 
-PERROR NewTaskProlog( FRAME *frame, EXTBASE *ExtBase )
+PERROR NewTaskProlog( FRAME *frame, EXTBASE *PPTBase )
 {
-    return SetTaskNice( FindTask(NULL), 10, ExtBase );
+    return SetTaskNice( FindTask(NULL), 10, PPTBase );
 }
 
 /*
@@ -122,12 +122,12 @@ PERROR NewTaskProlog( FRAME *frame, EXTBASE *ExtBase )
 
 Prototype struct Library *OpenModule( EXTERNAL *, EXTBASE * );
 
-struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
+struct Library *OpenModule( EXTERNAL *x, EXTBASE *PPTBase )
 {
     char buf[256];
     struct Library *ModuleBase;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
-    struct ExecBase   *SysBase = ExtBase->lb_Sys;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
+    struct ExecBase   *SysBase = PPTBase->lb_Sys;
 
 #if 0
     strcpy( buf, globals->userprefs->modulepath );
@@ -151,10 +151,10 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
 
 Prototype void FlushLibrary(STRPTR, EXTBASE *);
 
-void FlushLibrary(STRPTR name, EXTBASE *ExtBase)
+void FlushLibrary(STRPTR name, EXTBASE *PPTBase)
 {
     struct Library *result;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("\tFlushing %s...\n", name ));
 
@@ -170,9 +170,9 @@ void FlushLibrary(STRPTR name, EXTBASE *ExtBase)
 
 Prototype VOID CloseModule( struct Library *, EXTBASE * );
 
-VOID CloseModule( struct Library *ModuleBase, EXTBASE *ExtBase)
+VOID CloseModule( struct Library *ModuleBase, EXTBASE *PPTBase)
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     char buf[40];
 
     if( ModuleBase ) {
@@ -180,7 +180,7 @@ VOID CloseModule( struct Library *ModuleBase, EXTBASE *ExtBase)
         CloseLibrary( ModuleBase );
 
         if( globals->userprefs->expungelibs ) {
-            FlushLibrary( buf, ExtBase );
+            FlushLibrary( buf, PPTBase );
         }
     }
 }
@@ -310,7 +310,7 @@ const char *AFF2CPU( char *buf, ULONG flags )
 */
 
 Local
-SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
+SAVEDS VOID ShowOldExtInfo( EXTBASE *PPTBase, EXTERNAL *x, struct Window *win )
 {
     int   ver,rev;
     APTR txt, au;
@@ -337,7 +337,7 @@ SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 
 
 Local
-SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
+SAVEDS VOID ShowNewExtInfo( EXTBASE *PPTBase, EXTERNAL *x, struct Window *win )
 {
     struct Library *ModuleBase;
     int   ver,rev;
@@ -346,11 +346,11 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 
     D(bug("ShowNewExtInfo()\n"));
 
-    ModuleBase = OpenModule( x, ExtBase ); // BUG!
+    ModuleBase = OpenModule( x, PPTBase ); // BUG!
     if(!ModuleBase) return;
 
-    txt  = (APTR)Inquire( PPTX_InfoTxt, ExtBase );
-    au   = (APTR)Inquire( PPTX_Author, ExtBase );
+    txt  = (APTR)Inquire( PPTX_InfoTxt, PPTBase );
+    au   = (APTR)Inquire( PPTX_Author, PPTBase );
     ver  = ModuleBase->lib_Version;
     rev  = ModuleBase->lib_Revision;
 
@@ -358,11 +358,11 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
         XGetStr( mEXTERNAL_INFO_FORMAT ),
         x->nd.ln_Name,
         (ULONG)ver, (ULONG)rev,
-        AFF2CPU( cpu, Inquire(PPTX_CPU, ExtBase) ),
+        AFF2CPU( cpu, Inquire(PPTX_CPU, PPTBase) ),
         txt ? txt : "",
         au ? au : XGetStr(mAUTHOR_UNKNOWN) );
 
-    CloseModule( ModuleBase, ExtBase );
+    CloseModule( ModuleBase, PPTBase );
 }
 
 /// ShowExtInfo()
@@ -880,13 +880,13 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 ///
 /// NewExtBase()
 /*
-    Allocates a new ExtBase structure.
+    Allocates a new PPTBase structure.
     if open == TRUE, calls OpenLibBases to allocate new library bases.
 */
 
 SAVEDS EXTBASE *NewExtBase( BOOL open )
 {
-    EXTBASE *ExtBase = NULL;
+    EXTBASE *PPTBase = NULL;
     APTR    realptr;
     extern  APTR ExtLibData[];
     APTR    SysBase = SYSBASE();
@@ -896,31 +896,31 @@ SAVEDS EXTBASE *NewExtBase( BOOL open )
     realptr = pzmalloc( EXTSIZE );
 
     if(realptr) {
-        ExtBase = (EXTBASE *)( (ULONG)realptr + (EXTSIZE - sizeof(EXTBASE)));
+        PPTBase = (EXTBASE *)( (ULONG)realptr + (EXTSIZE - sizeof(EXTBASE)));
         bzero( realptr, EXTSIZE );
 
-        // D(bug("\trealptr = %08X, ExtBase = %08X\n",realptr,ExtBase));
+        // D(bug("\trealptr = %08X, PPTBase = %08X\n",realptr,PPTBase));
 
         if(open) {
-            if(OpenLibBases( ExtBase ) != PERR_OK) {
-                pfree( ExtBase );
+            if(OpenLibBases( PPTBase ) != PERR_OK) {
+                pfree( PPTBase );
                 return NULL;
             }
-            ExtBase->opened = TRUE;
+            PPTBase->opened = TRUE;
         }
 
         // D(bug("\tCreating library jump table...\n"));
 
-        MakeFunctions( ExtBase, ExtLibData, NULL );
+        MakeFunctions( PPTBase, ExtLibData, NULL );
 
         // D(bug("\tdone\n"));
     }
-    return ExtBase;
+    return PPTBase;
 }
 ///
 /// RelExtBase()
 /*
-    Use to release ExtBase allocated in NewExtBase()
+    Use to release PPTBase allocated in NewExtBase()
 */
 
 SAVEDS VOID RelExtBase( EXTBASE *xb )
@@ -930,7 +930,7 @@ SAVEDS VOID RelExtBase( EXTBASE *xb )
     if(xb->opened)
         CloseLibBases(xb);
 
-    // D(bug("Releasing ExtBase @ %08X, realptr = %08X\n", xb, (ULONG)xb - (EXTSIZE - sizeof(EXTBASE)) ));
+    // D(bug("Releasing PPTBase @ %08X, realptr = %08X\n", xb, (ULONG)xb - (EXTSIZE - sizeof(EXTBASE)) ));
     realptr = (APTR) ((ULONG)xb - (EXTSIZE - sizeof(EXTBASE)));
     pfree(realptr);
 }

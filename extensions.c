@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.8 1999/03/17 23:06:39 jj Exp $
+    $Id: extensions.c,v 1.9 1999/10/02 16:33:07 jj Exp $
 */
 
 #include "defs.h"
@@ -290,7 +290,7 @@ VOID ConvertExtensionToC( UBYTE *e, UBYTE *c, ULONG len )
 /* Extensions */
 
 Local
-VOID ReleaseExtension( struct Extension *en, EXTBASE *ExtBase )
+VOID ReleaseExtension( struct Extension *en, EXTBASE *PPTBase )
 {
     sfree( en->en_Name );
     if( en->en_Data ) pfree( en->en_Data );
@@ -298,7 +298,7 @@ VOID ReleaseExtension( struct Extension *en, EXTBASE *ExtBase )
 }
 
 Local
-struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
+struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *PPTBase )
 {
     struct Extension *on;
 
@@ -324,9 +324,9 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
     return on;
 }
 
-Prototype PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *ExtBase );
+Prototype PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *PPTBase );
 
-PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *ExtBase )
+PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *PPTBase )
 {
     PERROR res = PERR_OK;
 
@@ -344,9 +344,9 @@ PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *ExtB
 }
 
 
-Prototype PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *ExtBase );
+Prototype PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *PPTBase );
 
-PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *ExtBase )
+PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *PPTBase )
 {
     PERROR res = PERR_OK;
 
@@ -434,23 +434,23 @@ Prototype PERROR ASM AddExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGD
 
 SAVEDS ASM
 PERROR AddExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a2) APTR data,
-                     REG(d0) ULONG len,    REG(d1) ULONG flags, REG(a6) EXTBASE *ExtBase )
+                     REG(d0) ULONG len,    REG(d1) ULONG flags, REG(a6) EXTBASE *PPTBase )
 {
     struct Extension *new, *old;
     PERROR res = PERR_OK;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("AddExtension(%08X (=%u),'%s',%08X,%lu,%lu)\n",frame,frame->ID,name,data,len,flags));
 
     ObtainSemaphore( &extsemaphore );
 
-    if( old = FindExtension( frame, name, ExtBase ) ) {
+    if( old = FindExtension( frame, name, PPTBase ) ) {
         D(bug("\tremoved old extension @ %08X\n",old));
         Remove( old );
-        ReleaseExtension( old, ExtBase );
+        ReleaseExtension( old, PPTBase );
     }
 
-    if( new = AllocExtension( name, len, ExtBase )) {
+    if( new = AllocExtension( name, len, PPTBase )) {
         new->en_FrameID = frame->ID;
         new->en_Flags   = flags;
         memcpy( new->en_Data, data, len );
@@ -510,7 +510,7 @@ PERROR AddExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a2) APTR dat
 Prototype struct Extension * ASM FindExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
-struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *ExtBase )
+struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *PPTBase )
 {
     struct Extension *xn = (struct Extension *) &extlist;
 
@@ -578,16 +578,16 @@ struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(
 Prototype PERROR ASM RemoveExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
-PERROR RemoveExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *ExtBase )
+PERROR RemoveExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *PPTBase )
 {
     struct Extension *xn;
     PERROR res = PERR_OK;
 
     ObtainSemaphore( &extsemaphore );
 
-    if( xn = FindExtension( frame, name, ExtBase ) ) {
+    if( xn = FindExtension( frame, name, PPTBase ) ) {
         Remove( xn );
-        ReleaseExtension( xn, ExtBase );
+        ReleaseExtension( xn, PPTBase );
     } else {
         res = PERR_UNKNOWNTYPE;
     }
@@ -603,14 +603,14 @@ PERROR RemoveExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBA
 /* Options */
 
 Local
-VOID ReleaseOptNode( struct OptNode *on, EXTBASE *ExtBase )
+VOID ReleaseOptNode( struct OptNode *on, EXTBASE *PPTBase )
 {
     sfree( on->on_Name );
     sfree( on );
 }
 
 Local
-struct OptNode *AllocOptNode( STRPTR name, ULONG size, EXTBASE *ExtBase )
+struct OptNode *AllocOptNode( STRPTR name, ULONG size, EXTBASE *PPTBase )
 {
     struct OptNode *on;
 
@@ -703,11 +703,11 @@ Prototype PERROR ASM PutOptions( REG(a0) STRPTR, REG(a1) APTR, REG(d0) ULONG, RE
 
 SAVEDS ASM
 PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
-                   REG(d0) ULONG len, REG(a6) EXTBASE *ExtBase )
+                   REG(d0) ULONG len, REG(a6) EXTBASE *PPTBase )
 {
     PERROR res = PERR_OK;
     struct OptNode *old, *new;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("PutOptions(%s,%08X,%lu)\n",name,data,len));
 
@@ -716,10 +716,10 @@ PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
     if( old = (struct OptNode *)FindName( &optlist,name )) {
         D(bug("Found old at %08X\n",old));
         Remove(old);
-        ReleaseOptNode(old,ExtBase);
+        ReleaseOptNode(old,PPTBase);
     }
 
-    if(new = AllocOptNode(name,len,ExtBase)) {
+    if(new = AllocOptNode(name,len,PPTBase)) {
         memcpy(&(new->on_Data[0]), data, len);
         AddTail(&optlist, (struct Node *)new);
     } else {
@@ -782,10 +782,10 @@ PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
 Prototype APTR ASM GetOptions( REG(a0) STRPTR, REG(a6) EXTBASE *);
 
 SAVEDS ASM
-APTR GetOptions( REG(a0) STRPTR name, REG(a6) EXTBASE *ExtBase )
+APTR GetOptions( REG(a0) STRPTR name, REG(a6) EXTBASE *PPTBase )
 {
     struct OptNode *opt;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("GetOptions(%s)\n",name));
 

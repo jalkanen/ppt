@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.64 1999/09/08 22:46:26 jj Exp $
+    $Id: display.c,v 1.65 1999/10/02 16:33:07 jj Exp $
 
     Contains display routines.
 
@@ -89,9 +89,9 @@ Local VOID BuildQuickColormap( struct Screen *, UBYTE, COLORMAP * );
 /* Code */
 
 /// Alloc & FreeDisplay()
-Prototype DISPLAY *AllocDisplay(EXTBASE *ExtBase);
+Prototype DISPLAY *AllocDisplay(EXTBASE *PPTBase);
 
-DISPLAY *AllocDisplay(EXTBASE *ExtBase)
+DISPLAY *AllocDisplay(EXTBASE *PPTBase)
 {
     DISPLAY *d;
 
@@ -105,9 +105,9 @@ DISPLAY *AllocDisplay(EXTBASE *ExtBase)
     return d;
 }
 
-Prototype VOID FreeDisplay( DISPLAY *d, EXTBASE *ExtBase );
+Prototype VOID FreeDisplay( DISPLAY *d, EXTBASE *PPTBase );
 
-VOID FreeDisplay( DISPLAY *d, EXTBASE *ExtBase )
+VOID FreeDisplay( DISPLAY *d, EXTBASE *PPTBase )
 {
     D(bug("FreeDisplay(%08X)\n",d));
     if(d) pfree(d);
@@ -193,9 +193,9 @@ UWORD GetMinimumDepth( ULONG ncolors )
 #define LACE_KEY 0x04
 
 Local
-void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtBase )
+void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *PPTBase )
 {
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     ULONG id = 0L;
     UBYTE depth;
     struct TagItem ida[] = {
@@ -353,9 +353,9 @@ VOID GuessDisplay( FRAME *frame )
 
 Prototype VOID SetRGB8( struct ViewPort *, ULONG n, UBYTE r, UBYTE g, UBYTE b, EXTBASE * );
 
-VOID SetRGB8( struct ViewPort *vp, ULONG n, UBYTE r, UBYTE g, UBYTE b, EXTBASE *ExtBase )
+VOID SetRGB8( struct ViewPort *vp, ULONG n, UBYTE r, UBYTE g, UBYTE b, EXTBASE *PPTBase )
 {
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
 
     if(vp == NULL) return;
 
@@ -611,7 +611,7 @@ VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
 
         foo->renderobject = rdo;
         rdo->frame = foo;
-        rdo->ExtBase = globxd;
+        rdo->PPTBase = globxd;
 
         foo->disp->ncolors = ncolors - 20;
 
@@ -1031,7 +1031,7 @@ ULONG DPropHook( REG(a0) struct Hook *hook,
 ///
 
 /// GimmeQuickDisplayWindow()
-PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
+PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *PPTBase )
 {
     extern struct NewMenu PPTMenus[];
     struct IBox winbox;
@@ -1248,7 +1248,7 @@ PERROR ShowDisplayWindow( FRAME *frame )
     Opens a preview window.
 */
 
-PERROR OpenQuickDisplayWindow(FRAME *frame, EXTBASE *ExtBase)
+PERROR OpenQuickDisplayWindow(FRAME *frame, EXTBASE *PPTBase)
 {
     struct Window *win;
 

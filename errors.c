@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.8 1999/03/17 23:06:27 jj Exp $
+    $Id: errors.c,v 1.9 1999/10/02 16:33:07 jj Exp $
 
     Error handling routines.
 */
@@ -30,7 +30,8 @@ Prototype UBYTE * ASM ErrorMsg( REGDECL(d0,ULONG), REGDECL(a6,EXTBASE *) );
     This returns a pointer to an error message.
 */
 
-ASM UBYTE *ErrorMsg( REG(d0) ULONG code, REG(a6) EXTBASE *ExtBase )
+UBYTE *
+ASM ErrorMsg( REGPARAM(d0,ULONG,code), REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     switch(code) {
         case PERR_UNKNOWNTYPE:
@@ -78,7 +79,7 @@ ASM UBYTE *ErrorMsg( REG(d0) ULONG code, REG(a6) EXTBASE *ExtBase )
     the difference between error codes and strings.
 */
 
-UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *ExtBase )
+UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *PPTBase )
 {
     UBYTE *msg = "";
 
@@ -88,7 +89,7 @@ UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *ExtBase )
         if( strlen( frame->errormsg ) != 0 )
             msg = frame->errormsg;
         else
-            msg = ErrorMsg( frame->errorcode, ExtBase );
+            msg = ErrorMsg( frame->errorcode, PPTBase );
 
         UNLOCK(frame);
     }
@@ -165,7 +166,9 @@ VOID CopyError( FRAME *source, FRAME *dest )
 *
 */
 
-SAVEDS ASM VOID SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error )
+VOID
+SAVEDS ASM SetErrorCode( REGPARAM(a0,FRAME *,frame),
+                         REGPARAM(d0,PERROR,error) )
 {
     D(bug("SetErrorCode(%08X, error=%lu)\n",frame,error));
 
@@ -218,7 +221,9 @@ SAVEDS ASM VOID SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error )
 *
 */
 
-SAVEDS ASM VOID SetErrorMsg( REG(a0) FRAME *frame, REG(a1) UBYTE *error )
+VOID
+SAVEDS ASM SetErrorMsg( REGPARAM(a0,FRAME *,frame),
+                        REGPARAM(a1,UBYTE *,error) )
 {
     D(bug("SetErrorMsg(%08X, error='%s')\n",frame,error));
 
@@ -238,14 +243,16 @@ SAVEDS ASM VOID SetErrorMsg( REG(a0) FRAME *frame, REG(a1) UBYTE *error )
 /*
     BUG: Not yet complete
 */
-SAVEDS ASM VOID ShowError( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
+VOID
+SAVEDS ASM ShowError( REGPARAM(a0,FRAME *,frame),
+                      REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     D(bug("ShowError()\n"));
 
     if( frame ) {
         XReq(NEGNUL,NULL,
             ISEQ_C ISEQ_HIGHLIGHT"\nERROR:\n\n"
-            ISEQ_TEXT"%s\n", GetErrorMsg( frame, ExtBase) );
+            ISEQ_TEXT"%s\n", GetErrorMsg( frame, PPTBase) );
         ClearError( frame );
     }
 }

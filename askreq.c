@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 6.0 1999/09/04 19:55:37 jj Exp $
+    $Id: askreq.c,v 6.1 1999/10/02 16:33:07 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -95,9 +95,9 @@ struct RealObject {
 *
 *       PERROR AskReqA( FRAME *, struct TagItem * );
 *
-*       error = AskReq( ExtBase, frame, tag1, ... )
+*       error = AskReq( PPTBase, frame, tag1, ... )
 *
-*       PERROR AskReq( EXTBASE *, FRAME *, Tag, ... )
+*       PERROR AskReq( struct PPTBase *, FRAME *, Tag, ... )
 *
 *   FUNCTION
 *       Show a configurable requester to ask the user for some values.
@@ -312,7 +312,7 @@ struct RealObject {
 *
 *   NOTES
 *       The varargs version AskReq() can be found in pptsupp.lib. Please
-*       note that it really does require the ExtBase in stack, since the
+*       note that it really does require the PPTBase in stack, since the
 *       pointer cannot be declared global.  Unless you're running SAS/C
 *       of course, in which case the compiler uses the #pragma tagcall
 *       and you can stop worrying.
@@ -331,18 +331,17 @@ struct RealObject {
 * BUG: Should heed also the text height.
 */
 
-Prototype PERROR ASM AskReqA( REGDECL(a0,FRAME *), REGDECL(a1,struct TagItem *), REGDECL(a6,EXTBASE *) );
+Prototype PERROR ASM AskReqA( REGDECL(a0,FRAME *), REGDECL(a1,struct TagItem *), REGDECL(a6,struct PPTBase *) );
 
 Local
 Object *GetARObject( struct TagItem *tag, ULONG id,
                      struct RealObject *realobject,
                      STRPTR defaulthelptext, STRPTR defaulthelpnode,
-                     EXTBASE *xd )
+                     struct PPTBase *PPTBase )
 {
     Object *obj = NULL;
     struct TagItem *list = (struct TagItem *)(tag->ti_Data), *t;
-    APTR UtilityBase = xd->lb_Utility;
-    EXTBASE *ExtBase = xd; /* BUG! */
+    APTR UtilityBase = PPTBase->lb_Utility;
     struct Hook *hook;
     STRPTR helptext, helpnode;
 
@@ -424,7 +423,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             STRPTR format;
             char tmpbuf[20];
 
-            if(!xd->FloatClass) {
+            if(!PPTBase->FloatClass) {
                 D(bug("No float class available\n"));
                 return NULL;
             }
@@ -462,7 +461,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
                     EndObject,
                 EndMember,
                 StartMember,
-                    Float = NewObject( xd->FloatClass, NULL,
+                    Float = NewObject( PPTBase->FloatClass, NULL,
                         GA_ID, 1000+id, /* BUG */
                         RidgeFrame,
                         STRINGA_MinCharsVisible,mcv,
@@ -639,10 +638,10 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
 }
 
 Local
-void FetchARGadgetValue( struct RealObject *who, ULONG *where, EXTBASE *ExtBase )
+void FetchARGadgetValue( struct RealObject *who, ULONG *where, struct PPTBase *PPTBase )
 {
     UBYTE *tmp;
-    struct IntuitionBase *IntuitionBase = ExtBase->lb_Intuition;
+    struct IntuitionBase *IntuitionBase = PPTBase->lb_Intuition;
 
     if( where ) {
         switch( who->type ) {
@@ -680,12 +679,11 @@ void FetchARGadgetValue( struct RealObject *who, ULONG *where, EXTBASE *ExtBase 
 }
 
 Local
-void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gadgets, EXTBASE *xd )
+void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gadgets, struct PPTBase *PPTBase )
 {
     struct TagItem *tstate = gadgets, *tag;
-    APTR UtilityBase = xd->lb_Utility;
+    APTR UtilityBase = PPTBase->lb_Utility;
     ULONG objnum = 0;
-    EXTBASE *ExtBase = xd; /* BUG */
 
     D(bug("ReadARGadgets()\n"));
 
@@ -696,7 +694,7 @@ void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gad
             where = (APTR)GetTagData( AROBJ_Value, NULL, (struct TagItem *)(tag->ti_Data) );
             D(bug("Object %d:\n\tWhere = %08X\n",objnum,where));
 
-            FetchARGadgetValue( &Gadgets[objnum], (ULONG *)where, ExtBase );
+            FetchARGadgetValue( &Gadgets[objnum], (ULONG *)where, PPTBase );
 
             objnum++; /* Next Object */
 
@@ -708,14 +706,14 @@ void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gad
 }
 
 Local
-void ReadARGadgetsToArray( Object *Win, struct RealObject *Gadgets, LONG *table, EXTBASE *ExtBase )
+void ReadARGadgetsToArray( Object *Win, struct RealObject *Gadgets, LONG *table, struct PPTBase *PPTBase )
 {
     ULONG objnum = 0;
 
     D(bug("ReadARGadgetsToArray()\n"));
 
     for( objnum = 0; Gadgets[objnum].obj; objnum++ ) {
-        FetchARGadgetValue( &Gadgets[objnum], (ULONG *)&table[objnum], ExtBase );
+        FetchARGadgetValue( &Gadgets[objnum], (ULONG *)&table[objnum], PPTBase );
     }
 }
 
@@ -732,7 +730,7 @@ struct ARArgs {
 };
 
 Local
-PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, EXTBASE *ExtBase )
+PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, struct PPTBase *PPTBase )
 {
     STRPTR text, helpnode, helptext;
     FRAME *frame = ar->frame;
@@ -786,7 +784,7 @@ PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, EXTBASE *Ext
      */
 
     sprintf(ar->awdname,"%s_AR", ar->deftitle);
-    if( awd = (struct AskReqWinData *)GetOptions( ar->awdname, ExtBase ) ) {
+    if( awd = (struct AskReqWinData *)GetOptions( ar->awdname, PPTBase ) ) {
         ar->awd = *awd;
     }
 
@@ -802,7 +800,7 @@ PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, EXTBASE *Ext
         if(tag->ti_Tag >= AR_ObjectMin && tag->ti_Tag <= AR_ObjectMax) {
             D(bug("Object %d:\n",objs));
             WindowObjs[wobjcount++] = GROUP_Member;
-            WindowObjs[wobjcount++] = (ULONG)GetARObject( tag, GID_START+objs, &RealObjs[objs], helptext, helpnode, ExtBase );
+            WindowObjs[wobjcount++] = (ULONG)GetARObject( tag, GID_START+objs, &RealObjs[objs], helptext, helpnode, PPTBase );
             WindowObjs[wobjcount++] = LGO_FixMinHeight;
             WindowObjs[wobjcount++] = TRUE;
             WindowObjs[wobjcount++] = TAG_END; WindowObjs[wobjcount++] = 0L;
@@ -849,7 +847,7 @@ PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, EXTBASE *Ext
                 renderArea = NewObject( RenderAreaClass, NULL,
                                         GA_ID, GID_AR_RENDERAREA,
                                         RAC_Frame, frame,
-                                        RAC_ExtBase, ExtBase,
+                                        RAC_ExtBase, PPTBase,
 #else
                 ar->renderArea = BGUI_NewObject( BGUI_AREA_GADGET,
                                         GA_ID, GID_AR_RENDERAREA,
@@ -982,10 +980,13 @@ PERROR GetARWindow( struct ARArgs *ar, struct RealObject *RealObjs, EXTBASE *Ext
     return res;
 }
 
-SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, REG(a6) EXTBASE *ExtBase )
+PERROR
+SAVEDS ASM AskReqA( REGPARAM(a0,FRAME *,frame),
+                    REGPARAM(a1,struct TagItem *,list),
+                    REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     PERROR res = PERR_OK;
-    APTR UtilityBase = ExtBase->lb_Utility, SysBase = ExtBase->lb_Sys, IntuitionBase = ExtBase->lb_Intuition;
+    APTR UtilityBase = PPTBase->lb_Utility, SysBase = PPTBase->lb_Sys, IntuitionBase = PPTBase->lb_Intuition;
     FRAME *pwframe, *tempframe;
     LONG armValues[MAX_AROBJECTS];
     struct ARUpdateMsg aum = {0};
@@ -1002,7 +1003,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
     if(BGUIFloatBase = OpenLibrary( "Gadgets/bgui_float.gadget", 0L ) ) {
         D(bug("\tOpened BGUI float gadget\n"));
-        ExtBase->FloatClass = GetFloatClassPtr();
+        PPTBase->FloatClass = GetFloatClassPtr();
     }
 
     /*
@@ -1030,7 +1031,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
     ar.pwframe  = pwframe;
     ar.artags   = list;
 
-    GetARWindow( &ar, RealObjs, ExtBase );
+    GetARWindow( &ar, RealObjs, PPTBase );
 
     /*
      *  Open the window and enter IDMCP handler loop
@@ -1063,7 +1064,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                 aum.MethodID    = ARM_UPDATE;
                 arm.MethodID    = ARM_RENDER;
                 aum.aum_Frame   = arm.arm_Frame     = tempframe;
-                aum.aum_PPTBase = arm.arm_PPTBase   = ExtBase;
+                aum.aum_PPTBase = arm.arm_PPTBase   = PPTBase;
                 aum.aum_RPort   = arm.arm_RPort     = win->RPort;
                 GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
                 aum.aum_Area    = arm.arm_Area      = *ibox;
@@ -1073,8 +1074,8 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                  *  as reading in the initial values.
                  */
 
-                CopyFrameData( pwframe, tempframe, 0L, ExtBase ); // BUG: Redundant?
-                ReadARGadgetsToArray( ar.Win, RealObjs, armValues, ExtBase );
+                CopyFrameData( pwframe, tempframe, 0L, PPTBase ); // BUG: Redundant?
+                ReadARGadgetsToArray( ar.Win, RealObjs, armValues, PPTBase );
 
                 if( RealObjs[ar.hookobjectid].hook)
                     res = CallHookPkt(RealObjs[ar.hookobjectid].hook, RealObjs[ar.hookobjectid].obj, &aum );
@@ -1111,7 +1112,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                             case GID_AR_OK:
                                 quit = TRUE;
                                 res  = PERR_OK;
-                                ReadARGadgets( ar.Win, RealObjs, list, ExtBase );
+                                ReadARGadgets( ar.Win, RealObjs, list, PPTBase );
                                 break;
 
                             case GID_AR_RENDERAREA:
@@ -1123,7 +1124,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                                     CallHookPkt( ar.renderHook, NULL, &arm );
                                 } else {
                                     RenderFrame( tempframe, win->RPort,
-                                                 ibox, 0, ExtBase );
+                                                 ibox, 0, PPTBase );
                                 }
                                 break;
 
@@ -1135,9 +1136,9 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                                     if( RealObjs[objid].type != AR_StringObject && RealObjs[objid].hook ) {
                                         ULONG res;
 
-                                        CopyFrameData( pwframe, tempframe, 0L, ExtBase );
+                                        CopyFrameData( pwframe, tempframe, 0L, PPTBase );
 
-                                        FetchARGadgetValue( &RealObjs[objid], (ULONG *)&aum.aum_Values[objid], ExtBase );
+                                        FetchARGadgetValue( &RealObjs[objid], (ULONG *)&aum.aum_Values[objid], PPTBase );
                                         aum.aum_ObjectID = objid;
                                         GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
                                         aum.aum_Area = *ibox;
@@ -1148,7 +1149,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
                                         if( res == ARR_REDRAW ) {
                                             RenderFrame( tempframe, win->RPort,
-                                                         ibox, 0, ExtBase );
+                                                         ibox, 0, PPTBase );
                                         }
 
                                     }
@@ -1170,7 +1171,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
              */
 
             GetAttr(WINDOW_Bounds, ar.Win, (ULONG *) &(ar.awd.winpos) );
-            PutOptions( ar.awdname, &ar.awd, sizeof(struct AskReqWinData), ExtBase );
+            PutOptions( ar.awdname, &ar.awd, sizeof(struct AskReqWinData), PPTBase );
         }
 
         DisposeObject( ar.Win );
@@ -1270,10 +1271,10 @@ struct TagItem mywindow[] = {
 };
 
 
-SAVEDS ASM
-ULONG TestARHook( REG(a0) struct Hook *hook,
-                  REG(a2) APTR         object,
-                  REG(a1) struct ARUpdateMsg *msg )
+ULONG
+SAVEDS ASM TestARHook( REGPARAM(a0,struct Hook *,hook),
+                       REGPARAM(a2,APTR,object),
+                       REGPARAM(a1,struct ARUpdateMsg *,msg) )
 {
     D(bug("TESTARHOOK: Got message:\n\tObjid = %ld, frame = %08X, value = %ld\n",
            msg->aum_ObjectID, msg->aum_Frame, msg->aum_Values[0] ));

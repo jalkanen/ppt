@@ -5,7 +5,7 @@
     This file contains the input-handlers of PPT for the external
     modules.
 
-    $Id: input.c,v 1.5 1999/08/01 16:47:04 jj Exp $
+    $Id: input.c,v 1.6 1999/10/02 16:33:07 jj Exp $
 
  */
 
@@ -16,8 +16,8 @@
 
 /*------------------------------------------------------------------------*/
 
-Prototype PERROR ASM       StartInput( REG(a0) FRAME *, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
-Prototype VOID ASM         StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype PERROR ASM       StartInput( REGDECL(a0,FRAME *), REGDECL(a1,APTR), REGDECL(d0,ULONG), REGDECL(a6,struct PPTBase *) );
+Prototype VOID ASM         StopInput( REGDECL(a0,FRAME *), REGDECL(a6,struct PPTBase *) );
 
 /*------------------------------------------------------------------------*/
 
@@ -86,11 +86,11 @@ Prototype VOID ASM         StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
 *    BUG: No error checking
 */
 
-SAVEDS ASM
-PERROR StartInput( REG(a0) FRAME *frame,
-                   REG(a1) struct PPTMessage *initialmsg,
-                   REG(d0) ULONG mid,
-                   REG(a6) EXTBASE *ExtBase )
+PERROR
+SAVEDS ASM StartInput( REGPARAM(a0,FRAME *,frame),
+                       REGPARAM(a1,struct PPTMessage *,initialmsg),
+                       REGPARAM(d0,ULONG,mid),
+                       REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     struct PPTMessage *pmsg, *amsg;
 
@@ -106,13 +106,13 @@ PERROR StartInput( REG(a0) FRAME *frame,
 
     switch(mid) {
         case GINP_FIXED_RECT:
-            pmsg = AllocPPTMsg( sizeof(struct gFixRectMessage), ExtBase );
+            pmsg = AllocPPTMsg( sizeof(struct gFixRectMessage), PPTBase );
             ((struct gFixRectMessage *)pmsg)->dim = ((struct gFixRectMessage *)initialmsg)->dim;
             D(bug("\tSending out a gFixRect()\n"));
             break;
 
         default:
-            pmsg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+            pmsg = AllocPPTMsg( sizeof(struct PPTMessage), PPTBase );
             D(bug("\tIgnored input type %X\n",mid));
             break;
     }
@@ -143,7 +143,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
      *  was succesfull.
      */
 
-    SendPPTMsg( globxd->mport, pmsg, ExtBase );
+    SendPPTMsg( globxd->mport, pmsg, PPTBase );
 
     /*
      *  Wait for authorization reply from the main task
@@ -154,7 +154,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
     for(;;) {
         ULONG sig, sigmask;
 
-        sigmask = 1 << ExtBase->mport->mp_SigBit;
+        sigmask = 1 << PPTBase->mport->mp_SigBit;
 
         sig = Wait( sigmask|SIGBREAKF_CTRL_C );
 
@@ -174,7 +174,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
              *  quietly reply to them.
              */
 
-            if( amsg = (struct PPTMessage *)GetMsg(ExtBase->mport) ) {
+            if( amsg = (struct PPTMessage *)GetMsg(PPTBase->mport) ) {
 
                 if( amsg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
                     if( amsg->code == PPTMSG_START_INPUT ) {
@@ -186,7 +186,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
                             D(bug("\tFailed to set up the comm system\n"));
                         }
 
-                        FreePPTMsg( amsg, ExtBase );
+                        FreePPTMsg( amsg, PPTBase );
                         return res;
                     }
                 } else {
@@ -247,8 +247,9 @@ PERROR StartInput( REG(a0) FRAME *frame,
     requires signals.
 */
 
-SAVEDS ASM
-VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
+VOID
+SAVEDS ASM StopInput( REGPARAM(a0,FRAME *,frame),
+                      REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     struct PPTMessage *pmsg;
 
@@ -256,7 +257,7 @@ VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
 
     if(!CheckPtr(frame,"StopInput(): Invalid frame")) return;
 
-    pmsg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+    pmsg = AllocPPTMsg( sizeof(struct PPTMessage), PPTBase );
 
     pmsg->code  = PPTMSG_STOP_INPUT;
 
@@ -266,10 +267,10 @@ VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
         pmsg->frame = frame;
 
     D(bug("Sending to main task\n"));
-    SendPPTMsg( globxd->mport, pmsg, ExtBase );
+    SendPPTMsg( globxd->mport, pmsg, PPTBase );
 
     D(bug("Waiting for reply\n"));
-    WaitForReply( PPTMSG_STOP_INPUT, ExtBase );
+    WaitForReply( PPTMSG_STOP_INPUT, PPTBase );
 }
 ///
 

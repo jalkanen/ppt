@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 6.1 1999/09/08 22:48:53 jj Exp $
+    $Id: gui.h,v 6.2 1999/10/02 16:33:07 jj Exp $
 */
 
 #ifndef GUI_H
@@ -233,31 +233,31 @@ struct PPTFileRequester {
     { NM_SUB, t, s, NM_ITEMDISABLED, 0, (APTR) i }
 
 /* Using these defines causes the MyNewObject() to be called, which
-   results in using the local ExtBase variable base. ExtBase MUST be defined!  */
+   results in using the local PPTBase variable base. PPTBase MUST be defined!  */
 
-#define MyHGroupObject            MyNewObject( ExtBase,BGUI_GROUP_GADGET
-#define MyVGroupObject            MyNewObject( ExtBase,BGUI_GROUP_GADGET,\
+#define MyHGroupObject            MyNewObject( PPTBase,BGUI_GROUP_GADGET
+#define MyVGroupObject            MyNewObject( PPTBase,BGUI_GROUP_GADGET,\
                                                GROUP_Style, GRSTYLE_VERTICAL
-#define MyButtonObject            MyNewObject( ExtBase,BGUI_BUTTON_GADGET
-#define MyToggleObject            MyNewObject( ExtBase,BGUI_BUTTON_GADGET,\
+#define MyButtonObject            MyNewObject( PPTBase,BGUI_BUTTON_GADGET
+#define MyToggleObject            MyNewObject( PPTBase,BGUI_BUTTON_GADGET,\
                                                   GA_ToggleSelect, TRUE
-#define MyCycleObject             MyNewObject( ExtBase,BGUI_CYCLE_GADGET
-#define MyCheckBoxObject          MyNewObject( ExtBase,BGUI_CHECKBOX_GADGET
-#define MyInfoObject              MyNewObject( ExtBase,BGUI_INFO_GADGET
-#define MyStringObject            MyNewObject( ExtBase,BGUI_STRING_GADGET
-#define MyPropObject              MyNewObject( ExtBase,BGUI_PROP_GADGET
-#define MyIndicatorObject         MyNewObject( ExtBase,BGUI_INDICATOR_GADGET
-#define MyProgressObject          MyNewObject( ExtBase,BGUI_PROGRESS_GADGET
-#define MySliderObject            MyNewObject( ExtBase,BGUI_SLIDER_GADGET
-#define MyPageObject              MyNewObject( ExtBase,BGUI_PAGE_GADGET
-#define MyMxObject                MyNewObject( ExtBase,BGUI_MX_GADGET
-#define MyListviewObject          MyNewObject( ExtBase,BGUI_LISTVIEW_GADGET
-#define MyExternalObject          MyNewObject( ExtBase,BGUI_EXTERNAL_GADGET, GA_Left, 0, GA_Top, 0, GA_Width, 0, GA_Height, 0
-#define MySeparatorObject         MyNewObject( ExtBase,BGUI_SEPARATOR_GADGET
+#define MyCycleObject             MyNewObject( PPTBase,BGUI_CYCLE_GADGET
+#define MyCheckBoxObject          MyNewObject( PPTBase,BGUI_CHECKBOX_GADGET
+#define MyInfoObject              MyNewObject( PPTBase,BGUI_INFO_GADGET
+#define MyStringObject            MyNewObject( PPTBase,BGUI_STRING_GADGET
+#define MyPropObject              MyNewObject( PPTBase,BGUI_PROP_GADGET
+#define MyIndicatorObject         MyNewObject( PPTBase,BGUI_INDICATOR_GADGET
+#define MyProgressObject          MyNewObject( PPTBase,BGUI_PROGRESS_GADGET
+#define MySliderObject            MyNewObject( PPTBase,BGUI_SLIDER_GADGET
+#define MyPageObject              MyNewObject( PPTBase,BGUI_PAGE_GADGET
+#define MyMxObject                MyNewObject( PPTBase,BGUI_MX_GADGET
+#define MyListviewObject          MyNewObject( PPTBase,BGUI_LISTVIEW_GADGET
+#define MyExternalObject          MyNewObject( PPTBase,BGUI_EXTERNAL_GADGET, GA_Left, 0, GA_Top, 0, GA_Width, 0, GA_Height, 0
+#define MySeparatorObject         MyNewObject( PPTBase,BGUI_SEPARATOR_GADGET
 
-#define MyWindowObject            MyNewObject( ExtBase,BGUI_WINDOW_OBJECT
-#define MyFileReqObject           MyNewObject( ExtBase,BGUI_FILEREQ_OBJECT
-#define MyCommodityObject         MyNewObject( ExtBase,BGUI_COMMODITY_OBJECT
+#define MyWindowObject            MyNewObject( PPTBase,BGUI_WINDOW_OBJECT
+#define MyFileReqObject           MyNewObject( PPTBase,BGUI_FILEREQ_OBJECT
+#define MyCommodityObject         MyNewObject( PPTBase,BGUI_COMMODITY_OBJECT
 
 #define MyGenericButton(l,id)\
     MyButtonObject, UScoreLabel(l,'_'),\

@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.26 1999/02/21 20:33:47 jj Exp $
+    $Id: others.c,v 1.27 1999/10/02 16:33:07 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -319,16 +319,16 @@ SAVEDS ULONG ReqA( struct Window *win, UBYTE *gadgets, UBYTE *body, ULONG *args 
     struct IntuitionBase    *IntuitionBase;
     struct bguiRequest      req = { 0L };
     ULONG                   res;
-    EXTBASE *               ExtBase;
+    EXTBASE *               PPTBase;
     struct Screen           *wscr = NULL;
 
     D(bug("ReqA()..."));
 
-    ExtBase = NewExtBase( TRUE );
-    if(!ExtBase) return 0;
+    PPTBase = NewExtBase( TRUE );
+    if(!PPTBase) return 0;
 
-    BGUIBase = ExtBase->lb_BGUI;
-    IntuitionBase = ExtBase->lb_Intuition;
+    BGUIBase = PPTBase->lb_BGUI;
+    IntuitionBase = PPTBase->lb_Intuition;
 
     if(win == NEGNUL) {
         if( globals->maindisp ) {
@@ -366,7 +366,7 @@ SAVEDS ULONG ReqA( struct Window *win, UBYTE *gadgets, UBYTE *body, ULONG *args 
     res =  BGUI_RequestA( win, &req, args );
     PROFILE_ON();
 
-    RelExtBase( ExtBase );
+    RelExtBase( PPTBase );
 
     D(bug("Finished. (User chose %u)\n",res));
     return res;
@@ -409,21 +409,21 @@ SAVEDS ULONG XReq( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 Prototype VOID DoAllWindows( void (* ASM)(REG(a0) Object *, REG(a1) APTR, REG(a6) EXTBASE *), APTR, const ULONG, EXTBASE *);
 
 SAVEDS
-VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data, REG(a6) EXTBASE *ExtBase),
+VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data, REG(a6) EXTBASE *PPTBase),
                    APTR  hookdata,
                    const ULONG flags,
-                   EXTBASE *ExtBase )
+                   EXTBASE *PPTBase )
 {
     struct Node *cn;
 
-    if(globals->WO_main) { hookfunc( globals->WO_main, hookdata, ExtBase ); }
-    if(framew.Win) { hookfunc( framew.Win, hookdata, ExtBase ); }
-    if(extf.Win) { hookfunc( extf.Win, hookdata, ExtBase ); }
-    if(exts.Win) { hookfunc( exts.Win, hookdata, ExtBase ); }
-    if(extl.Win) { hookfunc( extl.Win, hookdata, ExtBase ); }
-    if(prefsw.Win) { hookfunc( prefsw.Win, hookdata, ExtBase ); }
-    if(toolw.Win){ hookfunc( toolw.Win,hookdata, ExtBase ); }
-    if(selectw.Win) { hookfunc( selectw.Win, hookdata, ExtBase ); }
+    if(globals->WO_main) { hookfunc( globals->WO_main, hookdata, PPTBase ); }
+    if(framew.Win) { hookfunc( framew.Win, hookdata, PPTBase ); }
+    if(extf.Win) { hookfunc( extf.Win, hookdata, PPTBase ); }
+    if(exts.Win) { hookfunc( exts.Win, hookdata, PPTBase ); }
+    if(extl.Win) { hookfunc( extl.Win, hookdata, PPTBase ); }
+    if(prefsw.Win) { hookfunc( prefsw.Win, hookdata, PPTBase ); }
+    if(toolw.Win){ hookfunc( toolw.Win,hookdata, PPTBase ); }
+    if(selectw.Win) { hookfunc( selectw.Win, hookdata, PPTBase ); }
 
     for( cn = globals->frames.lh_Head; cn->ln_Succ; cn = cn->ln_Succ) {
         FRAME *f;
@@ -436,7 +436,7 @@ VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data,
 
         if(f->disp) {
             if( f->disp->Win && f->disp->win )
-                hookfunc( f->disp->Win, hookdata, ExtBase );
+                hookfunc( f->disp->Win, hookdata, PPTBase );
         }
 
         /*
@@ -445,7 +445,7 @@ VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data,
 
         if( f->mywin ) {
             if( f->mywin->win )
-                hookfunc( f->mywin->WO_win, hookdata, ExtBase );
+                hookfunc( f->mywin->WO_win, hookdata, PPTBase );
         }
 
         /*
@@ -454,7 +454,7 @@ VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data,
 
          if( f->editwin ) {
              if( f->editwin->Win && f->editwin->win ) {
-                 hookfunc( f->editwin->Win, hookdata, ExtBase );
+                 hookfunc( f->editwin->Win, hookdata, PPTBase );
              }
          }
 
@@ -465,13 +465,13 @@ VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data,
 /*--------------------------------------------------------------------------*/
 
 ASM
-VOID Hook_BusyWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *ExtBase )
+VOID Hook_BusyWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *PPTBase )
 {
     WindowBusy( Win ); // Is really DoMethod() - safe to call
 }
 
 ASM
-VOID Hook_AwakenWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *ExtBase )
+VOID Hook_AwakenWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *PPTBase )
 {
     WindowReady( Win ); // Is really DoMethod() - safe to call
 }
@@ -510,10 +510,9 @@ struct dmi_data {
 ASM
 VOID Hook_DisableMenuItem( REG(a0) Object *Win,
                            REG(a1) APTR foo,
-                           REG(a6) EXTBASE *ExtBase )
+                           REG(a6) EXTBASE *PPTBase )
 {
     struct dmi_data *d = (struct dmi_data *)foo;
-
 
     DisableMenu( Win, d->item, d->disable );
 }
@@ -555,7 +554,7 @@ VOID EnableMenuItem( ULONG item )
 ASM
 VOID Hook_CheckMenuItem( REG(a0) Object *Win,
                          REG(a1) APTR foo,
-                         REG(a6) EXTBASE *ExtBase )
+                         REG(a6) EXTBASE *PPTBase )
 {
     struct dmi_data *d = (struct dmi_data *)foo;
 

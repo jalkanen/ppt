@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.13 1998/07/01 21:36:17 jj Exp $
+    $Id: infowin.c,v 1.14 1999/10/02 16:33:07 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -33,14 +33,14 @@
 
 /*-------------------------------------------------------------------------*/
 
-Prototype void          UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd );
-Prototype Object *      GimmeInfoWindow( EXTBASE *, INFOWIN * );
-Prototype PERROR        AllocInfoWindow( FRAME *, EXTBASE * );
-Prototype void          DeleteInfoWindow( INFOWIN *, EXTBASE * );
-Prototype PERROR        OpenInfoWindow( INFOWIN *iw, EXTBASE *xd );
-Prototype VOID          CloseInfoWindow( INFOWIN *iw, EXTBASE *xd );
-Prototype VOID          EnableInfoWindow( INFOWIN *, EXTBASE * );
-Prototype VOID          DisableInfoWindow( INFOWIN *, EXTBASE * );
+Prototype void          UpdateInfoWindow( INFOWIN *iw, struct PPTBase *xd );
+Prototype Object *      GimmeInfoWindow( struct PPTBase *, INFOWIN * );
+Prototype PERROR        AllocInfoWindow( FRAME *, struct PPTBase * );
+Prototype void          DeleteInfoWindow( INFOWIN *, struct PPTBase * );
+Prototype PERROR        OpenInfoWindow( INFOWIN *iw, struct PPTBase *xd );
+Prototype VOID          CloseInfoWindow( INFOWIN *iw, struct PPTBase *xd );
+Prototype VOID          EnableInfoWindow( INFOWIN *, struct PPTBase * );
+Prototype VOID          DisableInfoWindow( INFOWIN *, struct PPTBase * );
 
 /*-------------------------------------------------------------------------*/
 
@@ -52,10 +52,10 @@ Prototype VOID          DisableInfoWindow( INFOWIN *, EXTBASE * );
          of the window object.
 */
 
-PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
+PERROR AllocInfoWindow( FRAME *frame, struct PPTBase *PPTBase )
 {
     INFOWIN *iw;
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR SysBase = PPTBase->lb_Sys;
 
     D(bug("AllocInfoWindow()\n"));
 
@@ -82,7 +82,7 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
         iw->myframe = frame;
         frame->mywin = iw;
 
-        if(GimmeInfoWindow( ExtBase, iw ) == NULL) {
+        if(GimmeInfoWindow( PPTBase, iw ) == NULL) {
             frame->mywin = NULL;
             pfree(iw);
             Req(NEGNUL,NULL,XGetStr(MSG_COULD_NOT_ALLOC_INFOWINDOW));
@@ -103,10 +103,10 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
     Open an info window. Will ignore NULL args.
 */
 
-PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+PERROR OpenInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
     PERROR res = PERR_OK;
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR SysBase = PPTBase->lb_Sys;
 
     D(bug("OpenInfoWindow(%08X)\n",iw));
     if( iw ) {
@@ -142,7 +142,7 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
                  *  due to a preferences change).
                  */
 
-                UpdateInfoWindow( iw, ExtBase );
+                UpdateInfoWindow( iw, PPTBase );
                 SetAttrs( Win, WINDOW_Screen, MAINSCR, TAG_DONE );
 
                 D(bug("\tAttempting open...\n"));
@@ -155,14 +155,14 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
             } else {
                 struct PPTMessage *msg;
 
-                msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+                msg = AllocPPTMsg( sizeof( struct PPTMessage ), PPTBase );
                 SHLOCK(iw);
                 msg->frame = iw->myframe;
                 UNLOCK(iw);
                 msg->code  = PPTMSG_OPENINFOWINDOW;
                 msg->data  = 0L;
-                SendPPTMsg( globals->mport, msg, ExtBase );
-                WaitForReply( PPTMSG_OPENINFOWINDOW, ExtBase );
+                SendPPTMsg( globals->mport, msg, PPTBase );
+                WaitForReply( PPTMSG_OPENINFOWINDOW, PPTBase );
             }
 #endif
         }
@@ -174,9 +174,9 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
     Closes an info window. Will ignore NULL args.
 */
 
-VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+VOID CloseInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR SysBase = PPTBase->lb_Sys;
 
     D(bug("CloseInfoWindow(%08X)\n",iw));
 
@@ -199,14 +199,14 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
         } else {
             struct PPTMessage *msg;
 
-            msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+            msg = AllocPPTMsg( sizeof( struct PPTMessage ), PPTBase );
             SHLOCK(iw);
             msg->frame = iw->myframe;
             UNLOCK(iw);
             msg->code  = PPTMSG_CLOSEINFOWINDOW;
             msg->data  = 0L;
-            SendPPTMsg( globals->mport, msg, ExtBase );
-            WaitForReply( PPTMSG_CLOSEINFOWINDOW, ExtBase );
+            SendPPTMsg( globals->mport, msg, PPTBase );
+            WaitForReply( PPTMSG_CLOSEINFOWINDOW, PPTBase );
         }
     }
 }
@@ -216,11 +216,11 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
     from the parent frame. Safe to call with NULL iw
 */
 
-void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+void DeleteInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
     FRAME *frame;
-    APTR   IntuitionBase = ExtBase->lb_Intuition,
-           SysBase = ExtBase->lb_Sys;
+    APTR   IntuitionBase = PPTBase->lb_Intuition,
+           SysBase = PPTBase->lb_Sys;
 
     D(bug("DeleteInfoWindow( %08X )\n",iw));
     LOCKGLOB();
@@ -258,11 +258,10 @@ void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 /// GimmeInfoWindow()
 
 Object *
-GimmeInfoWindow( EXTBASE *xd, INFOWIN *iw )
+GimmeInfoWindow( struct PPTBase *PPTBase, INFOWIN *iw )
 {
-    EXTBASE *ExtBase = xd; /* BUG */
     FRAME *f;
-    APTR SysBase = xd->lb_Sys;
+    APTR SysBase = PPTBase->lb_Sys;
     struct Screen *scr;
     struct Window *win;
     ULONG posntag, posnval; /* A kludge */
@@ -354,10 +353,10 @@ GimmeInfoWindow( EXTBASE *xd, INFOWIN *iw )
     Updates the infowindow attributes. Currently does not do anything more
     than update the window/screen titles.
 */
-void UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd )
+void UpdateInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
-    APTR IntuitionBase = xd->lb_Intuition;
-    APTR SysBase = xd->lb_Sys;
+    APTR IntuitionBase = PPTBase->lb_Intuition;
+    APTR SysBase = PPTBase->lb_Sys;
     struct TagItem tags[3] = {
         WINDOW_Title, NULL,
         WINDOW_ScreenTitle, NULL,
@@ -384,11 +383,11 @@ void UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd )
         } else {
             struct PPTMessage *msg;
 
-            msg = AllocPPTMsg( sizeof( struct PPTMessage ), xd );
+            msg = AllocPPTMsg( sizeof( struct PPTMessage ), PPTBase );
             msg->frame = iw->myframe;
             msg->code  = PPTMSG_UPDATEINFOWINDOW;
             msg->data  = 0L;
-            SendPPTMsg( globals->mport, msg, xd );
+            SendPPTMsg( globals->mport, msg, PPTBase );
         }
     }
 }
@@ -399,10 +398,10 @@ void UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd )
  *  Use with caution!
  */
 
-VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+VOID DisableInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
-    APTR IntuitionBase = ExtBase->lb_Intuition;
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR IntuitionBase = PPTBase->lb_Intuition;
+    APTR SysBase = PPTBase->lb_Sys;
     struct TagItem tags[3] = {
         GA_Disabled, TRUE,
         TAG_DONE, 0L
@@ -419,10 +418,10 @@ VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
  *  Reverses the effect of DisableInfoWindow()
  */
 
-VOID EnableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
+VOID EnableInfoWindow( INFOWIN *iw, struct PPTBase *PPTBase )
 {
-    APTR IntuitionBase = ExtBase->lb_Intuition;
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR IntuitionBase = PPTBase->lb_Intuition;
+    APTR SysBase = PPTBase->lb_Sys;
     struct TagItem tags[3] = {
         GA_Disabled, FALSE,
         TAG_DONE, 0L

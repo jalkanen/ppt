@@ -1,5 +1,12 @@
 /*
-    $Id: rendermod.c,v 1.22 1999/02/20 15:29:16 jj Exp $
+    PROJECT: PPT
+    MODULE:  rendermod.c
+
+    $Id: rendermod.c,v 1.23 1999/10/02 16:33:07 jj Exp $
+
+    This module and PPT are (C) Copyright Janne Jalkanen 1999.
+
+    Rendering module support code.
 */
 
 #include "defs.h"
@@ -28,7 +35,7 @@ PERROR InitializeDevice( struct RenderObject * );
     Allocate the render object and initialize display
 */
 
-PERROR OpenRender( FRAME *source, EXTBASE *ExtBase )
+PERROR OpenRender( FRAME *source, EXTBASE *PPTBase )
 {
     struct RenderObject *rdo = source->renderobject;
     PERROR res = PERR_OK;
@@ -42,7 +49,7 @@ PERROR OpenRender( FRAME *source, EXTBASE *ExtBase )
      *  and re-allocate.
      */
 
-    if( rdo ) CloseRender( source, ExtBase );
+    if( rdo ) CloseRender( source, PPTBase );
 
     /*
      *  Allocate and initialize the new render object
@@ -51,7 +58,7 @@ PERROR OpenRender( FRAME *source, EXTBASE *ExtBase )
     rdo = pzmalloc( sizeof(struct RenderObject) );
     if(rdo) {
         rdo->frame   = source;
-        rdo->ExtBase = ExtBase;
+        rdo->PPTBase = PPTBase;
 
         rdo->buffer = pmalloc( (((source->pix->width+15)>>4)<<4) ); /* BUG: should not be here, should check */
         if( (res = AllocColorTable( source )) == PERR_OK ) {
@@ -65,8 +72,8 @@ PERROR OpenRender( FRAME *source, EXTBASE *ExtBase )
     }
 
     if( res != PERR_OK ) {
-        XReq( GetFrameWin(source), NULL, XGetStr(mFAILED_TO_START_RENDER), ErrorMsg( res, ExtBase ) );
-        CloseRender( source, ExtBase );
+        XReq( GetFrameWin(source), NULL, XGetStr(mFAILED_TO_START_RENDER), ErrorMsg( res, PPTBase ) );
+        CloseRender( source, PPTBase );
         rdo = NULL;
     }
 
@@ -83,7 +90,7 @@ PERROR OpenRender( FRAME *source, EXTBASE *ExtBase )
     Do the opposite of OpenRender(). Destroy the display object.
 */
 
-VOID CloseRender( FRAME *frame, EXTBASE *ExtBase )
+VOID CloseRender( FRAME *frame, EXTBASE *PPTBase )
 {
     struct RenderObject *rdo = frame->renderobject;
 
@@ -129,7 +136,7 @@ PERROR Render( struct RenderObject *rdo )
 {
     PERROR res = PERR_OK;
     FRAME *source = rdo->frame;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
     BOOL hgrams = FALSE; /* Mark if we reserved the histograms ourselves. */
     D(APTR ppp);
 
@@ -138,7 +145,7 @@ PERROR Render( struct RenderObject *rdo )
     if( rdo == NULL )
         return PERR_INVALIDARGS;
 
-    InitProgress( source, XGetStr(mINITIALIZING_RENDER), 0, source->pix->height, rdo->ExtBase );
+    InitProgress( source, XGetStr(mINITIALIZING_RENDER), 0, source->pix->height, rdo->PPTBase );
 
     /*
      *  Initialize what is left to be initialized
@@ -187,7 +194,7 @@ PERROR Render( struct RenderObject *rdo )
      *  in turn.
      */
 
-    InitProgress( source, XGetStr(mRENDERING), 0, source->pix->height, rdo->ExtBase );
+    InitProgress( source, XGetStr(mRENDERING), 0, source->pix->height, rdo->PPTBase );
 
     D(bug("*** Initialization done, entering render loop\n"));
 
@@ -199,12 +206,12 @@ PERROR Render( struct RenderObject *rdo )
 
         // D(bug("\tRendering row %d...\n", rdo->currentrow ));
 
-        if( Progress( source, rdo->currentrow, rdo->ExtBase ) ) {
+        if( Progress( source, rdo->currentrow, rdo->PPTBase ) ) {
             res = PERR_BREAK;
             goto errorexit;
         }
 
-        rdo->cp = GetPixelRow( source, rdo->currentrow, rdo->ExtBase );
+        rdo->cp = GetPixelRow( source, rdo->currentrow, rdo->PPTBase );
         rdo->currentcolumn = 0; /* Just in case */
 
         (*rdo->Dither)( rdo );
@@ -217,7 +224,7 @@ PERROR Render( struct RenderObject *rdo )
 
     D(bug("*** Render done\n"));
 
-    FinishProgress( source, rdo->ExtBase );
+    FinishProgress( source, rdo->PPTBase );
 
 errorexit:
     /*
@@ -230,10 +237,10 @@ errorexit:
     if(rdo->histograms && hgrams) ReleaseHistograms( rdo );
 
     if( res != PERR_OK ) {
-        CloseRender( source, ExtBase );
+        CloseRender( source, PPTBase );
     }
 
-    CloseInfoWindow( source->mywin, ExtBase );
+    CloseInfoWindow( source->mywin, PPTBase );
 
     ClearError( source );
 
@@ -249,7 +256,7 @@ errorexit:
 */
 SAVEDS ASM VOID RenderMain( REG(a0) UBYTE *argstr )
 {
-    EXTBASE *ExtBase;
+    EXTBASE *PPTBase;
     struct PPTMessage *msg;
     FRAME *frame = NULL;
     PERROR res = PERR_GENERAL;
@@ -258,7 +265,7 @@ SAVEDS ASM VOID RenderMain( REG(a0) UBYTE *argstr )
 
     D(bug("RenderMain(%s)\n",argstr));
 
-    if( (ExtBase = NewExtBase(TRUE)) == NULL) {
+    if( (PPTBase = NewExtBase(TRUE)) == NULL) {
         D(bug("LIB BASE ALLOCATION FAILED\n"));
         return; /* We hang off, deliberately, since we have nothing. */
     }
@@ -267,17 +274,17 @@ SAVEDS ASM VOID RenderMain( REG(a0) UBYTE *argstr )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "RENDEROBJECT/A/N", ExtBase ) ) {
+    if(optarray = ParseDOSArgs( argstr, "RENDEROBJECT/A/N", PPTBase ) ) {
         rdo = (struct RenderObject *) *( (ULONG *)optarray[0]) ;
     } else {
         InternalError( "LoadPicture(): REXX message of incorrect format" );
         goto errorexit;
     }
 
-    rdo->ExtBase = ExtBase;
+    rdo->PPTBase = PPTBase;
     frame = rdo->frame;
 
-    if(NewTaskProlog(frame,ExtBase) != PERR_OK) goto errorexit;
+    if(NewTaskProlog(frame,PPTBase) != PERR_OK) goto errorexit;
 
     if(!CheckPtr(rdo,"RenderMain(): renderobject")) goto errorexit;
     if(!CheckPtr(frame,"RenderMain(): frame")) goto errorexit;
@@ -286,22 +293,22 @@ SAVEDS ASM VOID RenderMain( REG(a0) UBYTE *argstr )
 
 errorexit:
     if(optarray)
-        FreeDOSArgs( optarray, ExtBase );
+        FreeDOSArgs( optarray, PPTBase );
 
-    msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+    msg = AllocPPTMsg( sizeof( struct PPTMessage ), PPTBase );
     msg->frame = frame;
     msg->code = PPTMSG_RENDERDONE;
     msg->data = (APTR)res;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, ExtBase );
+    SendPPTMsg( globals->mport, msg, PPTBase );
 
-    WaitDeathMessage( ExtBase );
+    WaitDeathMessage( PPTBase );
 
-    EmptyMsgPort( ExtBase->mport, ExtBase );
+    EmptyMsgPort( PPTBase->mport, PPTBase );
 
-    if( ExtBase ) RelExtBase(ExtBase);
-    rdo->ExtBase = globxd; /* Clear up, just in case */
+    if( PPTBase ) RelExtBase(PPTBase);
+    rdo->PPTBase = globxd; /* Clear up, just in case */
 
     /* Die */
 }

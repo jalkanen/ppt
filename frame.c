@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 6.1 1999/09/08 22:47:59 jj Exp $
+    $Id: frame.c,v 6.2 1999/10/02 16:33:07 jj Exp $
 
     This contains frame handling routines
 
@@ -42,7 +42,7 @@ Prototype VOID          RefreshFrameInfo( FRAME *, EXTBASE * );
 Prototype BOOL          IsFrameBusy( FRAME * );
 
 Local PERROR            SetBuffers( FRAME *frame, EXTBASE *xd );
-Local VOID              FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
+Local VOID              FreeBuffers( FRAME *frame, EXTBASE *PPTBase );
 Local VOID              ResetSharedFrameVars(FRAME *);
 ///
 
@@ -445,6 +445,12 @@ void DeleteFrame( FRAME *f )
             DeleteEditWindow(f->editwin);
             FreeEditWindow(f->editwin);
         }
+
+        /*
+         *  Selection.
+         */
+
+        if( f->selection.vertices ) sfree( f->selection.vertices );
 
         /*
          *  Remove the structure himself
@@ -1001,9 +1007,9 @@ VOID UpdateFrameInfo( FRAME *f )
     This refreshes the window and screen title, as well as makes
     sure the propgadgets are correct.
 */
-VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
+VOID RefreshFrameInfo( FRAME *f, EXTBASE *PPTBase )
 {
-    APTR IntuitionBase = ExtBase->lb_Intuition;
+    APTR IntuitionBase = PPTBase->lb_Intuition;
     DISPLAY *d = f->disp;
     EDITWIN *e = f->editwin;
     struct TagItem tags[] = {
@@ -1022,11 +1028,11 @@ VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
             tags[1].ti_Data = (ULONG)d->scrtitle;
 
             SetAttrsA( d->Win, tags );
-            XSetGadgetAttrs(ExtBase, GAD(d->GO_BottomProp), d->win,
+            XSetGadgetAttrs(PPTBase, GAD(d->GO_BottomProp), d->win,
                             NULL, PGA_Top, f->zoombox.Left,
                             PGA_Visible, f->zoombox.Width,
                             PGA_Total,   f->pix->width, TAG_END );
-            XSetGadgetAttrs(ExtBase, GAD(d->GO_RightProp), d->win,
+            XSetGadgetAttrs(PPTBase, GAD(d->GO_RightProp), d->win,
                             NULL, PGA_Top, f->zoombox.Top,
                             PGA_Visible, f->zoombox.Height,
                             PGA_Total, f->pix->height, TAG_END );
@@ -1116,18 +1122,18 @@ Prototype PERROR ASM CopyFrameData( REGDECL(a0,FRAME *), REGDECL(a1,FRAME *), RE
 
 PERROR SAVEDS ASM
 CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
-               REGPARAM(d0,ULONG,flags), REGPARAM(a6,EXTBASE *,ExtBase) )
+               REGPARAM(d0,ULONG,flags), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     UBYTE *buf;
     PERROR res = PERR_OK;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     LONG count, nread;
     VMHANDLE *svmh = frame->pix->vmh;
 
     if( svmh->vm_fh ) {
         if(flags & CFDF_SHOWPROGRESS)
             InitProgress(frame,XGetStr(MSG_BUILDING_NEW_FRAME),
-                         0, PICSIZE(frame->pix)>>10, ExtBase);
+                         0, PICSIZE(frame->pix)>>10, PPTBase);
 
         buf = pmalloc( COPYBUFSIZE );
         if(buf) {
@@ -1136,12 +1142,12 @@ CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
             src = svmh->vm_fh;
             dst = newframe->pix->vmh->vm_fh;
 
-            FlushVMData( svmh, ExtBase ); /* Make sure disk data is valid */
+            FlushVMData( svmh, PPTBase ); /* Make sure disk data is valid */
             Seek(src,0,OFFSET_BEGINNING);
             Seek(dst,0,OFFSET_BEGINNING);
             count = 0;
             do {
-                if(flags & CFDF_SHOWPROGRESS) Progress(frame,count>>10,ExtBase);
+                if(flags & CFDF_SHOWPROGRESS) Progress(frame,count>>10,PPTBase);
                 nread = Read(src, buf, COPYBUFSIZE);
                 Write(dst,buf,nread);
                 count += nread;
@@ -1154,9 +1160,9 @@ CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
              *  Make sure the buffers are correct
              */
 
-            SanitizeVMData( svmh, ExtBase );
-            SanitizeVMData( newframe->pix->vmh, ExtBase );
-            LoadVMData( newframe->pix->vmh, 0L, ExtBase );
+            SanitizeVMData( svmh, PPTBase );
+            SanitizeVMData( newframe->pix->vmh, PPTBase );
+            LoadVMData( newframe->pix->vmh, 0L, PPTBase );
         } else {
             D(bug("Dupframe(): Out of memory allocating copybuf\n"));
             SetErrorCode( frame, PERR_OUTOFMEMORY );
@@ -1164,9 +1170,9 @@ CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
         }
 
         if(flags & CFDF_SHOWPROGRESS) {
-            FinishProgress( frame, ExtBase );
-            CloseInfoWindow( frame->mywin, ExtBase );
-            ClearProgress( frame, ExtBase );
+            FinishProgress( frame, PPTBase );
+            CloseInfoWindow( frame->mywin, PPTBase );
+            ClearProgress( frame, PPTBase );
         }
     } else {
         memcpy(newframe->pix->vmh->data, svmh->data, svmh->end - svmh->begin );
@@ -1210,7 +1216,7 @@ CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
 *    Find a frame by it's ID code. Returns NULL if not found.
 *
 *    This routine belongs to the support library. It
-*    does receive the ExtBase in a6.  The reason it has not
+*    does receive the PPTBase in a6.  The reason it has not
 *    been mentioned here is that I am lazy to write it all over
 *    the source code, especially since all this needs is SysBase.
 */
@@ -1308,12 +1314,12 @@ FindFrame( REGPARAM(d0,ULONG,seekid) )
 
 Prototype FRAME * ASM MakeFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *));
 
-FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,ExtBase) )
+FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     FRAME *f   = NULL;
     PIXINFO *p = NULL;
     DISPLAY *d = NULL;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     static ULONG id = 1;
 
     D(bug("MakeFrame( old = %08X )\n",old));
@@ -1329,7 +1335,7 @@ FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,Ex
         pfree(f); return NULL;
     }
 
-    if(!(d = AllocDisplay( ExtBase ) ) ) {
+    if(!(d = AllocDisplay( PPTBase ) ) ) {
         pfree(p); pfree(f); return NULL;
     }
 
@@ -1469,11 +1475,11 @@ FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,Ex
 
 Prototype PERROR ASM InitFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
-PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
+PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     PIXINFO *p = f->pix;
     DISPLAY *d = f->disp;
-    APTR SysBase = ExtBase->lb_Sys;
+    APTR SysBase = PPTBase->lb_Sys;
     BOOL sizechange = FALSE;
     D(APTR b);
 
@@ -1512,7 +1518,7 @@ PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBa
 
     if(p->vmh == NULL) {
         if( d && d->Win ) WindowBusy(d->Win);
-        if(SetBuffers( f, ExtBase ) != PERR_OK) {
+        if(SetBuffers( f, PPTBase ) != PERR_OK) {
             if( d && d->Win ) WindowReady(d->Win);
             D(bug("SetBuffers() failed!\n"));
             UNLOCK(f);
@@ -1615,7 +1621,7 @@ PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBa
 
 Prototype VOID ASM RemFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
-VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
+VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     D(bug("RemFrame( frame = %08X )\n",f));
 
@@ -1628,7 +1634,7 @@ VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase)
          */
 
         if( f->lastframe ) {
-            RemFrame( f->lastframe, ExtBase );
+            RemFrame( f->lastframe, PPTBase );
             f->lastframe = NULL;
         }
 
@@ -1637,7 +1643,7 @@ VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase)
          */
 
         if( f->mywin ) {
-            DeleteInfoWindow( f->mywin, ExtBase );
+            DeleteInfoWindow( f->mywin, PPTBase );
         }
 
         if(f->pix) {
@@ -1645,8 +1651,8 @@ VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase)
             if(CheckPtr(f->pix,"RemFrame(): Illegal PIXINFO pointer")) {
 
                 if(f->pix->vmh) {
-                    FreeBuffers( f, ExtBase );
-                    DeleteVMData( f->pix->vmh, ExtBase );
+                    FreeBuffers( f, PPTBase );
+                    DeleteVMData( f->pix->vmh, PPTBase );
                 }
 
 #ifdef TMPBUF_SUPPORTED
@@ -1662,7 +1668,7 @@ VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase)
         if(f->disp) {
 
             if(CheckPtr(f->disp,"RemFrame(): Illegal DISPLAY pointer")) {
-                FreeDisplay( f->disp, ExtBase );
+                FreeDisplay( f->disp, PPTBase );
             }
 
         }
@@ -1919,7 +1925,7 @@ FRAME * SAVEDS ASM NewFrame( REGPARAM(d0,ULONG,width), REGPARAM(d1,ULONG,height)
 Prototype FRAME * ASM CopyFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
 FRAME *SAVEDS ASM CopyFrame( REGPARAM(a0,FRAME *,source),
-                             REGPARAM(a6,EXTBASE *,ExtBase) )
+                             REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     FRAME *new = NULL;
     PIXINFO *sp = source->pix;
@@ -1928,17 +1934,17 @@ FRAME *SAVEDS ASM CopyFrame( REGPARAM(a0,FRAME *,source),
     D(bug("CopyFrame(%08X)\n",source));
 
     if( CheckPtr( source, "CopyFrame" ) ) {
-        if( new = MakeFrame( source, ExtBase) ) {
+        if( new = MakeFrame( source, PPTBase) ) {
 
-            MakeFrameName( NULL, new->name, NAMELEN-1, ExtBase );
+            MakeFrameName( NULL, new->name, NAMELEN-1, PPTBase );
 
-            if( InitFrame( new, ExtBase ) == PERR_OK ) {
+            if( InitFrame( new, PPTBase ) == PERR_OK ) {
                 if( PICSIZE(sp) > globals->userprefs->progress_filesize  )
                     copyflags |= CFDF_SHOWPROGRESS;
 
-                CopyFrameData( source, new, copyflags, ExtBase );
+                CopyFrameData( source, new, copyflags, PPTBase );
             } else {
-                RemFrame( new, ExtBase );
+                RemFrame( new, PPTBase );
                 new = NULL;
             }
         }
@@ -1992,7 +1998,7 @@ SAVEDS ASM
 BOOL AttachFrame( REGPARAM(a0,FRAME *,dst),
                   REGPARAM(a1,FRAME *,src),
                   REGPARAM(d0,ULONG, how),
-                  REGPARAM(a6,EXTBASE *,ExtBase) )
+                  REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     FRAME *cur, *next;
 
@@ -2113,7 +2119,7 @@ RemoveSimpleAttachments(REGPARAM(a0,FRAME *,frame) )
     Re-entrant.
 */
 Local
-PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
+PERROR SetBuffers( FRAME *frame, EXTBASE *PPTBase )
 {
     ULONG realsize, bufsize;
     PIXINFO *p = frame->pix;
@@ -2133,7 +2139,7 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 
     if( !p->vmh ) {
         D(bug("\tAllocating VM handle\n"));
-        if( !(p->vmh = AllocVMHandle( ExtBase ))) {
+        if( !(p->vmh = AllocVMHandle( PPTBase ))) {
             SetErrorCode( frame, PERR_OUTOFMEMORY );
             return PERR_OUTOFMEMORY;
         }
@@ -2150,7 +2156,7 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 
         if( NULL == p->vmh->data ) {
             SetErrorCode( frame, PERR_OUTOFMEMORY );
-            FreeVMHandle( p->vmh, ExtBase );
+            FreeVMHandle( p->vmh, PPTBase );
             p->vmh = NULL;
             return PERR_OUTOFMEMORY;
         }
@@ -2162,11 +2168,11 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 
     if( p->vm_mode == VMEM_ALWAYS ) {
         if( !p->vmh->vm_fh ) {
-            if(CreateVMData( p->vmh, realsize, ExtBase ) != PERR_OK ) {
+            if(CreateVMData( p->vmh, realsize, PPTBase ) != PERR_OK ) {
                 D(bug("\tCreateVMData() failed\n"));
                 SetErrorCode(frame,PERR_OUTOFMEMORY);
-                FreeBuffers( frame, ExtBase );
-                FreeVMHandle( p->vmh, ExtBase );
+                FreeBuffers( frame, PPTBase );
+                FreeVMHandle( p->vmh, PPTBase );
                 p->vmh = NULL;
                 return PERR_OUTOFMEMORY;
             }
@@ -2180,7 +2186,7 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 ///
 /// FreeBuffers()
 Local
-VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase )
+VOID FreeBuffers( FRAME *frame, EXTBASE *PPTBase )
 {
     PIXINFO *p = frame->pix;
 
@@ -2191,9 +2197,9 @@ VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase )
 }
 ///
 /// SetVMemMode()
-Prototype PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase );
+Prototype PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *PPTBase );
 
-PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase )
+PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *PPTBase )
 {
     VMHANDLE *vmh = frame->pix->vmh;
     PERROR res = PERR_OK;
@@ -2201,9 +2207,9 @@ PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase )
     frame->pix->vm_mode = mode;
 
     if( mode == VMEM_NEVER && vmh && vmh->vm_fh ) {
-        res = CloseVMFile( vmh, ExtBase );
+        res = CloseVMFile( vmh, PPTBase );
     } else if( mode == VMEM_ALWAYS && vmh && !vmh->vm_fh ) {
-        res = SetBuffers( frame, ExtBase );
+        res = SetBuffers( frame, PPTBase );
     }
     return res;
 }

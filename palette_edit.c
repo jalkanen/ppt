@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : palette.c
 
-    $Id: palette_edit.c,v 1.10 1999/03/14 20:58:40 jj Exp $
+    $Id: palette_edit.c,v 1.11 1999/10/02 16:33:07 jj Exp $
 
     Palette selector and editor.
 */
@@ -193,10 +193,10 @@ VOID DoLoadPalette( FRAME *frame )
     Returns number of colors read (0 for error)
  */
 
-LONG LoadPalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
+LONG LoadPalette( FRAME *frame, UBYTE *name, EXTBASE *PPTBase )
 {
     BPTR fh;
-    APTR DOSBase = ExtBase->lb_DOS, SysBase = ExtBase->lb_Sys;
+    APTR DOSBase = PPTBase->lb_DOS, SysBase = PPTBase->lb_Sys;
     struct Library *IFFParseBase;
     COLORMAP *cmap = frame->disp->colortable;
     struct IFFHandle *iff;
@@ -239,7 +239,7 @@ LONG LoadPalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
 
                     nColors = cn->cn_Size / 3;
 
-                    InitProgress( frame, XGetStr(mLOADING_PALETTE), 0, nColors, ExtBase );
+                    InitProgress( frame, XGetStr(mLOADING_PALETTE), 0, nColors, PPTBase );
                     D(bug("\tReading %d colors...\n",nColors));
 
                     /* BUG: SHould check if the color amount is consistent */
@@ -262,7 +262,7 @@ LONG LoadPalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
                         }
                     }
 
-                    FinishProgress( frame, ExtBase );
+                    FinishProgress( frame, PPTBase );
 
 errorexit:
                     ;
@@ -301,10 +301,10 @@ errorexit:
     Save an IFF palette onto the disk.
 */
 
-PERROR SavePalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
+PERROR SavePalette( FRAME *frame, UBYTE *name, EXTBASE *PPTBase )
 {
     BPTR fh;
-    APTR DOSBase = ExtBase->lb_DOS, SysBase = ExtBase->lb_Sys;
+    APTR DOSBase = PPTBase->lb_DOS, SysBase = PPTBase->lb_Sys;
     struct Library *IFFParseBase;
     COLORMAP *cmap = frame->disp->colortable;
     PERROR res = PERR_OK;
@@ -332,7 +332,7 @@ PERROR SavePalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
 
                 nColors = frame->disp->ncolors;
 
-                InitProgress( frame, XGetStr(mSAVING_PALETTE), 0, nColors, ExtBase );
+                InitProgress( frame, XGetStr(mSAVING_PALETTE), 0, nColors, PPTBase );
 
                 if( (error = PushChunk( iff, ID_ILBM, ID_FORM, IFFSIZE_UNKNOWN )) == 0 ) {
 
@@ -360,7 +360,7 @@ PERROR SavePalette( FRAME *frame, UBYTE *name, EXTBASE *ExtBase )
                             res = PERR_FILEWRITE;
                         }
 
-                        FinishProgress( frame, ExtBase );
+                        FinishProgress( frame, PPTBase );
                     }
                     PopChunk( iff ); /* FORM */
                 }

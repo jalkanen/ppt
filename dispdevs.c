@@ -1,5 +1,5 @@
 /*
-    $Id: dispdevs.c,v 1.19 1999/08/01 16:45:19 jj Exp $
+    $Id: dispdevs.c,v 1.20 1999/10/02 16:33:07 jj Exp $
 
     Has code for different display devices.
 
@@ -67,7 +67,7 @@ struct BitMapObject {
 */
 VOID BMS_DestroyTempRp( struct RenderObject *rdo )
 {
-    struct GfxBase *GfxBase = rdo->ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = rdo->PPTBase->lb_Gfx;
     int i;
     struct BitMapObject *bmo = (struct BitMapObject *)rdo->DispDeviceObject;
     struct RastPort *temprp = bmo->temprp;
@@ -104,7 +104,7 @@ VOID BMS_DestroyTempRp( struct RenderObject *rdo )
 
 PERROR BMS_GetTempRp( struct RenderObject *rdo )
 {
-    struct GfxBase *GfxBase = rdo->ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = rdo->PPTBase->lb_Gfx;
     PERROR res = PERR_OK;
     struct RastPort *temprp, *dest;
     struct BitMap *tempbm;
@@ -177,7 +177,7 @@ PERROR BMS_GetTempRp( struct RenderObject *rdo )
 PERROR Device_BitMappedScreenClose( struct RenderObject *rdo )
 {
     PERROR res = PERR_OK;
-    APTR IntuitionBase = rdo->ExtBase->lb_Intuition;
+    APTR IntuitionBase = rdo->PPTBase->lb_Intuition;
     struct BitMapObject *bmo = (struct BitMapObject *)rdo->DispDeviceObject;
 
     D(bug("BitMapScreenClose(%08X)\n",rdo));
@@ -229,7 +229,7 @@ PERROR Device_BitMappedScreenClose( struct RenderObject *rdo )
 
 PERROR Device_BitMappedScreenOpen( struct RenderObject *rdo )
 {
-    struct IntuitionBase *IntuitionBase = rdo->ExtBase->lb_Intuition;
+    struct IntuitionBase *IntuitionBase = rdo->PPTBase->lb_Intuition;
     struct Screen *scr;
     struct Window *win;
     FRAME *     frame = rdo->frame;
@@ -377,7 +377,7 @@ PERROR Device_BitMappedScreenWrite( struct RenderObject *rdo, WORD row )
 {
     FRAME *frame = rdo->frame;
     struct BitMapObject *bmo = (struct BitMapObject *)rdo->DispDeviceObject;
-    APTR GfxBase = rdo->ExtBase->lb_Gfx;
+    APTR GfxBase = rdo->PPTBase->lb_Gfx;
 
     // D(bug("BitMapScreenWrite()\n"));
 
@@ -439,7 +439,7 @@ PERROR Device_BitMappedScreenLoadCMap( struct RenderObject *rdo, COLORMAP *color
         vPort   = &(bmo->scr->ViewPort);
         nColors = rdo->ncolors;
 
-        LoadRGB8( vPort, colortable, nColors, rdo->ExtBase );
+        LoadRGB8( vPort, colortable, nColors, rdo->PPTBase );
     }
 
     return PERR_OK;
@@ -451,7 +451,7 @@ PERROR Device_BitMappedScreenLoadCMap( struct RenderObject *rdo, COLORMAP *color
 Local
 PERROR Device_BitMappedScreenActivate( struct RenderObject *rdo )
 {
-    APTR IntuitionBase = rdo->ExtBase->lb_Intuition;
+    APTR IntuitionBase = rdo->PPTBase->lb_Intuition;
     struct BitMapObject *bmo = (struct BitMapObject *)rdo->DispDeviceObject;
 
     if(bmo->scr) ScreenToFront( bmo->scr );
@@ -600,7 +600,7 @@ PLANEPTR Device_BitMappedScreenGetRow( struct RenderObject *rdo, UWORD row, UWOR
 UBYTE *Device_BitMappedScreenRead( struct RenderObject *rdo, UWORD row )
 {
     struct BitMapObject *bmo = (struct BitMapObject *)rdo->DispDeviceObject;
-    struct GfxBase *GfxBase = rdo->ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = rdo->PPTBase->lb_Gfx;
 
     D(bug("Device_BitmappedScreenRead( %08X, row=%d )\n",rdo, row));
 

@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 4.2 1998/09/05 11:32:13 jj Exp $
+    $Id: vm.c,v 4.3 1999/10/02 16:34:37 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -61,7 +61,7 @@
 
 Prototype VMHANDLE *AllocVMHandle(EXTBASE *);
 
-VMHANDLE *AllocVMHandle(EXTBASE *ExtBase)
+VMHANDLE *AllocVMHandle(EXTBASE *PPTBase)
 {
     VMHANDLE *vmh;
 
@@ -81,7 +81,7 @@ VMHANDLE *AllocVMHandle(EXTBASE *ExtBase)
 
 Prototype VOID FreeVMHandle( VMHANDLE *vmh, EXTBASE * );
 
-VOID FreeVMHandle( VMHANDLE *vmh, EXTBASE *ExtBase )
+VOID FreeVMHandle( VMHANDLE *vmh, EXTBASE *PPTBase )
 {
     if( vmh ) sfree(vmh);
 }
@@ -220,12 +220,12 @@ PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
 
 Prototype PERROR CreateVMData( VMHANDLE *, const ULONG, EXTBASE * );
 
-PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *ExtBase )
+PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *PPTBase )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
-    struct Library *UtilityBase = ExtBase->lb_Utility;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
+    struct Library *UtilityBase = PPTBase->lb_Utility;
     BOOL tmp_name_ok = FALSE;
     static ULONG id = 0;
     ULONG siz = size;
@@ -292,7 +292,7 @@ PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *ExtBase )
 
     if(SetFileSize(fh,size,OFFSET_BEGINNING ) == -1) {
         D(bug("\tSetFileSize() failed!\n"));
-        DeleteVMData( vmh, ExtBase );
+        DeleteVMData( vmh, PPTBase );
         XReq( NEGNUL, NULL, XGetStr(mVM_CANNOT_CREATE_FILE),size);
         return PERR_OUTOFMEMORY;
     }
@@ -304,12 +304,12 @@ PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *ExtBase )
 }
 
 
-Prototype PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *ExtBase );
+Prototype PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *PPTBase );
 
-PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *ExtBase )
+PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *PPTBase )
 {
     char vmfile[MAXPATHLEN],t[30];
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
 
     if( vmh->vm_fh ) {
         strcpy(vmfile,globals->userprefs->vmdir);
@@ -337,14 +337,14 @@ PERROR CloseVMFile( VMHANDLE *vmh, EXTBASE *ExtBase )
 
 Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
 
-PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
+PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *PPTBase )
 {
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
 
     D(bug("DeleteVMData()\n"));
 
-    CloseVMFile( vmh, ExtBase );
-    FreeVMHandle(vmh, ExtBase);
+    CloseVMFile( vmh, PPTBase );
+    FreeVMHandle(vmh, PPTBase);
 
     D(bug("Done!\n"));
 
@@ -363,9 +363,9 @@ PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 
 Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
 
-PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
+PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *PPTBase )
 {
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     ULONG size = vmh->last;
 
     V(bug("SanitizeVMData()\n"));
@@ -378,7 +378,7 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
         Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
         vmh->begin = 0;
         vmh->end   = size;
-        LoadVMData( vmh, 0L, ExtBase );
+        LoadVMData( vmh, 0L, PPTBase );
     }
 
     return PERR_OK;
@@ -386,9 +386,9 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 
 Prototype PERROR    CleanVMDirectory( EXTBASE * );
 
-PERROR CleanVMDirectory( EXTBASE *ExtBase )
+PERROR CleanVMDirectory( EXTBASE *PPTBase )
 {
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     struct TagItem tags[] = {
         SYS_Input,  0L,
         SYS_Output, 0L,

@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : RenderAreaClass.c
 
-    $Id: renderareaclass.c,v 1.1 1997/08/31 22:26:44 jj Exp $
+    $Id: renderareaclass.c,v 1.2 1999/10/02 16:33:07 jj Exp $
 */
 
 #include "defs.h"
@@ -42,7 +42,7 @@ Class *RenderAreaClass = NULL;
  */
 
 typedef struct {
-    EXTBASE *ExtBase;
+    EXTBASE *PPTBase;
     FRAME   *frame;
 } AOD;
 
@@ -100,13 +100,13 @@ SAVEDS ASM ULONG RenderAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG
                 tstate = OPSET( msg )->ops_AttrList;
 
                 data->frame = NULL;
-                data->ExtBase = (EXTBASE *)GetTagData( RAC_ExtBase, NULL, tstate);
+                data->PPTBase = (EXTBASE *)GetTagData( RAC_ExtBase, NULL, tstate);
 
                 /*
                  *  If no extbase has been defined, we'll die.
                  */
 
-                if(!data->ExtBase) {
+                if(!data->PPTBase) {
                      CoerceMethod( cl, ( Object * )rc, OM_DISPOSE );
                      CloseLibrary(UtilityBase);
                      return NULL;
@@ -166,7 +166,7 @@ SAVEDS ASM ULONG RenderAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG
                        ibox->Height, ibox->Width ));
                 QuickRender( data->frame, GPRENDER(msg)->gpr_RPort,
                              ibox->Top, ibox->Left,
-                             ibox->Height, ibox->Width, data->ExtBase );
+                             ibox->Height, ibox->Width, data->PPTBase );
             }
             break;
 #endif

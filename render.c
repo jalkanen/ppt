@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.30 1999/03/14 20:59:08 jj Exp $
+   $Id: render.c,v 1.31 1999/10/02 16:33:07 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -153,13 +153,13 @@ VOID QuickRenderExit(VOID)
    From 24bit RGB format to grayscale preview window.
  */
 
-ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
+ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
     ULONG res = 0;
     struct IBox *zb = &(source->zoombox);
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     UBYTE *pixelrow = qra->pixelrow;
     int dm = dith_dim - 1;
 
@@ -173,7 +173,7 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
         WORD col;
 
         m = dith_mat[row & dm];
-        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
 #ifdef FAST_QUICKMAP
@@ -229,7 +229,7 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
    From 32bit ARGB format to grayscale preview window.
  */
 
-ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
@@ -237,7 +237,7 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     struct IBox *zb = &(source->zoombox);
     UBYTE *pixelrow = qra->pixelrow;
     UBYTE QuickAlphaTable[2];
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
@@ -253,7 +253,7 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         int *m;
 
         m = dith_mat[row&dm];
-        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
         for (col = 0; col < qra->winwidth; col++) {
@@ -299,7 +299,7 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 /*
    From 8bit Graylevel format to grayscale preview window
  */
-ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row;
     ULONG res = 0;
@@ -308,7 +308,7 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     WORD srcwidth, srcheight;
     UBYTE *pixelrow = qra->pixelrow;
     struct IBox *zb = &(source->zoombox);
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     int dm = dith_dim-1;
 
     srcwidth = source->pix->width;
@@ -321,7 +321,7 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         WORD col;
         int *m;
 
-        cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, PPTBase);
         m = dith_mat[row&dm];
 
         for (col = 0; col < winwidth; col++) {
@@ -363,14 +363,14 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 #define LEVELS(s)     (dith_dm2 * ((s) - 1) + 1)
 
 /// QuickRender_RGB_Color()
-ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
     ULONG res = 0;
     struct IBox *zb = &(source->zoombox);
     UBYTE *pixelrow = qra->pixelrow;
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
@@ -382,7 +382,7 @@ ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         WORD col;
         int *m;
 
-        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
         m = dith_mat[row & dm];
@@ -420,7 +420,7 @@ ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 }
 ///
 /// QuickRender_ARGB_Color()
-ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
@@ -428,7 +428,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     struct IBox *zb = &(source->zoombox);
     UBYTE *pixelrow = qra->pixelrow;
     UBYTE QuickAlphaTable[2];
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
@@ -443,7 +443,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         WORD col;
         int *m;
 
-        cp = (ARGBPixel *) GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = (ARGBPixel *) GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
         m = dith_mat[row & dm];
@@ -500,7 +500,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
  *       to provide the gray scale map.
  */
 
-ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row;
     ULONG res = 0;
@@ -509,7 +509,7 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     WORD srcwidth, srcheight;
     UBYTE *pixelrow = qra->pixelrow;
     struct IBox *zb = &(source->zoombox);
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
@@ -522,7 +522,7 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         WORD col;
         int *m;
 
-        cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, PPTBase);
         m = dith_mat[row & dm];
 
         for (col = 0; col < winwidth; col++) {
@@ -556,12 +556,12 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
  *  Deep screen system.
  */
 
-ULONG QuickRender_RGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_RGB_Deep(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
     ULONG res = 0;
-    struct Library *CyberGfxBase = ExtBase->lb_CyberGfx;
+    struct Library *CyberGfxBase = PPTBase->lb_CyberGfx;
     struct IBox *zb = &(source->zoombox);
 
     srcwidth = source->pix->width;
@@ -571,7 +571,7 @@ ULONG QuickRender_RGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < qra->winheight; row++) {
         ROWPTR cp;
 
-        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         ScalePixelArray(cp + zb->Left * 3, zb->Width, 1, zb->Width * 3, qra->dest, qra->left,
                         row + qra->top, qra->winwidth, 1, RECTFMT_RGB);
     }                           /* for */
@@ -582,13 +582,13 @@ ULONG QuickRender_RGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 }
 ///
 /// QuickRender_ARGB_Deep()
-ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
     ULONG res = 0;
     struct IBox *zb = &(source->zoombox);
-    struct Library *CyberGfxBase = ExtBase->lb_CyberGfx;
+    struct Library *CyberGfxBase = PPTBase->lb_CyberGfx;
     RGBPixel *pixelrow = (RGBPixel *)qra->pixelrow;
 
     srcwidth = source->pix->width;
@@ -599,7 +599,7 @@ ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         ARGBPixel *cp;
         WORD col;
 
-        cp = (ARGBPixel *)GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = (ARGBPixel *)GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
 
         /* Write to display */
 #if 0
@@ -639,14 +639,14 @@ ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 }
 ///
 /// QuickRender_Gray_Deep()
-ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
+ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * PPTBase)
 {
     WORD row, srcwidth, srcheight;
     FRAME *source = qra->source;
     ULONG res = 0;
     struct IBox *zb = &(source->zoombox);
     UBYTE *pixelrow = qra->pixelrow;
-    struct Library *CyberGfxBase = ExtBase->lb_CyberGfx;
+    struct Library *CyberGfxBase = PPTBase->lb_CyberGfx;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -656,7 +656,7 @@ ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
         ROWPTR cp;
         WORD col;
 
-        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
+        cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, PPTBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
         for (col = 0; col < qra->winwidth; col++) {
@@ -691,7 +691,7 @@ ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 
 PERROR QuickRender(FRAME * source, struct RastPort * dest,
                    UWORD top, UWORD left, UWORD winheight, UWORD winwidth,
-                   EXTBASE * ExtBase)
+                   EXTBASE * PPTBase)
 {
     UBYTE *pixelrow = NULL, colorspace = source->pix->colorspace;
     int i;
@@ -700,13 +700,13 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
     PERROR res = PERR_OK;
     struct QuickRenderArgs qra;
     UWORD destdepth;
-    struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    struct GfxBase *GfxBase = PPTBase->lb_Gfx;
     D(APTR bt);
 
     LOCK(source);
 
     if (colorspace != CS_RGB && colorspace != CS_GRAYLEVEL && colorspace != CS_ARGB) {
-        ShowText(source, "Unknown colorspace", ExtBase);
+        ShowText(source, "Unknown colorspace", PPTBase);
         UNLOCK(source);
         return PERR_UNKNOWNTYPE;
     }
@@ -727,7 +727,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
             temprp.BitMap = AllocBitMap(winwidth, 1, destdepth, 0L, dest->BitMap);
             if (!temprp.BitMap) {
                 D(bug("ERROR: Failed to allocate bitmaps!\n"));
-                ShowText(source, "Memory error", ExtBase);
+                ShowText(source, "Memory error", PPTBase);
                 goto quit;
             }
         } else {
@@ -743,7 +743,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
             tempbm.Planes[i] = AllocRaster(winwidth, 1);
             if (!tempbm.Planes[i]) {
                 D(bug("ERROR: Failed to allocate bitmap plane %d!\n", i));
-                ShowText(source, "Memory error", ExtBase);
+                ShowText(source, "Memory error", PPTBase);
                 goto quit;
             }
         }
@@ -752,7 +752,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
     pixelrow = pmalloc(4 * (((winwidth + 15) >> 4) << 4));
     if (!pixelrow) {
         D(bug("ERROR: Failed to allocate pixelrow!\n"));
-        ShowText(source, "Memory error", ExtBase);
+        ShowText(source, "Memory error", PPTBase);
         goto quit;
     }
     qra.dest = dest;
@@ -781,13 +781,13 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
     if (destdepth > 8) {
         switch (colorspace) {
         case CS_RGB:
-            res = QuickRender_RGB_Deep(&qra, ExtBase);
+            res = QuickRender_RGB_Deep(&qra, PPTBase);
             break;
         case CS_ARGB:
-            res = QuickRender_ARGB_Deep(&qra, ExtBase);
+            res = QuickRender_ARGB_Deep(&qra, PPTBase);
             break;
         case CS_GRAYLEVEL:
-            res = QuickRender_Gray_Deep(&qra, ExtBase);
+            res = QuickRender_Gray_Deep(&qra, PPTBase);
             break;
         default:
             InternalError("Not yet supported");
@@ -796,25 +796,25 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
         if (globals->userprefs->colorpreview) {
             switch (colorspace) {
             case CS_RGB:
-                res = QuickRender_RGB_Color(&qra, ExtBase);
+                res = QuickRender_RGB_Color(&qra, PPTBase);
                 break;
             case CS_GRAYLEVEL:
-                res = QuickRender_Gray_Color(&qra, ExtBase);
+                res = QuickRender_Gray_Color(&qra, PPTBase);
                 break;
             case CS_ARGB:
-                res = QuickRender_ARGB_Color(&qra, ExtBase);
+                res = QuickRender_ARGB_Color(&qra, PPTBase);
                 break;
             }
         } else {
             switch (colorspace) {
             case CS_RGB:
-                res = QuickRender_RGB_Gray(&qra, ExtBase);
+                res = QuickRender_RGB_Gray(&qra, PPTBase);
                 break;
             case CS_GRAYLEVEL:
-                res = QuickRender_Gray_Gray(&qra, ExtBase);
+                res = QuickRender_Gray_Gray(&qra, PPTBase);
                 break;
             case CS_ARGB:
-                res = QuickRender_ARGB_Gray(&qra, ExtBase);
+                res = QuickRender_ARGB_Gray(&qra, PPTBase);
                 break;
             }
         }

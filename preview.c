@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 6.0 1999/09/06 21:17:04 jj Exp $
+    $Id: preview.c,v 6.1 1999/10/02 16:33:07 jj Exp $
 */
 
 #include "defs.h"
@@ -93,11 +93,11 @@ PERROR DoPreview( FRAME *frame )
     BUG: Redraws false stuff
  */
 
-Prototype VOID RedrawPreview( FRAME *pwframe, EXTBASE *ExtBase );
+Prototype VOID RedrawPreview( FRAME *pwframe, EXTBASE *PPTBase );
 
-VOID RedrawPreview( FRAME *pwframe, EXTBASE *ExtBase )
+VOID RedrawPreview( FRAME *pwframe, EXTBASE *PPTBase )
 {
-    D(bug("RedrawPreview( %08X, xb=%08X )\n",pwframe, ExtBase ));
+    D(bug("RedrawPreview( %08X, xb=%08X )\n",pwframe, PPTBase ));
 
     if( pwframe->preview.pf_Hook ) {
         CallHook( pwframe->preview.pf_Hook, (Object *)pwframe, ~0 );
@@ -110,7 +110,7 @@ VOID RedrawPreview( FRAME *pwframe, EXTBASE *ExtBase )
         GetAttr(AREA_AreaBox, pwframe->preview.pf_RenderArea, (ULONG *)&ibox );
         QuickRender( pwframe, pwframe->preview.pf_win->RPort,
                      ibox->Top, ibox->Left,
-                     ibox->Height, ibox->Width, ExtBase );
+                     ibox->Height, ibox->Width, PPTBase );
 
 #if 0
         DoMethod( pwframe->parent->disp->Win, WM_REPORT_ID, GID_DW_AREA,
@@ -119,11 +119,11 @@ VOID RedrawPreview( FRAME *pwframe, EXTBASE *ExtBase )
     }
 }
 
-Prototype VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *ExtBase );
+Prototype VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *PPTBase );
 
-VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *ExtBase )
+VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *PPTBase )
 {
-    D(bug("RedrawPreviewRow( %08X, xb=%08X )\n",pwframe, ExtBase ));
+    D(bug("RedrawPreviewRow( %08X, xb=%08X )\n",pwframe, PPTBase ));
 
     if( pwframe->preview.pf_Hook ) {
         // BUG: Not the proper msg
@@ -134,7 +134,7 @@ VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *ExtBase )
         GetAttr(AREA_AreaBox, pwframe->preview.pf_RenderArea, (ULONG *)&ibox );
         QuickRender( pwframe, pwframe->preview.pf_win->RPort,
                      ibox->Top, ibox->Left,
-                     ibox->Height, ibox->Width, ExtBase );
+                     ibox->Height, ibox->Width, PPTBase );
 #if 0
         /*
          *  Send message to the main window
@@ -157,7 +157,7 @@ VOID RedrawPreviewRow( FRAME *pwframe, ULONG row, EXTBASE *ExtBase )
 SAVEDS ASM
 PERROR ScaleFrame( REG(a0) FRAME *src, REG(a1) FRAME *dst,
                    REG(d0) ULONG opts,
-                   REG(a6) EXTBASE *ExtBase )
+                   REG(a6) EXTBASE *PPTBase )
 {
     WORD row, col;
     WORD orow, ocol;
@@ -172,8 +172,8 @@ PERROR ScaleFrame( REG(a0) FRAME *src, REG(a1) FRAME *dst,
 
         orow = row * src->pix->height / dst->pix->height;
 
-        cp = GetPixelRow(src, orow, ExtBase);
-        dcp = GetPixelRow(dst,row, ExtBase);
+        cp = GetPixelRow(src, orow, PPTBase);
+        dcp = GetPixelRow(dst,row, PPTBase);
 
         if( !cp || !dcp ) {
             SetErrorCode( src, PERR_NOTINIMAGE );
@@ -190,7 +190,7 @@ PERROR ScaleFrame( REG(a0) FRAME *src, REG(a1) FRAME *dst,
             }
         }
 
-        PutPixelRow( dst, row, dcp, ExtBase );
+        PutPixelRow( dst, row, dcp, PPTBase );
     }
 
     return PERR_OK;
@@ -253,10 +253,10 @@ Prototype FRAME * ASM ObtainPreviewFrameA( REG(a0) FRAME *,REG(a1) struct TagIte
 SAVEDS ASM
 FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
                             REG(a1) struct TagItem *tags,
-                            REG(a6) EXTBASE *ExtBase )
+                            REG(a6) EXTBASE *PPTBase )
 {
     FRAME *pwframe, *tmpframe;
-    struct Library *UtilityBase = ExtBase->lb_Utility;
+    struct Library *UtilityBase = PPTBase->lb_Utility;
     WORD pw = globals->userprefs->previewwidth,
          ph = globals->userprefs->previewheight;
 
@@ -268,7 +268,7 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
     if( ph <= 0 || pw <= 0 || globals->userprefs->previewmode == PWMODE_OFF )
         return NULL; /* Previews are disabled or broken */
 
-    if(pwframe = MakeFrame( frame->parent ? frame->parent : frame, ExtBase )) {
+    if(pwframe = MakeFrame( frame->parent ? frame->parent : frame, PPTBase )) {
 
         /*
          *  Set up the preview frame to be a bit smaller than
@@ -295,10 +295,10 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
 
         pwframe->preview.pf_IsPreview = TRUE;
 
-        SetVMemMode( pwframe, VMEM_NEVER, ExtBase );
+        SetVMemMode( pwframe, VMEM_NEVER, PPTBase );
 
-        if( InitFrame( pwframe, ExtBase ) == PERR_OK ) {
-            if(ScaleFrame( frame, pwframe, 0L, ExtBase ) == PERR_OK ) {
+        if( InitFrame( pwframe, PPTBase ) == PERR_OK ) {
+            if(ScaleFrame( frame, pwframe, 0L, PPTBase ) == PERR_OK ) {
                 struct Hook *hook;
                 struct PPTMessage *pmsg;
 
@@ -306,7 +306,7 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
                  *  Make a copy to the tmpframe
                  */
 
-                if(tmpframe = DupFrame( pwframe, DFF_COPYDATA, ExtBase )) {
+                if(tmpframe = DupFrame( pwframe, DFF_COPYDATA, PPTBase )) {
 
                     /*
                      *  Calculate the new selbox size and save it.
@@ -345,26 +345,26 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
 
                     UNLOCK(frame);
 
-                    pmsg        = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+                    pmsg        = AllocPPTMsg( sizeof(struct PPTMessage), PPTBase );
                     pmsg->code  = PPTMSG_START_PREVIEW;
                     if( frame->parent )
                         pmsg->frame = frame->parent;
                     else
                         pmsg->frame = frame;
 
-                    SendPPTMsg( globxd->mport, pmsg, ExtBase );
+                    SendPPTMsg( globxd->mport, pmsg, PPTBase );
 
-                    WaitForReply( PPTMSG_START_PREVIEW, ExtBase );
+                    WaitForReply( PPTMSG_START_PREVIEW, PPTBase );
                 } else {
-                    RemFrame( pwframe, ExtBase );
+                    RemFrame( pwframe, PPTBase );
                     pwframe = NULL;
                 }
             } else {
-                RemFrame(pwframe, ExtBase);
+                RemFrame(pwframe, PPTBase);
                 pwframe = NULL;
             }
         } else {
-            RemFrame(pwframe, ExtBase);
+            RemFrame(pwframe, PPTBase);
             pwframe = NULL;
         }
     }
@@ -415,7 +415,7 @@ Prototype VOID ASM ReleasePreviewFrame( REG(a0) FRAME *, REG(a6) EXTBASE *);
 
 SAVEDS ASM
 VOID ReleasePreviewFrame( REG(a0) FRAME *pwframe,
-                          REG(a6) EXTBASE *ExtBase )
+                          REG(a6) EXTBASE *PPTBase )
 {
     FRAME *frame;
     struct PPTMessage *pmsg;
@@ -428,21 +428,21 @@ VOID ReleasePreviewFrame( REG(a0) FRAME *pwframe,
 
     if( !CheckPtr(frame,"ReleasePreviewFrame(): parent frame")) return;
 
-    pmsg         = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+    pmsg         = AllocPPTMsg( sizeof(struct PPTMessage), PPTBase );
     pmsg->code   = PPTMSG_STOP_PREVIEW;
     if( frame->parent )
         pmsg->frame  = frame->parent;
     else
         pmsg->frame  = frame;
 
-    SendPPTMsg( globxd->mport, pmsg, ExtBase );
+    SendPPTMsg( globxd->mport, pmsg, PPTBase );
 
-    WaitForReply( PPTMSG_STOP_PREVIEW, ExtBase );
+    WaitForReply( PPTMSG_STOP_PREVIEW, PPTBase );
 
     LOCK(pwframe);
-    RemFrame( pwframe, ExtBase );
+    RemFrame( pwframe, PPTBase );
     LOCK(frame->preview.pf_TempFrame);
-    RemFrame( frame->preview.pf_TempFrame, ExtBase );
+    RemFrame( frame->preview.pf_TempFrame, PPTBase );
 
     LOCK(frame);
     frame->preview.pf_Hook  = NULL;
@@ -503,11 +503,11 @@ PERROR RenderFrame( REG(a0) FRAME *frame,
                     REG(a1) struct RastPort *rport,
                     REG(a2) struct IBox *loc,
                     REG(d0) ULONG flags,
-                    REG(a6) EXTBASE *ExtBase )
+                    REG(a6) EXTBASE *PPTBase )
 {
     D(bug("QuickRender( %08X, rp=%08X, Top=%d, Left=%d, Ht=%d, Wt=%d )\n",
            frame, rport, loc->Top, loc->Left, loc->Height, loc->Width ));
-    return QuickRender( frame, rport, loc->Top, loc->Left, loc->Height, loc->Width, ExtBase );
+    return QuickRender( frame, rport, loc->Top, loc->Left, loc->Height, loc->Width, PPTBase );
 }
 
 /*

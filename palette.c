@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : palette.c
 
-    $Id: palette.c,v 1.12 1997/12/06 22:52:36 jj Exp $
+    $Id: palette.c,v 1.13 1999/10/02 16:33:07 jj Exp $
 
     Palette selection routines.
 */
@@ -69,7 +69,7 @@ PERROR HAM_Histograms( struct RenderObject *rdo )
     WORD row, col;
     FRAME *frame = rdo->frame;
     int cspace = frame->pix->colorspace;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
 
     D(bug("HAM_Histograms()\n"));
 
@@ -78,18 +78,18 @@ PERROR HAM_Histograms( struct RenderObject *rdo )
 
         buffer = rdo->histograms;
 
-        InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS), 0, frame->pix->height, ExtBase );
+        InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS), 0, frame->pix->height, PPTBase );
 
         for( row = 0; row < frame->pix->height; row++ ) {
             int r,g,b;
             ROWPTR cp, dcp;
 
-            if( Progress( frame, row, ExtBase ) ) {
+            if( Progress( frame, row, PPTBase ) ) {
                 res = PERR_BREAK;
                 break;
             }
 
-            dcp = cp = GetPixelRow( frame, row, ExtBase );
+            dcp = cp = GetPixelRow( frame, row, PPTBase );
 
             r = 0; g = 0; b = 0; /* BUG: Not so, should use background? */
 
@@ -137,7 +137,7 @@ PERROR HAM_Histograms( struct RenderObject *rdo )
             }
         }
 
-        if( res == PERR_OK ) FinishProgress( frame, ExtBase );
+        if( res == PERR_OK ) FinishProgress( frame, PPTBase );
 
     }
 
@@ -159,7 +159,7 @@ PERROR EHB_Histograms( struct RenderObject *rdo )
     WORD row, col;
     FRAME *frame = rdo->frame;
     int cspace = frame->pix->colorspace;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
 
     D(bug("EHB_Histograms()\n"));
 
@@ -168,18 +168,18 @@ PERROR EHB_Histograms( struct RenderObject *rdo )
 
         buffer = rdo->histograms;
 
-        InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS), 0, frame->pix->height, ExtBase );
+        InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS), 0, frame->pix->height, PPTBase );
 
         for( row = 0; row < frame->pix->height; row++ ) {
             int r,g,b;
             ROWPTR cp, dcp;
 
-            if( Progress( frame, row, ExtBase ) ) {
+            if( Progress( frame, row, PPTBase ) ) {
                 res = PERR_BREAK;
                 break;
             }
 
-            dcp = cp = GetPixelRow( frame, row, ExtBase );
+            dcp = cp = GetPixelRow( frame, row, PPTBase );
 
             for( col = 0; col < frame->pix->width; col++ ) {
                 long dist;
@@ -211,7 +211,7 @@ PERROR EHB_Histograms( struct RenderObject *rdo )
             }
         }
 
-        if( res == PERR_OK ) FinishProgress( frame, ExtBase );
+        if( res == PERR_OK ) FinishProgress( frame, PPTBase );
 
     }
 
@@ -224,12 +224,12 @@ PERROR BuildSimpleHistograms( struct RenderObject *rdo, color_type which )
     FRAME *source = rdo->frame;
     HGRAM *buffer;
     WORD row,comps = source->pix->components;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
     PERROR res = PERR_OK;
 
     D(bug("Build simple histograms for color %d",which));
 
-    InitProgress( source, XGetStr(MSG_BUILDING_HISTOGRAMS),0,source->pix->height, ExtBase );
+    InitProgress( source, XGetStr(MSG_BUILDING_HISTOGRAMS),0,source->pix->height, PPTBase );
     buffer = pzmalloc( 256 * sizeof(HGRAM) );
     if(!buffer) {
         D(bug("\tUnable to allocate histogram space!\n"));
@@ -239,12 +239,12 @@ PERROR BuildSimpleHistograms( struct RenderObject *rdo, color_type which )
     for( row = 0; row < source->pix->height; row++) {
         ROWPTR buf;
         WORD col;
-        if(Progress(source,row,ExtBase)) {
+        if(Progress(source,row,PPTBase)) {
             res = PERR_BREAK;
             goto errorexit;
         }
 
-        buf = GetPixelRow( source, row, ExtBase );
+        buf = GetPixelRow( source, row, PPTBase );
         for(col = 0; col < source->pix->width; col++) {
             UBYTE val;
             val = buf[MULU16(col,comps) + which];
@@ -252,7 +252,7 @@ PERROR BuildSimpleHistograms( struct RenderObject *rdo, color_type which )
                 buffer[val] = (HGRAM)~0;
         }
     }
-    FinishProgress(source,ExtBase);
+    FinishProgress(source,PPTBase);
 
 errorexit:
 
@@ -277,9 +277,9 @@ PERROR MakeHistograms( struct RenderObject *rdo )
     UWORD row, col;
     FRAME *frame = rdo->frame;
     PERROR res = PERR_OK;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
 
-    InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS),0,frame->pix->height, ExtBase );
+    InitProgress( frame, XGetStr(MSG_BUILDING_HISTOGRAMS),0,frame->pix->height, PPTBase );
 
     if( frame->disp->renderq == RENDER_HAM6 ||
         frame->disp->renderq == RENDER_HAM8 )
@@ -302,12 +302,12 @@ PERROR MakeHistograms( struct RenderObject *rdo )
 
         for(row = 0; row < frame->pix->height; row++) {
 
-            if(Progress(frame,row,ExtBase)) {
+            if(Progress(frame,row,PPTBase)) {
                 res = PERR_BREAK;
                 goto errorexit;
             }
 
-            buf = GetPixelRow( frame, row, ExtBase );
+            buf = GetPixelRow( frame, row, PPTBase );
             cc = 0;
             for( col = 0; col < frame->pix->width; col++) {
                 UBYTE r,g,b;
@@ -321,7 +321,7 @@ PERROR MakeHistograms( struct RenderObject *rdo )
                     buffer[HADDR(r,g,b)] = (HGRAM)~0;
             }
         }
-        FinishProgress( frame, ExtBase );
+        FinishProgress( frame, PPTBase );
 
     } else { /* GRAY */
         res = BuildSimpleHistograms(rdo, GRAY);
@@ -359,7 +359,7 @@ PERROR Palette_Popularity( struct RenderObject *rdo )
     int cc;
     FRAME *f = rdo->frame;
     ULONG nColors = rdo->ncolors;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
     COLORMAP *colortable = rdo->colortable;
     HGRAM *histograms;
     PERROR res = PERR_OK;
@@ -375,7 +375,7 @@ PERROR Palette_Popularity( struct RenderObject *rdo )
     if(res != PERR_OK)
         return res;
 
-    InitProgress(f, XGetStr( MSG_SELECTING_PALETTE ), 0, nColors, ExtBase );
+    InitProgress(f, XGetStr( MSG_SELECTING_PALETTE ), 0, nColors, PPTBase );
 
     histograms = rdo->histograms;
 
@@ -383,7 +383,7 @@ PERROR Palette_Popularity( struct RenderObject *rdo )
         UBYTE r,br,bg,bb;
         HGRAM max;
 
-        if(Progress(f,cc,ExtBase)) {
+        if(Progress(f,cc,PPTBase)) {
             res = PERR_BREAK;
             goto errorexit;
         }
@@ -413,7 +413,7 @@ PERROR Palette_Popularity( struct RenderObject *rdo )
         colortable[cc].b = BLUE2RGB8(bb);
     }
 
-    FinishProgress(f,ExtBase);
+    FinishProgress(f,PPTBase);
 
     // DoShowColorTable( nColors, colortable );
 
@@ -426,7 +426,7 @@ Palette_GrayPopularity( struct RenderObject *rdo )
 {
     FRAME *frame = rdo->frame;
     ULONG nColors = rdo->ncolors;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
     HGRAM *histograms;
     WORD cc,g,bg;
     PERROR res = PERR_OK;
@@ -448,12 +448,12 @@ Palette_GrayPopularity( struct RenderObject *rdo )
         return PERR_FAILED;
 
 
-    InitProgress(frame, XGetStr(MSG_SELECTING_PALETTE), 0, nColors, ExtBase );
+    InitProgress(frame, XGetStr(MSG_SELECTING_PALETTE), 0, nColors, PPTBase );
 
     for(cc = 0; cc < nColors; cc++) {
         HGRAM max;
 
-        if(Progress( frame,cc,ExtBase )) {
+        if(Progress( frame,cc,PPTBase )) {
             res = PERR_BREAK;
             break;
         }
@@ -569,7 +569,7 @@ PERROR Palette_MedianCut( struct RenderObject *rdo )
     HGRAM *histograms;
     COLORMAP *colortable = rdo->colortable;
     PERROR res = PERR_OK;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
 
     D(bug("Palette_MedianCut()\n"));
 
@@ -589,14 +589,14 @@ PERROR Palette_MedianCut( struct RenderObject *rdo )
 
     histograms = rdo->histograms;
 
-    InitProgress(f, XGetStr(MSG_SELECTING_PALETTE), 0,nColors, ExtBase );
+    InitProgress(f, XGetStr(MSG_SELECTING_PALETTE), 0,nColors, PPTBase );
 
     while( colors < nColors ) {
         color_type axis;
         ULONG freq[65]; /* MAX 6 bitplanes */
         UWORD *bdx;
 
-        if(Progress( f, colors, ExtBase )) {
+        if(Progress( f, colors, PPTBase )) {
             res = PERR_BREAK;
             goto errorexit;
         }
@@ -743,7 +743,7 @@ PERROR Palette_MedianCut( struct RenderObject *rdo )
 
     } /* while(colors) */
 
-    FinishProgress( f, ExtBase );
+    FinishProgress( f, PPTBase );
 
 #ifdef NBCT_DEBUG
     DEBUG("Median cut ready, now selecting colors\n");
@@ -835,7 +835,7 @@ PERROR Palette_GrayMedianCut( struct RenderObject *rdo )
     HGRAM *histograms;
     COLORMAP *colortable = rdo->colortable;
     PERROR res = PERR_OK;
-    EXTBASE *ExtBase = rdo->ExtBase;
+    EXTBASE *PPTBase = rdo->PPTBase;
 
     D(bug("Palette_MedianCut()\n"));
 
@@ -853,7 +853,7 @@ PERROR Palette_GrayMedianCut( struct RenderObject *rdo )
 
     histograms = rdo->histograms;
 
-    InitProgress(f, XGetStr(MSG_SELECTING_PALETTE), 0,nColors, ExtBase );
+    InitProgress(f, XGetStr(MSG_SELECTING_PALETTE), 0,nColors, PPTBase );
 
     while( colors < nColors ) {
         ULONG freq[258];
@@ -861,7 +861,7 @@ PERROR Palette_GrayMedianCut( struct RenderObject *rdo )
 
         for(i = 0; i < 258; i++) freq[i] = 0L;
 
-        if(Progress( f, colors, ExtBase )) {
+        if(Progress( f, colors, PPTBase )) {
             res = PERR_BREAK;
             goto errorexit;
         }
@@ -927,7 +927,7 @@ PERROR Palette_GrayMedianCut( struct RenderObject *rdo )
 
     } /* while(colors) */
 
-    FinishProgress( f, ExtBase );
+    FinishProgress( f, PPTBase );
 
     // DEBUG("Median cut ready, now selecting colors\n");
 
@@ -1020,7 +1020,7 @@ PERROR Palette_Force( struct RenderObject *rdo )
 {
     PERROR res;
 
-    if( LoadPalette( rdo->frame, rdo->frame->disp->palettepath, rdo->ExtBase ) <= 0 )
+    if( LoadPalette( rdo->frame, rdo->frame->disp->palettepath, rdo->PPTBase ) <= 0 )
         res = PERR_FILEREAD;
 
     return res;

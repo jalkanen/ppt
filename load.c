@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 6.0 1999/09/05 17:08:20 jj Exp $
+    $Id: load.c,v 6.1 1999/10/02 16:33:07 jj Exp $
 
     Code for loaders...
 
@@ -182,20 +182,20 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
              -1 on error (no checker)
 */
 Local
-LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
+LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *PPTBase )
 {
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     struct Library *IOModuleBase = NULL;
     ULONG res;
 
-    IOModuleBase = OpenModule( ld, ExtBase);
+    IOModuleBase = OpenModule( ld, PPTBase);
 
     if(IOModuleBase) {
 
         D(bug("\tChecking with '%s'...\n", ld->info.nd.ln_Name));
         Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
-        res = IOCheck( fh, INIT_BYTES, init_bytes, ExtBase );
-        CloseModule( IOModuleBase, ExtBase );
+        res = IOCheck( fh, INIT_BYTES, init_bytes, PPTBase );
+        CloseModule( IOModuleBase, PPTBase );
 
         if(res) {
             D(bug("\t\tMatch found!", ld->info.nd.ln_Name ));
@@ -216,10 +216,10 @@ LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
 */
 
 Local
-LOADER *CheckFilePattern( BPTR fh, STRPTR filename, UBYTE *init_bytes, EXTBASE *ExtBase )
+LOADER *CheckFilePattern( BPTR fh, STRPTR filename, UBYTE *init_bytes, EXTBASE *PPTBase )
 {
     struct Node *cn;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     UBYTE  pattbuf[MAXPATTERNLEN*2+8]; /* Some extra */
 
     D(bug("CheckFilePattern(%s)\n",filename));
@@ -236,7 +236,7 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, UBYTE *init_bytes, EXTBASE *
                 if( MatchPatternNoCase(pattbuf, filename) ) {
                     D(bug("\t\tProbable match found by %s\n", ld->info.realname ));
 
-                    if( CheckOne( fh, ld, init_bytes, ExtBase ) > 0 ) {
+                    if( CheckOne( fh, ld, init_bytes, PPTBase ) > 0 ) {
                         return ld;
                     } else {
                         D(bug("\t\tbut it was not recognized...\n"));
@@ -260,7 +260,7 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, UBYTE *init_bytes, EXTBASE *
  */
 
 Local
-LOADER *CheckFileH( EXTBASE *ExtBase, UBYTE *init_bytes, BPTR fh )
+LOADER *CheckFileH( EXTBASE *PPTBase, UBYTE *init_bytes, BPTR fh )
 {
     struct Node *cn;
 
@@ -268,7 +268,7 @@ LOADER *CheckFileH( EXTBASE *ExtBase, UBYTE *init_bytes, BPTR fh )
 
     for( cn = globals->loaders.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
 
-        if( CheckOne( fh, (LOADER *)cn, init_bytes, ExtBase ) > 0) {
+        if( CheckOne( fh, (LOADER *)cn, init_bytes, PPTBase ) > 0) {
             return (LOADER *)cn;
         }
 
@@ -281,10 +281,10 @@ LOADER *CheckFileH( EXTBASE *ExtBase, UBYTE *init_bytes, BPTR fh )
     Master routine for checking file types.
 */
 Local
-LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
+LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *PPTBase )
 {
     LOADER *ld;
-    APTR DOSBase = ExtBase->lb_DOS;
+    APTR DOSBase = PPTBase->lb_DOS;
     UBYTE init_bytes[INIT_BYTES+2]; // buffer space
     LONG err;
 
@@ -309,8 +309,8 @@ LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
      *  Then,  go through each of the loaders and make the check.
      */
 
-    if(!(ld = CheckFilePattern(fh, filename, init_bytes, ExtBase))) {
-        ld = CheckFileH(ExtBase, init_bytes, fh);
+    if(!(ld = CheckFilePattern(fh, filename, init_bytes, PPTBase))) {
+        ld = CheckFileH(PPTBase, init_bytes, fh);
     }
 
     return ld;
@@ -323,7 +323,7 @@ LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
 */
 VOID SAVEDS ASM LoadPicture( REGPARAM(a0,UBYTE *,argstr) )
 {
-    EXTBASE *ExtBase;
+    EXTBASE *PPTBase;
     APTR DOSBase;
     struct PPTMessage *msg;
     FRAME *frame = NULL;
@@ -334,7 +334,7 @@ VOID SAVEDS ASM LoadPicture( REGPARAM(a0,UBYTE *,argstr) )
 
     D(bug("LoadPicture(%s)\n",argstr));
 
-    if( (ExtBase = NewExtBase(TRUE)) == NULL) {
+    if( (PPTBase = NewExtBase(TRUE)) == NULL) {
         D(bug("LIB BASE ALLOCATION FAILED\n"));
         goto errorexit;
     }
@@ -343,7 +343,7 @@ VOID SAVEDS ASM LoadPicture( REGPARAM(a0,UBYTE *,argstr) )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K,REXX/S", ExtBase ) ) {
+    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K,REXX/S", PPTBase ) ) {
         frame = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) /* A path was given */
             path = (UBYTE *)optarray[1];
@@ -361,33 +361,33 @@ VOID SAVEDS ASM LoadPicture( REGPARAM(a0,UBYTE *,argstr) )
         goto errorexit;
     }
 
-    if(NewTaskProlog(frame,ExtBase) != PERR_OK) goto errorexit;
+    if(NewTaskProlog(frame,PPTBase) != PERR_OK) goto errorexit;
 
-    DOSBase = ExtBase->lb_DOS;
+    DOSBase = PPTBase->lb_DOS;
 
-    res = DoTheLoad( frame, ExtBase, path, name, loadername, rexx );
+    res = DoTheLoad( frame, PPTBase, path, name, loadername, rexx );
 
 errorexit:
     if(optarray)
-        FreeDOSArgs( optarray, ExtBase );
+        FreeDOSArgs( optarray, PPTBase );
 
-    msg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
+    msg = AllocPPTMsg( sizeof(struct PPTMessage), PPTBase );
     msg->frame = frame;
     msg->code = PPTMSG_LOADDONE;
     msg->data = (APTR)res;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, ExtBase );
+    SendPPTMsg( globals->mport, msg, PPTBase );
 
-    WaitDeathMessage( ExtBase );
+    WaitDeathMessage( PPTBase );
 
-    EmptyMsgPort( ExtBase->mport, ExtBase );
+    EmptyMsgPort( PPTBase->mport, PPTBase );
 
-    if(ExtBase) RelExtBase(ExtBase);
+    if(PPTBase) RelExtBase(PPTBase);
 }
 ///
 
-/// PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *loadername, BOOL rexx )
+/// PERROR DoTheLoad( FRAME *frame, EXTBASE *PPTBase, char *path, char *name, char *loadername, BOOL rexx )
 
 /*
     This routine takes care of all picture loading, etc. Name and path must
@@ -395,9 +395,9 @@ errorexit:
 */
 
 Local
-PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *loadername, BOOL rexx )
+PERROR DoTheLoad( FRAME *frame, EXTBASE *PPTBase, char *path, char *name, char *loadername, BOOL rexx )
 {
-    APTR DOSBase = ExtBase->lb_DOS, UtilityBase = ExtBase->lb_Utility, SysBase = ExtBase->lb_Sys;
+    APTR DOSBase = PPTBase->lb_DOS, UtilityBase = PPTBase->lb_Utility, SysBase = PPTBase->lb_Sys;
     BPTR fh = NULL;
     struct Library *IOModuleBase = NULL;
     LOADER *ld = NULL;
@@ -428,10 +428,10 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
     if( ld == NULL ) {
         nofile = FALSE; /* We're gonna need the file anyway */
     } else {
-        IOModuleBase = OpenModule( ld, ExtBase );
+        IOModuleBase = OpenModule( ld, PPTBase );
         if(IOModuleBase) {
-            nofile = IOInquire( PPTX_NoFile, ExtBase );
-            CloseModule(IOModuleBase,ExtBase);
+            nofile = IOInquire( PPTX_NoFile, PPTBase );
+            CloseModule(IOModuleBase,PPTBase);
         } else {
             InternalError("Invalid module detected!");
         }
@@ -488,11 +488,11 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
          */
 
         if( !ld ) {
-            UpdateProgress(frame,XGetStr(mLOAD_CHECKING_FILETYPE),0L, ExtBase);
-            OpenInfoWindow(frame->mywin,ExtBase);
+            UpdateProgress(frame,XGetStr(mLOAD_CHECKING_FILETYPE),0L, PPTBase);
+            OpenInfoWindow(frame->mywin,PPTBase);
 
             if( fh ) {
-                ld = CheckFileType( fh, name, ExtBase );
+                ld = CheckFileType( fh, name, PPTBase );
             } else {
                 InternalError("No file or loader specified!");
                 res = PERR_FAILED;
@@ -503,7 +503,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
 
             D(bug("\tRecognised file type, now loading...\n"));
 
-            IOModuleBase = OpenModule( ld, ExtBase );
+            IOModuleBase = OpenModule( ld, PPTBase );
 
             if(IOModuleBase) {
                 D(APTR foo);
@@ -515,7 +515,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
                 D(foo=StartBench());
 
-                errcode = IOLoad( fh, frame, loadertags, ExtBase );
+                errcode = IOLoad( fh, frame, loadertags, PPTBase );
 
                 D(StopBench(foo));
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
@@ -536,7 +536,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
 
                         a = XReq( NEGNUL, XGetStr(MSG_KEEP_DISCARD_GAD),
                                   XGetStr(mWARNING_FROM_LOADER),
-                                  fullname, GetErrorMsg(frame,ExtBase) );
+                                  fullname, GetErrorMsg(frame,PPTBase) );
 
                         if( a == 0 ) {
                             res = PERR_FAILED;
@@ -560,7 +560,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
 
                                 XReq(NEGNUL,XGetStr(mUNDERSTOOD),
                                      XGetStr(mERROR_FROM_LOADER),
-                                     ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,ExtBase) );
+                                     ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,PPTBase) );
 
                                 ClearError( frame );
                             }
@@ -582,16 +582,16 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *
 
 errexit:
 
-    if( IOModuleBase ) CloseModule( IOModuleBase, ExtBase );
+    if( IOModuleBase ) CloseModule( IOModuleBase, PPTBase );
 
     if( fh ) {
         Close(fh);
         D(bug("Closed file\n"));
     }
 
-    CloseInfoWindow( frame->mywin, ExtBase );
+    CloseInfoWindow( frame->mywin, PPTBase );
 
-    ClearProgress( frame, ExtBase );
+    ClearProgress( frame, PPTBase );
 
     return res;
 }

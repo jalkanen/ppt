@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 6.0 1999/09/05 16:17:56 jj Exp $
+    $Id: support.c,v 6.1 1999/10/02 16:33:07 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -13,9 +13,9 @@
 *
 *                 PPT support library documentation
 *
-*                 $VER: pptsupport.doc 5.0 (15-Dec-98)
+*                 $VER: pptsupport.doc 6.0 (02-Oct-99)
 *
-*   Please note that all functions expect to have a valid ExtBase * in
+*   Please note that all functions expect to have a valid PPTBase * in
 *   A6 upon entering the function. Otherwise, these are just like
 *   any other library functions, except that there are no stack-based
 *   versions. If your compiler does not support registerized parameters,
@@ -171,18 +171,18 @@ APTR ExtLibData[] = {
 Prototype STRPTR ASM GetStr_External( REGDECL(a0,struct LocaleString *), REGDECL(a6,EXTBASE *) );
 
 SAVEDS STRPTR ASM GetStr_External(REGPARAM(a0,struct LocaleString *,ls),
-                                  REGPARAM(a6,EXTBASE *,ExtBase) )
+                                  REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     STRPTR defaultstr;
     LONG strnum;
-    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
 
     strnum = ls->ID;
     defaultstr = ls->Str;
 
     if( LocaleBase ) {
-        return( (ExtBase->extcatalog) ?
-               GetCatalogStr(ExtBase->extcatalog, strnum, defaultstr) :
+        return( (PPTBase->extcatalog) ?
+               GetCatalogStr(PPTBase->extcatalog, strnum, defaultstr) :
                defaultstr);
     } else {
         return defaultstr;
@@ -195,9 +195,9 @@ SAVEDS STRPTR ASM GetStr_External(REGPARAM(a0,struct LocaleString *,ls),
 */
 
 VOID OpenExtCatalog( EXTERNAL *ext, STRPTR builtin,
-                     LONG version, EXTBASE *ExtBase )
+                     LONG version, EXTBASE *PPTBase )
 {
-    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
     struct TagItem tags[] = {
         OC_BuiltInLanguage, 0,
         OC_Version,         0,
@@ -208,11 +208,11 @@ VOID OpenExtCatalog( EXTERNAL *ext, STRPTR builtin,
     tags[0].ti_Data = (ULONG)builtin;
     tags[1].ti_Data = version;
 
-    CloseExtCatalog( ext, ExtBase ); /* Does no harm */
+    CloseExtCatalog( ext, PPTBase ); /* Does no harm */
 
-    if( LocaleBase && ExtBase->extcatalog == NULL ) {
+    if( LocaleBase && PPTBase->extcatalog == NULL ) {
         sprintf( buf, "modules/%s.catalog", ext->nd.ln_Name );
-        ExtBase->extcatalog = OpenCatalogA( NULL, (STRPTR) buf, tags );
+        PPTBase->extcatalog = OpenCatalogA( NULL, (STRPTR) buf, tags );
     }
 
 }
@@ -221,13 +221,13 @@ VOID OpenExtCatalog( EXTERNAL *ext, STRPTR builtin,
     Close the external catalog.
 */
 
-VOID CloseExtCatalog( EXTERNAL *ext, EXTBASE *ExtBase )
+VOID CloseExtCatalog( EXTERNAL *ext, EXTBASE *PPTBase )
 {
-    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
 
-    if( LocaleBase && ExtBase->extcatalog ) {
-        CloseCatalog( ExtBase->extcatalog );
-        ExtBase->extcatalog = NULL;
+    if( LocaleBase && PPTBase->extcatalog ) {
+        CloseCatalog( PPTBase->extcatalog );
+        PPTBase->extcatalog = NULL;
     }
 }
 ///
@@ -283,7 +283,7 @@ Prototype VOID ASM PlanarToChunky( REGDECL(a0,UBYTE **), REGDECL(a1,ROWPTR), REG
 
 VOID SAVEDS ASM PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR,dest),
                                 REGPARAM(d0,ULONG,width),REGPARAM(d1,UWORD,depth),
-                                REGPARAM(a6,EXTBASE *,ExtBase) )
+                                REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     UWORD numpasses = ((depth-1)>>3)+1;
     UWORD i;
@@ -348,9 +348,9 @@ Prototype ULONG ASM TagData( REGDECL(d0,Tag), REGDECL(a0,struct TagItem *), REGD
 
 ULONG SAVEDS ASM TagData( REGPARAM(d0,Tag,value),
                           REGPARAM(a0,struct TagItem *,list),
-                          REGPARAM(a6,EXTBASE *,ExtBase) )
+                          REGPARAM(a6,EXTBASE *,PPTBase) )
 {
-    APTR UtilityBase = ExtBase->lb_Utility;
+    APTR UtilityBase = PPTBase->lb_Utility;
 
     return(GetTagData(value,0L,list));
 }
@@ -405,7 +405,7 @@ Prototype ULONG ASM SPrintFA( REGDECL(a0,STRPTR), REGDECL(a1,STRPTR), REGDECL(a2
 ULONG SAVEDS ASM SPrintFA( REGPARAM(a0,STRPTR,buffer),
                            REGPARAM(a1,STRPTR,format),
                            REGPARAM(a2,APTR,args),
-                           REGPARAM(a6,EXTBASE *,ExtBase) )
+                           REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     ULONG res;
 
@@ -462,7 +462,7 @@ Prototype PERROR ASM GetBackgroundColor( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR)
 
 PERROR SAVEDS ASM
 GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
-                    REGPARAM(a6,EXTBASE *,ExtBase) )
+                    REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     PERROR res = PERR_OK;
     RGBPixel *rgb, prgb[4];
@@ -472,9 +472,9 @@ GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
 
     switch( frame->pix->colorspace ) {
         case CS_RGB:
-            rgb = (RGBPixel *)GetPixelRow( frame, 0, ExtBase );
+            rgb = (RGBPixel *)GetPixelRow( frame, 0, PPTBase );
             prgb[0] = rgb[0]; prgb[1] = rgb[width-1];
-            rgb = (RGBPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            rgb = (RGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
             prgb[2] = rgb[0]; prgb[3] = rgb[width-1];
             ((RGBPixel *)pixel)->r = (((ULONG)prgb[0].r + prgb[1].r + prgb[2].r + prgb[3].r)/4);
             ((RGBPixel *)pixel)->g = (((ULONG)prgb[0].g + prgb[1].g + prgb[2].g + prgb[3].g)/4);
@@ -482,9 +482,9 @@ GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
             break;
 
         case CS_ARGB:
-            argb = (ARGBPixel *)GetPixelRow( frame, 0, ExtBase );
+            argb = (ARGBPixel *)GetPixelRow( frame, 0, PPTBase );
             pargb[0] = argb[0]; pargb[1] = argb[width-1];
-            argb = (ARGBPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            argb = (ARGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
             pargb[2] = argb[0]; pargb[3] = argb[width-1];
             ((ARGBPixel *)pixel)->r = (((ULONG)pargb[0].r + pargb[1].r + pargb[2].r + pargb[3].r)/4);
             ((ARGBPixel *)pixel)->g = (((ULONG)pargb[0].g + pargb[1].g + pargb[2].g + pargb[3].g)/4);
@@ -492,9 +492,9 @@ GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
             break;
 
         case CS_GRAYLEVEL:
-            gray = (GrayPixel *)GetPixelRow( frame, 0, ExtBase );
+            gray = (GrayPixel *)GetPixelRow( frame, 0, PPTBase );
             pgray[0] = gray[0]; pgray[1] = gray[width-1];
-            gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
             pgray[2] = gray[0]; pgray[3] = gray[width-1];
             ((GrayPixel *)pixel)->g = (((ULONG)pgray[0].g + pgray[1].g + pgray[2].g + pgray[3].g)/4);
             break;
@@ -816,7 +816,7 @@ Prototype VOID ASM PutNPixelRows( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR []), RE
 
 VOID SAVEDS ASM PutNPixelRows( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,buffer[]),
                                REGPARAM(d0,WORD,startrow), REGPARAM(d1,UWORD,nRows),
-                               REGPARAM(a6,EXTBASE *,ExtBase) )
+                               REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     frame->pix->vmh->chflag = 1;
 }
@@ -1073,7 +1073,7 @@ VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
 Prototype UBYTE * ASM GetBitMapRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a6,EXTBASE *) );
 
 UBYTE * SAVEDS ASM GetBitMapRow( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,WORD,row),
-                                 REGPARAM(a6,EXTBASE *,ExtBase) )
+                                 REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     struct RenderObject *rdo = frame->renderobject;
 
@@ -1126,13 +1126,13 @@ UBYTE * SAVEDS ASM GetBitMapRow( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,WORD,ro
 
 Prototype VOID ASM ClearProgress( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
-VOID SAVEDS ASM ClearProgress( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
+VOID SAVEDS ASM ClearProgress( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     D(bug("ClearProgress()\n"));
 
-    UpdateProgress( f, NULL, 0, ExtBase );
+    UpdateProgress( f, NULL, 0, PPTBase );
 
     LOCK(f);
     f->progress_min = 0L;
@@ -1206,11 +1206,11 @@ SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
                               REGPARAM(a1,char *,txt),
                               REGPARAM(d0,ULONG, min),
                               REGPARAM(d1,ULONG, max),
-                              REGPARAM(a6,EXTBASE *,ExtBase) )
+                              REGPARAM(a6,EXTBASE *,PPTBase) )
 {
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 #ifdef USE_TIMER_PROCESS
-    struct Device *TimerBase = ExtBase->lb_Timer;
+    struct Device *TimerBase = PPTBase->lb_Timer;
 #endif
 
     D(bug("InitProgress('%s',%lu,%lu)\n",txt,min,max));
@@ -1228,12 +1228,12 @@ SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
 #endif
     UNLOCK(f);
 
-    UpdateProgress( f, txt, 0, ExtBase);
+    UpdateProgress( f, txt, 0, PPTBase);
 
     if( f->parent )
-        OpenInfoWindow( f->parent->mywin, ExtBase );
+        OpenInfoWindow( f->parent->mywin, PPTBase );
     else
-        OpenInfoWindow( f->mywin, ExtBase );
+        OpenInfoWindow( f->mywin, PPTBase );
 }
 ///
 /// Progress()
@@ -1284,11 +1284,11 @@ Prototype BOOL ASM Progress( REGDECL(a0,FRAME *), REGDECL(d0,ULONG), REGDECL(a6,
 
 BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
                           REGPARAM(d0,ULONG,done),
-                          REGPARAM(a6,EXTBASE *,ExtBase) )
+                          REGPARAM(a6,EXTBASE *,PPTBase) )
 {
-    APTR DOSBase = ExtBase->lb_DOS;
-    APTR SysBase = ExtBase->lb_Sys;
-    struct Device *TimerBase = ExtBase->lb_Timer;
+    APTR DOSBase = PPTBase->lb_DOS;
+    APTR SysBase = PPTBase->lb_Sys;
+    struct Device *TimerBase = PPTBase->lb_Timer;
     struct PPTMessage *pmsg;
 #ifdef USE_TIMER_PROCESS
     struct EClockVal  ev, evold;
@@ -1297,9 +1297,9 @@ BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
 
 #ifndef USE_TIMER_PROCESS
     if( done - f->progress_old > f->progress_diff/globals->userprefs->progress_step ) {
-        UpdateProgress( f, NEGNUL, MAXPROGRESS * (done - f->progress_min) / f->progress_diff, ExtBase );
+        UpdateProgress( f, NEGNUL, MAXPROGRESS * (done - f->progress_min) / f->progress_diff, PPTBase );
         f->progress_old = done;
-        // WaitForReply( PPTMSG_UPDATEPROGRESS, ExtBase );
+        // WaitForReply( PPTMSG_UPDATEPROGRESS, PPTBase );
     }
 #else
     etick = ReadEClock(&ev);
@@ -1316,11 +1316,11 @@ BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
     if( (ev.ev_lo - evold.ev_lo) > etick/2 || (ev.ev_hi != evold.ev_hi) ) {
         UpdateProgress( f, NEGNUL,
                         MAXPROGRESS * (done - f->progress_min) / f->progress_diff,
-                        ExtBase );
+                        PPTBase );
         LOCK(f);
         f->eclock = ev;
         UNLOCK(f);
-        // WaitForReply( PPTMSG_UPDATEPROGRESS, ExtBase );
+        // WaitForReply( PPTMSG_UPDATEPROGRESS, PPTBase );
     }
 
 #endif
@@ -1331,9 +1331,9 @@ BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
      */
 
     if( FindTask(NULL) != globals->maintask ) {
-        while( pmsg = (struct PPTMessage *)GetMsg( ExtBase->mport ) ) {
+        while( pmsg = (struct PPTMessage *)GetMsg( PPTBase->mport ) ) {
             if( pmsg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
-                FreePPTMsg( pmsg, ExtBase );
+                FreePPTMsg( pmsg, PPTBase );
             } else {
                 ReplyMsg( pmsg );
             }
@@ -1406,10 +1406,10 @@ BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
 Prototype VOID ASM FinishProgress( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
 VOID SAVEDS ASM FinishProgress( REGPARAM(a0,FRAME *,frame),
-                                REGPARAM(a6,EXTBASE *,ExtBase) )
+                                REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     D(bug("FinishProgress()\n"));
-    UpdateProgress( frame, NEGNUL, MAXPROGRESS, ExtBase );
+    UpdateProgress( frame, NEGNUL, MAXPROGRESS, PPTBase );
 }
 ///
 /// CloseProgress()
@@ -1480,12 +1480,12 @@ Prototype VOID ASM UpdateProgress( REGDECL(a0,FRAME *), REGDECL(a1,UBYTE *), REG
 SAVEDS VOID ASM UpdateProgress( REGPARAM(a0,FRAME *,f),
                                 REGPARAM(a1,UBYTE *,txt),
                                 REGPARAM(d0,ULONG, done),
-                                REGPARAM(a6,EXTBASE *,ExtBase) )
+                                REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     INFOWIN *iw;
     struct Window *win;
     struct Gadget *status,*progress;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
 
     if(f) {
 
@@ -1526,18 +1526,18 @@ SAVEDS VOID ASM UpdateProgress( REGPARAM(a0,FRAME *,f),
             if(txt != NEGNUL) {
 
                 if(txt)
-                    XSetGadgetAttrs( ExtBase, status, win, NULL, INFO_TextFormat, txt, TAG_END );
+                    XSetGadgetAttrs( PPTBase, status, win, NULL, INFO_TextFormat, txt, TAG_END );
                 else
-                    XSetGadgetAttrs( ExtBase, status, win, NULL, INFO_TextFormat, "«idle»", TAG_END );
+                    XSetGadgetAttrs( PPTBase, status, win, NULL, INFO_TextFormat, "«idle»", TAG_END );
 
             }
 
-            XSetGadgetAttrs( ExtBase, progress, win, NULL, PROGRESS_Done, done, TAG_END );
+            XSetGadgetAttrs( PPTBase, progress, win, NULL, PROGRESS_Done, done, TAG_END );
             UNLOCK(iw);
         } else {
             struct ProgressMsg *msg;
 
-            msg = (struct ProgressMsg *)AllocPPTMsg( sizeof(struct ProgressMsg), ExtBase );
+            msg = (struct ProgressMsg *)AllocPPTMsg( sizeof(struct ProgressMsg), PPTBase );
             msg->pmsg.frame = f;
             msg->pmsg.code  = PPTMSG_UPDATEPROGRESS;
             msg->done       = done;
@@ -1546,7 +1546,7 @@ SAVEDS VOID ASM UpdateProgress( REGPARAM(a0,FRAME *,f),
                 strcpy( msg->text, txt );
                 msg->pmsg.data = msg->text;
             }
-            SendPPTMsg( globals->mport, msg, ExtBase );
+            SendPPTMsg( globals->mport, msg, PPTBase );
         }
 
     } /* if(f) */
