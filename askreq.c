@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.25 1998/02/06 19:09:45 jj Exp $
+    $Id: askreq.c,v 1.26 1998/02/21 15:50:21 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -56,7 +56,7 @@
 #include "renderareaclass.h"
 #endif
 
-#include "floatgadget/bguifloat_pragmas.h"
+#include "proto/bguifloat.h"
 
 #include <sprof.h>
 #include <math.h>
@@ -616,7 +616,7 @@ void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gad
             where = (APTR)GetTagData( AROBJ_Value, NULL, (struct TagItem *)(tag->ti_Data) );
             D(bug("Object %d:\n\tWhere = %08X\n",objnum,where));
 
-            FetchARGadgetValue( &Gadgets[objnum], where, ExtBase );
+            FetchARGadgetValue( &Gadgets[objnum], (ULONG *)where, ExtBase );
 
             objnum++; /* Next Object */
 
@@ -628,14 +628,14 @@ void ReadARGadgets( Object *Win, struct RealObject *Gadgets, struct TagItem *gad
 }
 
 Local
-void ReadARGadgetsToArray( Object *Win, struct RealObject *Gadgets, ULONG *table, EXTBASE *ExtBase )
+void ReadARGadgetsToArray( Object *Win, struct RealObject *Gadgets, LONG *table, EXTBASE *ExtBase )
 {
     ULONG objnum = 0;
 
     D(bug("ReadARGadgetsToArray()\n"));
 
     for( objnum = 0; Gadgets[objnum].obj; objnum++ ) {
-        FetchARGadgetValue( &Gadgets[objnum], &table[objnum], ExtBase );
+        FetchARGadgetValue( &Gadgets[objnum], (ULONG *)&table[objnum], ExtBase );
     }
 }
 
@@ -907,7 +907,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
     PERROR res = PERR_OK;
     APTR UtilityBase = ExtBase->lb_Utility, SysBase = ExtBase->lb_Sys, IntuitionBase = ExtBase->lb_Intuition;
     FRAME *pwframe, *tempframe;
-    ULONG armValues[MAX_AROBJECTS];
+    LONG armValues[MAX_AROBJECTS];
     struct ARUpdateMsg aum = {0};
     struct ARRenderMsg arm = {0};
     struct ARArgs ar = {0};
@@ -984,6 +984,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                 arm.MethodID    = ARM_RENDER;
                 aum.aum_Frame   = arm.arm_Frame     = tempframe;
                 aum.aum_ExtBase = arm.arm_ExtBase   = ExtBase;
+                aum.aum_RPort   = arm.arm_RPort     = win->RPort;
 
                 /*
                  *  If this is a preview, we will now redraw this once.  This also serves
@@ -1027,7 +1028,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
                             case GID_AR_OK:
                                 quit = TRUE;
-                                res = PERR_OK;
+                                res  = PERR_OK;
                                 ReadARGadgets( ar.Win, RealObjs, list, ExtBase );
                                 break;
 
@@ -1036,6 +1037,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                                 D(bug("\tComplete refresh of RenderArea: (h=%d,w=%d)\n",ibox->Height,ibox->Width));
 
                                 if( ar.renderHook ) {
+                                    arm.arm_Area = *ibox;
                                     CallHookPkt( ar.renderHook, NULL, &arm );
                                 } else {
                                     RenderFrame( tempframe, win->RPort,
@@ -1053,8 +1055,10 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
                                         CopyFrameData( pwframe, tempframe, 0L, ExtBase );
 
-                                        FetchARGadgetValue( &RealObjs[objid], &aum.aum_Values[objid], ExtBase );
+                                        FetchARGadgetValue( &RealObjs[objid], (ULONG *)&aum.aum_Values[objid], ExtBase );
                                         aum.aum_ObjectID = objid;
+                                        GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
+                                        aum.aum_Area = *ibox;
 
                                         res = CallHookPkt(RealObjs[objid].hook,
                                                           RealObjs[objid].obj,
@@ -1062,7 +1066,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
                                         if( res == ARR_REDRAW ) {
                                             GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
-                                            D(bug("\tRenderArea: (h=%d,w=%d)\n",ibox->Height,ibox->Width));
+                                            D(bug("\tRenderArea: (h=%d,w=%d)\n",ibox->Height, ibox->Width));
                                             RenderFrame( tempframe, win->RPort,
                                                          ibox, 0, ExtBase );
                                         }
