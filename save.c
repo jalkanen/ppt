@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.8 1996/11/23 00:46:37 jj Exp $
+    $Id: save.c,v 2.12 1998/01/04 16:35:05 jj Exp $
 */
 
 #include "defs.h"
@@ -12,17 +12,21 @@
 
 #include "gui.h"
 
+#include "version.h"
+
 #include <libraries/asl.h>
 #include <dos/dostags.h>
 
-#include <clib/utility_protos.h>
+#include <proto/utility.h>
+#include <proto/intuition.h>
+#include <proto/graphics.h>
+
 #include <clib/bgui_protos.h>
 #include <clib/alib_protos.h>
 
-#include <pragmas/utility_pragmas.h>
 #include <pragmas/bgui_pragmas.h>
-#include <pragmas/intuition_pragmas.h>
-#include <pragmas/graphics_pragmas.h>
+
+#include <proto/iomod.h>
 
 #include <stdlib.h>
 
@@ -31,10 +35,16 @@ Prototype PERROR    RunSave( FRAME *, UBYTE * );
 
 /*----------------------------------------------------------------------*/
 
-/* Save modes */
+/*
+    Save modes.  Note that these correspond to the
+    SAVEF_#? tags in ppt.h
+*/
+
 #define SAVE_TRUECOLOR      0
 #define SAVE_COLORMAPPED    1
 
+
+#define DEFAULT_ANNOTATION "This image generated on an Amiga with PPT v"VERSION"."
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -48,7 +58,6 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 {
     struct Process *p;
     char argbuf[ARGBUF_SIZE];
-
 
     /*
      *  Handle necessary windows, etc. Remove the selbox.
@@ -71,19 +80,21 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 #ifdef DEBUG_MODE
     p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, FALSE, NP_Output, OpenDebugFile( DFT_Save ),
                            NP_CloseOutput,TRUE, NP_Name, frame->nd.ln_Name,
-                           NP_Priority, -1, NP_Arguments, argbuf,
-                           NP_StackSize, EXTERNAL_STACKSIZE, TAG_END );
+                           NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf,
+                           NP_StackSize, globals->userprefs->extstacksize, TAG_END );
 #else
     p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, FALSE, NP_Output, Open("NIL:",MODE_NEWFILE),
                            NP_CloseOutput, TRUE, NP_Name, frame->nd.ln_Name,
-                           NP_Priority, -1, NP_Arguments, argbuf,
-                           NP_StackSize, EXTERNAL_STACKSIZE, TAG_END );
+                           NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf,
+                           NP_StackSize, globals->userprefs->extstacksize, TAG_END );
 #endif
     if(!p) {
         Req( GetFrameWin( frame ),NULL,"Couldn't spawn a new process");
         ReleaseFrame( frame );
         frame->selstatus = 0;
         return PERR_INITFAILED;
+    } else {
+        SetFrameStatus( frame, 1 );
     }
 
     frame->currproc = p;
@@ -95,19 +106,56 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 
 /*
     Dispatches the external saver routine.
+
+    BUG: This could use some cleaning up...
 */
 
 Local
-void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTBASE *xd )
+PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *ExtBase )
 {
     volatile char filename[MAXPATHLEN];
-    volatile int res;
-    volatile struct TagItem tags[] = { TAG_DONE };
-    volatile APTR UtilityBase = xd->lb_Utility, DOSBase = xd->lb_DOS;
-    volatile BPTR fh;
-    volatile ULONG colorspaces;
+    volatile PERROR res = PERR_FAILED;
+    volatile struct TagItem tags[2];
+    volatile APTR UtilityBase = ExtBase->lb_Utility, DOSBase = ExtBase->lb_DOS;
+    volatile BPTR fh = NULL;
+    struct   Library *IOModuleBase = NULL;
+    ULONG format, *argarray = NULL;
 
     D(bug("DoTheSave(%s,%s,%d)\n",frame->nd.ln_Name, ld->info.nd.ln_Name, mode));
+
+    /*
+     *  Open up the module
+     */
+
+    IOModuleBase = OpenModule( ld, ExtBase );
+    if(!IOModuleBase) {
+        InternalError("Unable to open module for saving!");
+        return PERR_ERROR;
+    }
+
+    /*
+     *  Build REXX message, if any.
+     */
+
+    if( argstr ) {
+        STRPTR template;
+
+        template = (STRPTR) IOInquire( PPTX_RexxTemplate, ExtBase );
+        if( template ) {
+            if( argarray = ParseDOSArgs( argstr, template, ExtBase ) ) {
+                tags[0].ti_Tag = PPTX_RexxArgs;
+                tags[0].ti_Data = (ULONG)argarray;
+                tags[1].ti_Tag = TAG_DONE;
+            } else {
+                SetErrorCode( frame, PERR_INVALIDARGS );
+                res = PERR_INVALIDARGS;
+                goto errexit;
+            }
+        }
+    } else {
+        tags[0].ti_Tag = TAG_DONE;
+    }
+
 
     /*
      *  Open save file
@@ -120,55 +168,60 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTBASE *xd )
 
     fh = Open( filename, MODE_NEWFILE );
     if(!fh) {
-        XReq( GetFrameWin(frame), NULL, "\nUnable to open write file\n" );
-        return;
+        SetErrorMsg(frame, "Unable to open write file" );
+        res = PERR_FILEOPEN;
+        goto errexit;
     }
 
     /*
-     *  Select which routine to call, SaveTrueColor or SaveColorMapped
+     *  Check the colorspace, if it matches
      */
 
-    if(mode == SAVE_TRUECOLOR) {
-        volatile auto int (* ASM X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
+    res = PERR_FAILED;
 
-        X_SaveT = (FPTR) GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags );
-
-        colorspaces = GetTagData( PPTX_ColorSpaces, CSF_RGB, ld->info.tags );
-        if( (colorspaces & (1<<frame->pix->colorspace)) == 0) {
-            D(bug("Colorspace diff: is %lu, should be %lu\n",(1<<frame->pix->colorspace),colorspaces));
-            XReq( GetFrameWin(frame), NULL, "\nThis saver cannot handle this colorspace!\n");
-        } else {
-            D(bug("\tSaving true color image...\n-+-+-+-+-+\n"));
-            res = (*X_SaveT)(fh, frame, &tags[0], xd );
-            D(bug("+-+-+-+-+-\n"));
+    if( mode == SAVE_TRUECOLOR ) {
+        if( (1 << frame->pix->colorspace) & ld->saveformats ) {
+            res = PERR_OK;
+            format = (1<<frame->pix->colorspace);
         }
-    } else { /* COLORMAPPED */
-        volatile auto int (* ASM X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
+    } else {
+        if( ld->saveformats & CSF_LUT ) {
+            if(frame->renderobject == NULL) {
+                XReq( GetFrameWin(frame), NULL, "\nYou do not have a rendered image.\n"
+                                                "Set the correct format in Render Options Menu.\n" );
+                goto errexit;
+            }
 
-        X_SaveC = (FPTR) GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags );
-
-        D(bug("\tSaving colormapped image\n-+-+-+-+-+-+\n"));
-
-        if(frame->renderobject == NULL) {
-            XReq( GetFrameWin(frame), NULL, "\nYou do not have a rendered image.\n"
-                                            "Set the correct format in Render Options Menu.\n" );
-            return;
+            res = PERR_OK;
+            format = CSF_LUT;
         }
-
-        res = (*X_SaveC)(fh, frame, &tags[0], xd );
-
-        D(bug("+-+-+-+-+-+-\n"));
     }
 
-    if(MasterQuit)
+    if( res == PERR_OK ) {
+        res = IOSave( fh, format, frame, tags, ExtBase );
+    } else {
+        char errorbuf[MAXPATHLEN];
+        D(bug("Colorspace diff: is %lu, should be %lu\n",(1<<frame->pix->colorspace),format));
+        sprintf( errorbuf, "Saver module %s does not know how "
+                           "to handle a %s colorspace!",
+                           ld->info.nd.ln_Name,
+                           ColorSpaceNames[frame->pix->colorspace]);
+        SetErrorMsg( frame, errorbuf );
+        res = PERR_FAILED;
         goto errexit;
+    }
+
+    if(MasterQuit) {
+        res = PERR_OK; /* For quick exit */
+        goto errexit;
+    }
 
     /*
      *  Show error message, if needed.
      *  Kludge together some probable responses
      */
 
-
+errexit:
     if( res != PERR_OK ) {
         if( frame->doerror && frame->errorcode != PERR_BREAK && frame->errorcode != PERR_CANCELED)
         {
@@ -177,52 +230,51 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTBASE *xd )
                 r = XReq( GetFrameWin(frame), "Ignore|Remove Saved File",
                           ISEQ_C"\nWARNING!\n"
                           "While I was attempting to save '%s',\n"
-                          "I got this warning message:\n"
-                          ISEQ_I"%s",
-                          frame->name, GetErrorMsg( frame, xd ));
+                          "I got this warning message:\n\n"
+                          ISEQ_I"%s\n",
+                          frame->name, GetErrorMsg( frame, ExtBase ));
 
                 if( r == 0 ) res = PERR_FAILED;
             } else {
                 XReq( GetFrameWin(frame), "Understood",
                       ISEQ_C"\nERROR!\n"
                       "While I was attempting to save '%s',\n"
-                      "I got this error message:\n"
-                      ISEQ_I"%s",
-                      frame->name, GetErrorMsg( frame, xd ));
+                      "I got this error message:\n\n"
+                      ISEQ_I"%s\n",
+                      frame->name, GetErrorMsg( frame, ExtBase ));
             }
         }
+        ClearError( frame );
     } else {
-        if( res == PERR_BREAK || res == PERR_CANCELED) res = PERR_FAILED;
+        frame->origtype = ld;
     }
-
-
-    ClearError( frame );
 
     /*
      *  Close file and delete it if anything went wrong
      */
 
-errexit:
+    if( argarray ) FreeDOSArgs( argarray, ExtBase );
 
-    Close(fh);
+    if(fh) Close(fh);
 
-    CloseInfoWindow( frame->mywin, xd );
+    if(IOModuleBase) CloseModule( IOModuleBase, ExtBase );
+
+    CloseInfoWindow( frame->mywin, ExtBase );
     if(res == PERR_FAILED) {
         if(DeleteFile( filename ) == FALSE)
             XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", filename );
     }
+
+    return res;
 }
 
 /*
     Updates the visuals on the save window.
-    BUG:  BGUI problem:  the MX_Enable/DisableButton do not work if argument
-          > 0.
 */
-void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *xd )
+void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *ExtBase )
 {
     ULONG activemode;
-    struct IntuitionBase *IntuitionBase = xd->lb_Intuition;
-    struct Library *UtilityBase = xd->lb_Utility;
+    struct IntuitionBase *IntuitionBase = ExtBase->lb_Intuition;
 
     GetAttr( MX_Active, gads->Mode, &activemode );
 
@@ -231,49 +283,49 @@ void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *x
      *  into enabled state. BUG: should be done just once.
      */
 
-//    XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL,
+//    XSetGadgetAttrs( ExtBase, (struct Gadget *)gads->Mode, gads->win, NULL,
 //                     GA_Disabled, FALSE, TAG_END );
 
     /* CASE Truecolor */
 
-    if( GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags ) ) {
-        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+    if( ld->saveformats & (CSF_GRAYLEVEL|CSF_RGB) ) {
+        XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                          MX_EnableButton, SAVE_TRUECOLOR, TAG_END );
     } else {
-        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+        XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                          MX_DisableButton, SAVE_TRUECOLOR, TAG_END );
         if( activemode == SAVE_TRUECOLOR ) {
-            XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+            XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                              MX_Active, SAVE_COLORMAPPED, TAG_END );
         }
     }
 
     /* CASE Colormapped */
 
-    if( GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags ) ) {
-        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+    if( ld->saveformats & CSF_LUT ) {
+        XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                          MX_EnableButton, SAVE_COLORMAPPED, TAG_END );
     } else {
-        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+        XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                          MX_DisableButton, SAVE_COLORMAPPED, TAG_END );
         if( activemode == SAVE_COLORMAPPED ) {
-            XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+            XSetGadgetAttrs( ExtBase, GAD(gads->Mode), gads->win, NULL,
                              MX_Active, SAVE_TRUECOLOR, TAG_END );
         }
     }
 }
 
 Local
-HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
+HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, PERROR *res, EXTBASE *ExtBase )
 {
     LOADER *ld;
     STRPTR file;
     UBYTE *s, *e;
     APTR entry;
     ULONG activemode;
-    APTR SysBase = xd->lb_Sys, IntuitionBase = xd->lb_Intuition,
-         DOSBase = xd->lb_DOS;
-    char tmppath[MAXPATHLEN];
+    APTR SysBase = ExtBase->lb_Sys, IntuitionBase = ExtBase->lb_Intuition,
+         DOSBase = ExtBase->lb_DOS;
+    char tmppath[MAXPATHLEN+1];
     struct TagItem t[3] = {
         ASLFR_InitialFile, NULL,
         ASLFR_InitialDrawer, NULL,
@@ -282,7 +334,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 
     switch(rc) {
         case GID_SW_CANCEL:
-        case IDCMP_CLOSEWINDOW:
+        case WMHI_CLOSEWINDOW:
             return 1;
 
         case GID_SW_SAVE:
@@ -311,7 +363,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
                 strncpy( frame->path, file, (s-file) );
 
                 if( strcmp( e, frame->name ) != 0 ) {
-                    MakeFrameName( e, frame->name, NAMELEN, xd );
+                    MakeFrameName( e, frame->name, NAMELEN, ExtBase );
                 }
 
                 /*
@@ -319,7 +371,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
                  */
 
                 WindowClose( gads->Win );
-                DoTheSave( frame, ld, activemode, xd );
+                *res = DoTheSave( frame, ld, activemode, NULL, ExtBase );
                 return 1;
             }
             break;
@@ -335,7 +387,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 
             GetAttr( STRINGA_TextVal, gads->Name, (ULONG *)&file );
 
-            strcpy(tmppath, file);
+            strncpy(tmppath, file, MAXPATHLEN);
             s = PathPart(tmppath);
             *s = '\0';
             t[1].ti_Data = (ULONG) tmppath;
@@ -344,7 +396,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 
             if(DoRequest( gads->Frq ) == FRQ_OK) {
                 GetAttr( FRQ_Path, gads->Frq, (ULONG *)&file );
-                XSetGadgetAttrs( xd, (struct Gadget *)gads->Name, gads->win, NULL,
+                XSetGadgetAttrs( ExtBase, (struct Gadget *)gads->Name, gads->win, NULL,
                                  STRINGA_TextVal, file, TAG_END );
             }
             break;
@@ -356,11 +408,36 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
                 UNLOCKGLOB();
 
                 if(ld) {
-                    DoSaveMXGadgets(frame, gads, ld, xd );
+                    DoSaveMXGadgets(frame, gads, ld, ExtBase );
+
+                    /*
+                     *  Change the postfix according to the loader.
+                     */
+
+                    if( ld->prefpostfix[0] ) {
+                        GetAttr( STRINGA_TextVal, gads->Name, (ULONG *)&file );
+                        strncpy(tmppath,file,MAXPATHLEN);
+                        if(s = strrchr(tmppath,'.')) {
+                            if(ld->prefpostfix[0] == '.') {
+                                strcpy( s, ld->prefpostfix );
+                            } else {
+                                strcpy( s+1, ld->prefpostfix );
+                            }
+                        } else {
+                            strcat(tmppath,ld->prefpostfix);
+                        }
+                        XSetGadgetAttrs( ExtBase, (struct Gadget *)gads->Name, gads->win, NULL,
+                                         STRINGA_TextVal, tmppath, TAG_END );
+                    }
                 } else {
                     InternalError("Couldn't locate saver!");
+                    *res = PERR_ERROR;
+                    return 1;
                 }
             }
+            break;
+
+        default:
             break;
     }
     return 0;
@@ -378,28 +455,30 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 
 SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 {
-    struct SaveWin gads;
+    struct SaveWin gads = {0};
     ULONG sigmask, sig, rc;
     BOOL quit = FALSE;
-    EXTBASE *xd;
-    FRAME *frame;
+    EXTBASE *ExtBase;
+    FRAME *frame = NULL;
     struct PPTMessage *msg;
     APTR IntuitionBase,SysBase, DOSBase;
     UBYTE *dpath = NULL, *args = NULL, *name = NULL;
     LOADER *loader = NULL;
-    UBYTE activemode;
+    UBYTE activemode = 0;
     ULONG *optarray = NULL;
+    struct Extension *ext;
+    PERROR res = PERR_OK;
 
-    xd = NewExtBase(TRUE);
+    ExtBase = NewExtBase(TRUE);
 
-    IntuitionBase = xd->lb_Intuition; SysBase = xd->lb_Sys; DOSBase = xd->lb_DOS;
+    IntuitionBase = ExtBase->lb_Intuition; SysBase = ExtBase->lb_Sys; DOSBase = ExtBase->lb_DOS;
 
     /*
      *  Extract any information the REXX program sent us.
      */
 
     // D(bug("\tARGV = '%s'\n", argvect ));
-    if( optarray = ParseDOSArgs( argvect, "FRAME/A/N,PATH/K,FORMAT/K,TYPE/N/K,ARGS/K,NAME/K", xd )) {
+    if( optarray = ParseDOSArgs( argvect, "FRAME/A/N,PATH/K,FORMAT/K,TYPE/N/K,ARGS/K,NAME/K", ExtBase )) {
         frame = (FRAME *) *( (ULONG *)optarray[0]);
 
         if( optarray[1] || optarray[5]) { /* PATH or NAME existed */
@@ -408,6 +487,7 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
             loader = (LOADER *) FindIName( &globals->loaders, (UBYTE *)optarray[2] );
             if(!loader) {
                 D(bug("\tFindName() failed\n"));
+                res = PERR_ERROR;
                 goto errorexit;
             }
             activemode = *( (ULONG *)optarray[3] ) ? TRUE : FALSE;
@@ -423,7 +503,42 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
                                                         name ? name : (STRPTR)"NULL",
                                                         args ? args : (STRPTR)"NULL"));
 
-    if(!frame) goto errorexit;
+    if(!frame) {
+        res = PERR_ERROR;
+        goto errorexit;
+    }
+
+    if((res = NewTaskProlog(frame,ExtBase)) != PERR_OK) goto errorexit;
+
+
+    /*
+     *  Set up default extensions
+     */
+
+    if( !(ext = FindExtension(frame,EXTNAME_ANNO,ExtBase))) {
+        AddExtension( frame, EXTNAME_ANNO, DEFAULT_ANNOTATION, strlen(DEFAULT_ANNOTATION)+1, 0L,ExtBase);
+    }
+
+    if( !(ext = FindExtension(frame,EXTNAME_DATE,ExtBase))) {
+        struct DateStamp ds;
+        struct DateTime  dt;
+        UBYTE dbuf[40],tbuf[40],buf[80];
+
+        DateStamp(&ds);
+        dt.dat_Stamp   = ds;
+        dt.dat_Format  = FORMAT_DOS;
+        dt.dat_Flags   = 0L;
+        dt.dat_StrDay  = NULL;
+        dt.dat_StrDate = dbuf;
+        dt.dat_StrTime = tbuf;
+        sprintf(buf,"Created on %s, %s",dbuf, tbuf);
+        AddExtension(frame, EXTNAME_DATE, buf, strlen(buf)+1, 0L, ExtBase );
+    }
+
+    /*
+     *  If the user already gave us all the information we needed,
+     *  then let's rock-n-roll!
+     */
 
     if( loader ) {
 
@@ -437,22 +552,27 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
               "path = %s, name = %s\n",
                frame, loader->info.nd.ln_Name, activemode, dpath, name ));
 
-        DoTheSave( frame, loader, activemode, xd );
+        res = DoTheSave( frame, loader, activemode, args, ExtBase );
 
         goto errorexit;
     }
 
-    UpdateProgress(frame,"Waiting user input",0,xd);
+    /*
+     *  If not, then begin the arduous waiting for signals...
+     */
 
-    if(GimmeSaveWindow(frame, xd, &gads )) {
+    if(GimmeSaveWindow(frame, ExtBase, &gads )) {
+        ULONG sigport;
 
         /*
          *  Fetch sigmask and begin main loop
          */
 
         GetAttr(WINDOW_SigMask, gads.Win, &sigmask);
+        sigport = 1<<ExtBase->mport->mp_SigBit;
+
         while(!quit) {
-            sig = Wait( sigmask | SIGBREAKF_CTRL_C );
+            sig = Wait( sigmask|SIGBREAKF_CTRL_C|SIGBREAKF_CTRL_F|sigport );
 
             /*
              *   Break signal?
@@ -461,7 +581,13 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
             if(sig & SIGBREAKF_CTRL_C) {
                 quit = TRUE;
                 D(bug("\tgot break signal\n"));
+                res = PERR_BREAK;
                 break;
+            }
+
+            if( sig & SIGBREAKF_CTRL_F ) {
+                WindowToFront( gads.win );
+                ActivateWindow( gads.win );
             }
 
             /*
@@ -470,7 +596,26 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 
             if(sig & sigmask) {
                 while(( rc = HandleEvent( gads.Win )) != WMHI_NOMORE) {
-                    quit += HandleSaveIDCMP( frame, &gads, rc, xd );
+                    quit += HandleSaveIDCMP( frame, &gads, rc, &res, ExtBase );
+                }
+            }
+
+            /*
+             *  Message from the main task
+             */
+
+            if( sig & sigport ) {
+                struct Message *msg;
+
+                while( msg = GetMsg( ExtBase->mport ) ) {
+                    if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
+                        D(bug("\tA reply message received.  Strange, I don't"
+                              " remember sending any messages at all...\n"));
+                        FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
+                    } else {
+                        D(bug("\tA strange message received, just replying...\n"));
+                        ReplyMsg( msg );
+                    }
                 }
             }
 
@@ -486,20 +631,21 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 
 errorexit:
     if(optarray)
-        FreeDOSArgs( optarray, xd );
+        FreeDOSArgs( optarray, ExtBase );
 
-    msg = AllocPPTMsg( sizeof( struct PPTMessage), xd );
+    msg = AllocPPTMsg( sizeof( struct PPTMessage), ExtBase );
     msg->frame = frame;
     msg->code = PPTMSG_SAVEDONE;
+    msg->data = (void *)res;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, xd );
+    SendPPTMsg( globals->mport, msg, ExtBase );
 
-    WaitDeathMessage(xd);
+    WaitDeathMessage(ExtBase);
 
-    EmptyMsgPort( xd->mport, xd );
+    EmptyMsgPort( ExtBase->mport, ExtBase );
 
-    if(xd) RelExtBase(xd);
+    if(ExtBase) RelExtBase(ExtBase);
     /* Die. */
 
 }
