@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.6 1996/10/13 15:05:06 jj Exp $
+    $Id: save.c,v 1.7 1996/11/17 22:09:52 jj Exp $
 */
 
 #include "defs.h"
@@ -70,7 +70,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
     else
         sprintf(argbuf,"%lu",frame);
 
-    D(bug("Running save, see save.log for log info\n"));
+    D(bug("Running save(%s)\n",argbuf));
 
 #ifdef DEBUG_MODE
     p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, FALSE, NP_Output, OpenDebugFile( DFT_Save ),
@@ -102,7 +102,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 */
 
 Local
-void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
+void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTBASE *xd )
 {
     volatile char filename[MAXPATHLEN];
     volatile int res;
@@ -120,6 +120,8 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
     strcpy(filename, frame->path);
     AddPart(filename, frame->name, MAXPATHLEN);
 
+    DeleteNameCount(filename);
+
     fh = Open( filename, MODE_NEWFILE );
     if(!fh) {
         XReq( GetFrameWin(frame), NULL, "\nUnable to open write file\n" );
@@ -131,7 +133,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
      */
 
     if(mode == SAVE_TRUECOLOR) {
-        volatile auto int (* ASM X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
+        volatile auto int (* ASM X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
 
         X_SaveT = (FPTR) GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags );
 
@@ -145,7 +147,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
             D(bug("+-+-+-+-+-\n"));
         }
     } else { /* COLORMAPPED */
-        volatile auto int (* ASM X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
+        volatile auto int (* ASM X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
 
         X_SaveC = (FPTR) GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags );
 
@@ -215,7 +217,7 @@ errexit:
     }
 }
 
-void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTDATA *xd )
+void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *xd )
 {
     ULONG activemode;
     APTR IntuitionBase = xd->lb_Intuition, UtilityBase = xd->lb_Utility;
@@ -251,7 +253,7 @@ void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTDATA *x
 }
 
 Local
-HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
+HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 {
     LOADER *ld;
     STRPTR file;
@@ -294,8 +296,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
 
                 bzero( frame->path, MAXPATHLEN ); /* BUG: Clumsy */
                 strncpy( frame->path, file, (s-file) );
-
-                strcpy( frame->name, s );
+                MakeFrameName( s, frame->name, NAMELEN, xd );
 
                 /*
                  *  Close window and save
@@ -358,13 +359,13 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
 SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 {
     struct SaveWin gads;
-    ULONG sigmask, sig, rc, sttags[] = { ASLFR_InitialDrawer, NULL, TAG_END };
+    ULONG sigmask, sig, rc;
     BOOL quit = FALSE;
     EXTBASE *xd;
     FRAME *frame;
     struct PPTMessage *msg;
     APTR IntuitionBase,SysBase, DOSBase;
-    UBYTE *dpath = NULL, *args, *name = NULL;
+    UBYTE *dpath = NULL, *args = NULL, *name = NULL;
     LOADER *loader = NULL;
     UBYTE activemode;
     ULONG *optarray = NULL;
@@ -424,16 +425,6 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
     UpdateProgress(frame,"Waiting user input",0,xd);
 
     if(GimmeSaveWindow(frame, xd, &gads )) {
-
-        /*
-         *  Initialize the save requester.
-         */
-
-        sttags[1] = (ULONG)frame->path;
-        SetAttrsA( gads.Frq, (struct TagItem *)sttags );
-        sttags[0] = ASLFR_InitialFile;
-        sttags[1] = (ULONG) frame->name;
-        SetAttrsA( gads.Frq, (struct TagItem *)sttags );
 
         /*
          *  Fetch sigmask and begin main loop
