@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.7 $
-        $Date: 1998/06/28 23:10:45 $
+    $Revision: 4.8 $
+        $Date: 1998/06/30 19:58:34 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.7 1998/06/28 23:10:45 jj Exp $
+    $Id: ppt_real.h,v 4.8 1998/06/30 19:58:34 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -121,15 +121,7 @@ typedef void Pixel;                 /* Use only as Pixel * */
 #define ROWLEN(a) \
     ( ((PIXINFO *)(a))->bytes_per_row )
 
-/*!!PRIVATE*/
-/* Main window and main screen */
-
-#define MAINWIN       (globals->maindisp->win)
-#define MAINSCR       (globals->maindisp->scr)
-
-
 /*------------------------------------------------------------------*/
-/*!!PUBLIC*/
 /* Definitions */
 
 #define MAXPATHLEN          256     /* Std AmigaDOS path len */
@@ -378,6 +370,9 @@ typedef struct {
                                    DrawSelectBox() */
     BOOL            drawalpha;  /* TRUE, if alpha channels should be taken into
                                    account when rendering */
+
+    BOOL            keephidden; /* TRUE, if the display should be kept hidden */
+
     /*!!PUBLIC*/
 } DISPLAY;
 
@@ -526,8 +521,6 @@ typedef struct Frame_t {
 
     BOOL            loading;        /* TRUE, if this frame is currently being loaded */
 
-    BOOL            keephidden;     /* TRUE, if this frame should be kept hidden */
-
     ID              attached;       /* Simple attachment list. End with 0L */
 
     struct EClockVal eclock;
@@ -608,6 +601,15 @@ typedef struct {
 
     WORD            previewheight,
                     previewwidth;
+
+    /*
+     *  If this is set to TRUE, then the user wants to confirm most of
+     *  his requesters.  If FALSE, he does not want to do that, so you
+     *  should only show the most important requesters and take the default
+     *  action for everything else.  This is really a power-user option.
+     */
+
+    BOOL            confirm;
 
     /* PRIVATE data only beyond this point */
 
