@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 4.5 1998/02/06 19:08:20 jj Exp $
+    $Id: support.c,v 4.6 1998/02/28 18:04:51 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -67,7 +67,6 @@ Prototype ASM VOID       PutPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, 
 Prototype ASM UBYTE *    MakeFrameName( REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) ULONG,REG(a6) EXTBASE * );
 Prototype ASM VOID       PutPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a1) ROWPTR, REG(a6) EXTBASE * );
 Prototype ASM ULONG      TagData( REG(d0) Tag, REG(a0) struct TagItem *, REG(a6) EXTBASE * );
-Prototype ASM PLANEPTR   GetBitMapRow( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a6) EXTBASE * );
 Prototype ASM VOID       PlanarToChunky( REG(a0) UBYTE **source, REG(a1) ROWPTR dest, REG(d0) ULONG width,   REG(d1) UWORD depth, REG(a6) EXTBASE * );
 Prototype ASM STRPTR     GetStr_External( REG(a0) struct LocaleString *, REG(a6) EXTBASE * );
 
@@ -922,17 +921,16 @@ SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD colum
 *       GetBitMapRow -- get a pointer to a rendered image
 *
 *   SYNOPSIS
-*       ptr = GetBitMapRow( frame, row, plane );
-*       D0                  A0     D0   D1
+*       ptr = GetBitMapRow( frame, row );
+*       D0                  A0     D0
 *
-*       PLANEPTR GetBitMapRow( FRAME *, WORD, WORD );
+*       UBYTE *GetBitMapRow( FRAME *, WORD );
 *
 *   FUNCTION
 *
 *   INPUTS
 *       frame - easy.
 *       row - The row you wish to have data from
-*       plane - The bitplane number.
 *
 *   RESULT
 *       ptr - A pointer to bitmapped data or NULL, if something failed.
@@ -956,15 +954,17 @@ SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD colum
 *
 */
 
-SAVEDS ASM PLANEPTR GetBitMapRow( REG(a0) FRAME *frame, REG(d0) WORD row,
-                                  REG(d1) WORD plane, REG(a6) EXTBASE *ExtBase )
+Prototype ASM UBYTE *GetBitMapRow( REG(a0) FRAME *, REG(d0) WORD, REG(a6) EXTBASE * );
+
+SAVEDS ASM UBYTE *GetBitMapRow( REG(a0) FRAME *frame, REG(d0) WORD row,
+                                REG(a6) EXTBASE *ExtBase )
 {
     struct RenderObject *rdo = frame->renderobject;
 
     if(rdo == NULL) return NULL;
 
     if( rdo->GetRow ) {
-        (*rdo->GetRow)( rdo, row, plane );
+        return (*rdo->GetRow)( rdo, row );
     } else {
         return NULL;
     }
