@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.56 1998/11/08 00:43:02 jj Exp $
+    $Id: display.c,v 1.57 1998/12/07 23:55:28 jj Exp $
 
     Contains display routines.
 
@@ -1137,6 +1137,7 @@ PERROR ShowDisplayWindow( FRAME *frame )
 
 ///
 
+/// OpenQuickDisplayWindow()
 /*
     Opens a preview window.
 */
@@ -1172,7 +1173,9 @@ PERROR OpenQuickDisplayWindow(FRAME *frame, EXTBASE *ExtBase)
 
     return PERR_OK;
 }
+///
 
+/// MakeDisplayFrame()
 /*
     Just a shortcut.  Will do everything DisplayFrame() should,
     but will not draw the actual data.
@@ -1213,7 +1216,8 @@ PERROR MakeDisplayFrame( FRAME *frame )
 
     return res;
 }
-
+///
+/// QuickDisplayFrame()
 /*
     Quickdisplay a frame.
 
@@ -1263,8 +1267,8 @@ ULONG QuickDisplayFrame( FRAME *frame )
 
     return rc;
 }
-
-
+///
+/// DisplayFrame()
 /*
     This handles the preview window. The real render is handled
     elsewhere.
@@ -1318,10 +1322,11 @@ PERROR DisplayFrame( FRAME *frame )
 
     return res;
 }
-
+///
 
 /*-------------------------------------------------------------------------*/
 
+/// OpenMainScreen()
 const struct TagItem screenfailtext[] = {
     TAG_USER+OSERR_NOMONITOR, (ULONG)"Named monitor spec not available",
     TAG_USER+OSERR_NOCHIPS, (ULONG)"You need newer custom chips",
@@ -1475,7 +1480,8 @@ struct Screen *OpenMainScreen( DISPLAY *d )
 
     return foo;
 }
-
+///
+/// CloseMainScreen()
 PERROR CloseMainScreen( void )
 {
     PERROR res = PERR_OK;
@@ -1503,8 +1509,9 @@ PERROR CloseMainScreen( void )
     }
     return res;
 }
+///
 
-
+/// OpenDisplay()
 /*
     This routine will open all previously open windows and
     can well be used for startup, also.
@@ -1537,16 +1544,19 @@ PERROR OpenDisplay( VOID )
     }
 
     if( extf.win && extf.Win ) {
+        SetAttrs( extf.List, LISTV_ListFont, globals->userprefs->listfont, TAG_DONE );
         SetAttrs( extf.Win, WINDOW_Screen, MAINSCR, TAG_DONE );
         extf.win = WindowOpen( extf.Win );
     }
 
     if( extl.win && extl.Win ) {
+        SetAttrs( extl.List, LISTV_ListFont, globals->userprefs->listfont, TAG_DONE );
         SetAttrs( extl.Win, WINDOW_Screen, MAINSCR, TAG_DONE );
         extl.win = WindowOpen( extl.Win );
     }
 
     if( exts.win && exts.Win ) {
+        SetAttrs( exts.List, LISTV_ListFont, globals->userprefs->listfont, TAG_DONE );
         SetAttrs( exts.Win, WINDOW_Screen, MAINSCR, TAG_DONE );
         exts.win = WindowOpen( exts.Win );
     }
@@ -1601,8 +1611,8 @@ PERROR OpenDisplay( VOID )
 
     return PERR_OK;
 }
-
-
+///
+/// CloseDisplay()
 
 /*
     Opposite of OpenDisplay(). Note! This just closes the windows; it does
@@ -1676,6 +1686,7 @@ PERROR CloseDisplay()
 
     return PERR_OK;
 }
+///
 
 /// StripIntuiMessages&CloseWindowSafely
 /*
