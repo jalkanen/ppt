@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 1.16 $
-        $Date: 1996/11/17 20:09:39 $
+    $Revision: 1.17 $
+        $Date: 1996/11/17 22:11:39 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 1.16 1996/11/17 20:09:39 jj Exp $
+    $Id: ppt_real.h,v 1.17 1996/11/17 22:11:39 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -520,7 +520,7 @@ typedef struct {
     You may use this to check the PPT main version number.
 */
 
-typedef struct {
+typedef struct ExtBase {
     struct Library  lib;            /* A standard library structure */
 
 /* PPT public fields start here. Read, don't write. */
