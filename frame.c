@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.5 1998/06/28 23:14:02 jj Exp $
+    $Id: frame.c,v 4.6 1998/06/30 20:00:23 jj Exp $
 
     This contains frame handling routines
 
@@ -476,7 +476,7 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
      *  if there was a previous channel
      */
 
-    if( oldalpha ) {
+    if( oldalpha && DOCONFIRM ) {
         a = Req(GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
                 GetStr(MSG_FRAME_REPLACE_CURRENT_ALPHA_OLD),
                 oldalpha->name, alpha->name );
@@ -510,7 +510,7 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
         return PERR_FAILED;
     }
 
-    if( cspace == CS_ARGB ) {
+    if( cspace == CS_ARGB && DOCONFIRM ) {
         if(Req(GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
                GetStr( MSG_FRAME_REPLACE_CURRENT_ALPHA ),
                alpha->name ) )
@@ -769,7 +769,8 @@ FRAME *UndoFrame( FRAME *currentframe )
     undoframe = currentframe->lastframe;
 
     if(!undoframe) {
-        Req(GetFrameWin(currentframe), NULL, GetStr(MSG_NO_MORE_UNDO_LEVELS) );
+        if( DOCONFIRM ) Req(GetFrameWin(currentframe), NULL, GetStr(MSG_NO_MORE_UNDO_LEVELS) );
+        else DisplayBeep( NULL );
         return NULL;
     }
 
