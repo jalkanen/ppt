@@ -1,37 +1,29 @@
 
-RELEASE NOTES FOR PPT RELEASE D-1
+RELEASE NOTES FOR PPT RELEASE D-2
 ---------------------------------
 
-After a long wait, here's the D-1 release (V6 of PPT).
+Okay, this is a bigger release in a sense - I am introducing two
+new features:
 
-This is more or less a feature release, but quite little
-features.  Most notably:
+- Free-form area selection (just press your mouse button and go)
+- Batch processing.
 
-- BMP and PsionPIC IOmodules added
-- TIFF iomodule is now in the main archive (with LZW support removed)
-- Twirl.effect
-- New splash screen =)
-- Possibility to select circular areas (yay!)
-- Open File now supports multiselect
-- Tips for newbies
-- Preferences (and window positions) are now saved on quit, unless you
-  use "Quit, discard changes" - menu item.
+Neither of these work very well at the moment, I am afraid: the
+free-form area selection tends to miss some shapes and the
+required support for batch processing is in very few plugins
+just yet.  See HISTORY for more information.
 
-On the downside, I fear this release has not been so extensively tested
-as the last ones.  I have been extremely busy, and I have also reworked
-MAJOR portions of the PPT code, so there might well be a bug or two
-still residing here.  In addition, this version is noticeably slower
-than the last release.  This is because the next version will support
-arbitrary shaped areas, and lots of the support code have not yet
-been optimized in any way.
+If someone can provide me with a better script than what
+"BatchProcess.prx" is right now, please do.  I'm not really
+that much of an AREXX guru...
 
-Known bugs:
-- Circular selection will be displayed wrong with previews sometimes.
-- Some effects do not like circular selection either.
-- Undo is problematic with some effects
-- Twirl does not work as well as I'd like.
-- Circle selection sometimes does not work pixel-perfect. I suspect
-  a roundoff error.
+Consider this a beta release, so that I can check if the new
+features work at all on your computers.  And I wanted you to
+have something new to play with ;-)
+
+On a brighter note, a number of bugs were squashed, including
+the problems with the circle area selection and the text.effect
+crash.
 
 /Janne
 

@@ -4,14 +4,14 @@
 
     Version info for PPT.  This file is modified by IncVer.
 
-    $Id: version.h,v 1.15 1999/09/06 21:16:15 jj Exp $
+    $Id: version.h,v 1.16 1999/12/27 22:00:46 jj Exp $
 */
 
 /*------------------------------------------------------------------*/
 
-#define VERSION         "6.1"
+#define VERSION         "6.18"
 #define VERNUM          6
-#define RELEASE         "\"Descartes-1\""
+#define RELEASE         "\"Descartes-2\""
 
 #define COPYRIGHT       "(C) Janne Jalkanen 1996-1999"
 
