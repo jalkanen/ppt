@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.102 1999/01/13 22:57:14 jj Exp $
+    $Id: main.c,v 1.103 1999/02/14 19:39:53 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1730,18 +1730,20 @@ int HandlePrefsIDCMP( ULONG rc )
 
         case GID_PW_CONFIRM:
             GetAttr( GA_Selected, prefsw.Confirm, &tmp );
-            tmpprefs.confirm = (BOOL) tmp;
+            tmpprefs.confirm = tmp ? TRUE : FALSE;
             break;
 
         case GID_PW_FLUSHLIBS:
             GetAttr( GA_Selected, prefsw.FlushLibs, &tmp );
-            tmpprefs.expungelibs = (BOOL) tmp;
+            tmpprefs.expungelibs = tmp ? TRUE : FALSE;
             break;
 
         case GID_PW_SAVE:
         case GID_PW_USE:
             GetAttr( GA_Selected, prefsw.ColorPreview, &tmp );
-            tmpprefs.colorpreview = (BOOL) tmp;
+            tmpprefs.colorpreview = tmp ? TRUE : FALSE;
+            GetAttr( GA_Selected, prefsw.DitherPreview, &tmp );
+            tmpprefs.ditherpreview = tmp ? TRUE : FALSE;
 
             /*
              *  If there was a change in display, try to close the display
@@ -1762,11 +1764,16 @@ int HandlePrefsIDCMP( ULONG rc )
                 PREFS kludgeprefs;
                 DISPLAY kludgedisp;
                 BOOL  kludgevm = FALSE;
+                BOOL  redrawframes = FALSE; /* if set, redraws everything */
 
                 /*
                  *  Saves the original preferences, so that if we cannot
                  *  act on them now, they will be restored.
                  */
+
+                if( globals->userprefs->ditherpreview != tmpprefs.ditherpreview ) {
+                    redrawframes = TRUE;
+                }
 
                 CopyPrefs( globals->userprefs, &kludgeprefs );
                 memcpy(&kludgedisp, globals->maindisp, sizeof(DISPLAY));
@@ -1832,6 +1839,20 @@ int HandlePrefsIDCMP( ULONG rc )
                 } else {
                     WindowClose( prefsw.Win );
                     prefsw.win = NULL;
+
+                    /* Since there was no need to close the screen, we'll now
+                       redraw the windows, if necessary */
+
+                    if( redrawframes ) {
+                        struct Node *cn, *nn;
+
+                        cn = globals->frames.lh_Head;
+                        while( nn = cn->ln_Succ ) {
+                            ((FRAME *)cn)->reqrender = TRUE; /* Force rerender */
+                            DisplayFrames( (FRAME *)cn );
+                            cn = nn;
+                        }
+                    }
                 }
 
                 if( toolbarchanged ) {
@@ -1849,6 +1870,7 @@ int HandlePrefsIDCMP( ULONG rc )
                     strcpy( globals->userprefs->vmdir, kludgeprefs.vmdir );
                     globals->userprefs->vmbufsiz = kludgeprefs.vmbufsiz;
                 }
+
                 return HANDLER_DELETED;
             }
             return 0;
