@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.3 1995/09/23 22:04:48 jj Exp $
+    $Id: infowin.c,v 1.4 1995/10/01 22:18:08 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -88,7 +88,7 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *xd )
             }
         }
     }
-    return PERR_OK;
+    return res;
 }
 
 /*
@@ -195,7 +195,7 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                 WINDOW_ScaleWidth, 40,
                 WINDOW_Font, globals->userprefs->mainfont,
                 WINDOW_Screen, scr,
-                WINDOW_SharedPort, MAINWIN->UserPort,
+                WINDOW_SharedPort, MainIDCMPPort,
                 WINDOW_HelpFile, "PROGDIR:docs/ppt.guide",
                 WINDOW_HelpNode, "Infowindow",
                 posntag, posnval, /* Window position */
