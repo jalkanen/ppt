@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.31 1998/11/08 00:48:57 jj Exp $
+    $Id: rexx.c,v 1.32 1998/12/15 21:25:57 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -59,8 +59,8 @@ typedef enum
 Prototype struct RexxHost *InitRexx( char * );
 Prototype int ExitRexx( struct RexxHost * );
 Prototype void HandleRexxCommands( struct RexxHost * );
-Prototype REXXARGS *FindRexxWaitItem( struct PPTMessage * );
-Prototype void ReplyRexxWaitItem( REXXARGS * );
+Prototype PPTREXXARGS *FindRexxWaitItem( struct PPTMessage * );
+Prototype void ReplyRexxWaitItem( PPTREXXARGS * );
 Prototype struct RexxMsg *SendRexxCommand( struct RexxHost *, char *, BPTR );
 
 Local void FreeRexxCommand( struct RexxMsg * );
@@ -69,42 +69,42 @@ Local struct Stem *AllocStem( UBYTE * );
 Local VOID FreeStem( struct Stem *s );
 Local PERROR AddStemItem( struct Stem *, UBYTE *, ULONG, StemType );
 Local VOID FreeStemItem( struct StemItem * );
-Local VOID RexxReply( struct RexxMsg *, REXXARGS * );
-Local BOOL DoRexxCommand( struct RexxMsg *, char *, REXXARGS * );
+Local VOID RexxReply( struct RexxMsg *, PPTREXXARGS * );
+Local BOOL DoRexxCommand( struct RexxMsg *, char *, PPTREXXARGS * );
 
 /*--------------------------------------------------------------------------*/
 /* Variables & other stuff. */
 
-Local void rx_version( REXXARGS *, struct RexxMsg * );
-Local void rx_author( REXXARGS *, struct RexxMsg * );
-Local void rx_process( REXXARGS *, struct RexxMsg * );
-Local void rx_quit( REXXARGS *, struct RexxMsg * );
-Local void rx_load( REXXARGS *, struct RexxMsg * );
-Local void rx_setarea( REXXARGS *, struct RexxMsg * );
-Local void rx_deleteframe( REXXARGS *, struct RexxMsg * );
-Local void rx_frameinfo( REXXARGS *, struct RexxMsg * );
-Local void rx_getarea( REXXARGS *, struct RexxMsg * );
-Local void rx_save( REXXARGS *, struct RexxMsg * );
-Local void rx_saveas( REXXARGS *, struct RexxMsg * );
-Local void rx_listeffects( REXXARGS *, struct RexxMsg * );
-Local void rx_listloaders( REXXARGS *, struct RexxMsg * );
-Local void rx_effectinfo( REXXARGS *, struct RexxMsg * );
-Local void rx_loaderinfo( REXXARGS *, struct RexxMsg * );
-Local void rx_setrenderprefs( REXXARGS *, struct RexxMsg * );
-Local void rx_getrenderprefs( REXXARGS *, struct RexxMsg * );
-Local void rx_renameframe( REXXARGS *, struct RexxMsg * );
-Local void rx_copyframe( REXXARGS *, struct RexxMsg * );
-Local void rx_crop( REXXARGS *, struct RexxMsg * );
-Local void rx_render( REXXARGS *, struct RexxMsg * );
-Local void rx_ppt_to_front( REXXARGS *, struct RexxMsg * );
-Local void rx_ppt_to_back( REXXARGS *, struct RexxMsg * );
-Local void rx_render_to_front( REXXARGS *, struct RexxMsg * );
-Local void rx_closerender( REXXARGS *, struct RexxMsg * );
-Local void rx_askfile( REXXARGS *, struct RexxMsg * );
-Local void rx_askreq( REXXARGS *, struct RexxMsg * );
-Local void rx_showerror( REXXARGS *, struct RexxMsg * );
-Local void rx_show( REXXARGS *, struct RexxMsg * );
-Local void rx_hide( REXXARGS *, struct RexxMsg * );
+Local void rx_version( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_author( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_process( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_quit( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_load( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_setarea( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_deleteframe( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_frameinfo( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_getarea( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_save( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_saveas( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_listeffects( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_listloaders( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_effectinfo( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_loaderinfo( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_setrenderprefs( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_getrenderprefs( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_renameframe( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_copyframe( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_crop( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_render( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_ppt_to_front( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_ppt_to_back( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_render_to_front( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_closerender( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_askfile( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_askreq( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_showerror( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_show( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_hide( PPTREXXARGS *, struct RexxMsg * );
 
 
 struct RexxCommand rx_commands[] = {
@@ -197,16 +197,16 @@ const char *ColorSpaceNamesE[] = {
 /*--------------------------------------------------------------------------*/
 
 Local
-REXXARGS *AllocRA(VOID)
+PPTREXXARGS *AllocRA(VOID)
 {
-    REXXARGS *ra;
-    ra = smalloc( sizeof(REXXARGS) );
-    if( ra ) bzero( ra, sizeof(REXXARGS) );
+    PPTREXXARGS *ra;
+    ra = smalloc( sizeof(PPTREXXARGS) );
+    if( ra ) bzero( ra, sizeof(PPTREXXARGS) );
     return ra;
 }
 
 Local
-VOID FreeRA( REXXARGS *ra )
+VOID FreeRA( PPTREXXARGS *ra )
 {
     if( ra ) sfree( ra );
 }
@@ -436,7 +436,7 @@ PERROR parse_arcycle(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
 }
 
 Local
-void rx_askreq( REXXARGS *ra, struct RexxMsg *rm )
+void rx_askreq( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     struct TagItem win[MAX_REXX_ASKREQ_ITEMS+5] = {0};
     struct TagItem objs[MAX_REXX_ASKREQ_ITEMS+1][10] = {0};
@@ -616,7 +616,7 @@ void rx_askreq( REXXARGS *ra, struct RexxMsg *rm )
 */
 
 Local
-void rx_showerror( REXXARGS *ra, struct RexxMsg *rm )
+void rx_showerror( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     char linebuf[80] = "";
 
@@ -645,7 +645,7 @@ void rx_showerror( REXXARGS *ra, struct RexxMsg *rm )
     You may specify loaders/savers by using the switches.
 */
 Local
-void rx_listloaders( REXXARGS *ra, struct RexxMsg *rm )
+void rx_listloaders( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     struct Stem *stem;
     struct Node *cn = globals->loaders.lh_Head, *nn;
@@ -692,7 +692,7 @@ void rx_listloaders( REXXARGS *ra, struct RexxMsg *rm )
     the name of the first effect in stem.1, the next in stem.2 etc.
 */
 Local
-void rx_listeffects( REXXARGS *ra, struct RexxMsg *rm )
+void rx_listeffects( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     struct Stem *stem;
     struct Node *cn = globals->effects.lh_Head, *nn;
@@ -718,7 +718,7 @@ void rx_listeffects( REXXARGS *ra, struct RexxMsg *rm )
 /// Rendering routines
 
 Local
-void rx_closerender( REXXARGS *ra, struct RexxMsg *rm )
+void rx_closerender( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
 
@@ -727,7 +727,7 @@ void rx_closerender( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_render_to_front( REXXARGS *ra, struct RexxMsg *rm )
+void rx_render_to_front( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     struct RenderObject *rdo;
@@ -747,7 +747,7 @@ void rx_render_to_front( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_render( REXXARGS *ra, struct RexxMsg *rm )
+void rx_render( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
 
@@ -779,7 +779,7 @@ const char *modes[] = { "Color", "EHB", "HAM6", "HAM8", NULL };
 const char *dithers[] = { "None", "Floyd-Steinberg", NULL };
 
 Local
-void rx_setrenderprefs( REXXARGS *ra, struct RexxMsg *rm )
+void rx_setrenderprefs( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     LONG nColors, mode = -1, dither = -1;
@@ -902,7 +902,7 @@ void rx_setrenderprefs( REXXARGS *ra, struct RexxMsg *rm )
         FORCEBW = Force B/W
 */
 Local
-void rx_getrenderprefs( REXXARGS *ra, struct RexxMsg *rm )
+void rx_getrenderprefs( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     struct Stem *stem;
@@ -932,7 +932,7 @@ void rx_getrenderprefs( REXXARGS *ra, struct RexxMsg *rm )
     BUG: AddStemItem return values are ignored.
 */
 Local
-void rx_frameinfo( REXXARGS *ra, struct RexxMsg *rm )
+void rx_frameinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     struct Stem *stem;
@@ -958,7 +958,7 @@ void rx_frameinfo( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_effectinfo( REXXARGS *ra, struct RexxMsg *rm )
+void rx_effectinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     EXTERNAL    *effect;
     struct Stem *stem = NULL;
@@ -1015,7 +1015,7 @@ VOID rx_DecodeColorSpaceBits( char *buf, ULONG csf )
 }
 
 Local
-void rx_loaderinfo( REXXARGS *ra, struct RexxMsg *rm )
+void rx_loaderinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     EXTERNAL    *loader;
     struct Stem *stem = NULL;
@@ -1054,7 +1054,7 @@ void rx_loaderinfo( REXXARGS *ra, struct RexxMsg *rm )
 /// CROP
 
 Local
-void rx_crop( REXXARGS *ra, struct RexxMsg *rm )
+void rx_crop( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame, *newframe;
 
@@ -1080,7 +1080,7 @@ void rx_crop( REXXARGS *ra, struct RexxMsg *rm )
     GETAREA FRAME/A/N,STEM/A
 */
 Local
-void rx_getarea( REXXARGS *ra, struct RexxMsg *rm )
+void rx_getarea( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     struct Stem *stem;
@@ -1102,7 +1102,7 @@ void rx_getarea( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_setarea( REXXARGS *ra, struct RexxMsg *rm )
+void rx_setarea( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
 
@@ -1140,7 +1140,7 @@ void rx_setarea( REXXARGS *ra, struct RexxMsg *rm )
 /// Frame handling functions: DELETE,RENAME,COPY
 /* Delete a frame. */
 Local
-void rx_deleteframe( REXXARGS *ra, struct RexxMsg *rm )
+void rx_deleteframe( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     ULONG res;
@@ -1155,7 +1155,7 @@ void rx_deleteframe( REXXARGS *ra, struct RexxMsg *rm )
 
 
 Local
-void rx_renameframe( REXXARGS *ra, struct RexxMsg *rm )
+void rx_renameframe( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame;
     APTR  entry;
@@ -1186,7 +1186,7 @@ void rx_renameframe( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_copyframe( REXXARGS *ra, struct RexxMsg *rm )
+void rx_copyframe( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame = ra->frame, *newframe;
 
@@ -1219,7 +1219,7 @@ void rx_copyframe( REXXARGS *ra, struct RexxMsg *rm )
 
 
 Local
-void rx_askfile( REXXARGS *ra, struct RexxMsg *rm )
+void rx_askfile( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     UBYTE *initialdrawer, *initialfile, *path;
 
@@ -1264,7 +1264,7 @@ void rx_askfile( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_load( REXXARGS *ra, struct RexxMsg *rm )
+void rx_load( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     FRAME *frame;
 
@@ -1281,7 +1281,7 @@ void rx_load( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_saveas( REXXARGS *ra, struct RexxMsg *rm )
+void rx_saveas( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     UBYTE argstr[MAXPATHLEN+NAMELEN+80];
     UBYTE path[MAXPATHLEN+1],*s;
@@ -1318,7 +1318,7 @@ void rx_saveas( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_save( REXXARGS *ra, struct RexxMsg *rm )
+void rx_save( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     // UBYTE argstr[300]; /* BUG: Magic */
     // FRAME *frame = ra->frame;
@@ -1351,7 +1351,7 @@ void rx_save( REXXARGS *ra, struct RexxMsg *rm )
 /// QUIT, PPT_TO_FRONT, PPT_TO_BACK
 
 Local
-void rx_quit( REXXARGS *ra, struct RexxMsg *rm )
+void rx_quit( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     extern int quit;
 
@@ -1368,14 +1368,14 @@ void rx_quit( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
-void rx_ppt_to_front( REXXARGS *ra, struct RexxMsg *rm )
+void rx_ppt_to_front( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     if( MAINSCR )
         ScreenToFront( MAINSCR );
 }
 
 Local
-void rx_ppt_to_back( REXXARGS *ra, struct RexxMsg *rm )
+void rx_ppt_to_back( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     if( MAINSCR )
         ScreenToBack( MAINSCR );
@@ -1391,7 +1391,7 @@ void rx_ppt_to_back( REXXARGS *ra, struct RexxMsg *rm )
     Note that the rxargs is not released until the effect has stopped!
 */
 Local
-void rx_process( REXXARGS *ra, struct RexxMsg *rm )
+void rx_process( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     char argstr[MAXPATHLEN], *rxargs = NULL;
     FRAME *frame;
@@ -1438,13 +1438,13 @@ void rx_process( REXXARGS *ra, struct RexxMsg *rm )
  */
 
 Local
-void rx_hide( REXXARGS *ra, struct RexxMsg *rm )
+void rx_hide( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     HideDisplayWindow( ra->frame );
 }
 
 Local
-void rx_show( REXXARGS *ra, struct RexxMsg *rm )
+void rx_show( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     ShowDisplayWindow( ra->frame );
 }
@@ -1455,7 +1455,7 @@ void rx_show( REXXARGS *ra, struct RexxMsg *rm )
 
 /* Return version information. */
 Local
-void rx_version( REXXARGS *ra, struct RexxMsg *rm )
+void rx_version( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     sprintf(result,"%u",VERNUM);
     ra->result = result;
@@ -1463,7 +1463,7 @@ void rx_version( REXXARGS *ra, struct RexxMsg *rm )
 
 /* Return author name. Boring. */
 Local
-void rx_author( REXXARGS *ra, struct RexxMsg *rm )
+void rx_author( PPTREXXARGS *ra, struct RexxMsg *rm )
 {
     ra->result = "Janne Jalkanen";
 }
@@ -1475,7 +1475,7 @@ void rx_author( REXXARGS *ra, struct RexxMsg *rm )
 */
 
 Local
-BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, REXXARGS *ra )
+BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, PPTREXXARGS *ra )
 {
     char *args;
     ULONG *optarray = NULL;
@@ -1611,7 +1611,7 @@ void HandleRexxCommands( struct RexxHost *host )
             FreeRexxCommand( rmsg );
             --host->replies;
         } else {
-            REXXARGS *ra;
+            PPTREXXARGS *ra;
 
             if(!(ra = AllocRA() ))
                 return;
@@ -1651,15 +1651,15 @@ void HandleRexxCommands( struct RexxHost *host )
 
     See Composite() for example.
 
-    Returns a pointer to the added REXXARGS.
+    Returns a pointer to the added PPTREXXARGS.
  */
 
-Prototype REXXARGS *SimulateRexxCommand( FRAME *frame, char *command );
+Prototype PPTREXXARGS *SimulateRexxCommand( FRAME *frame, char *command );
 
-REXXARGS *
+PPTREXXARGS *
 SimulateRexxCommand( FRAME *frame, char *command )
 {
-    REXXARGS *ra = NULL;
+    PPTREXXARGS *ra = NULL;
 
     if( ra = AllocRA() ) {
         ra->frame = frame;
@@ -1688,7 +1688,7 @@ SimulateRexxCommand( FRAME *frame, char *command )
 #define STEMITEM(x)         ((struct StemItem *)(x))
 
 Local
-void RexxReply( struct RexxMsg *msg, REXXARGS *ra )
+void RexxReply( struct RexxMsg *msg, PPTREXXARGS *ra )
 {
     ULONG rc = 0;
 
@@ -1783,15 +1783,15 @@ void FreeRexxCommand( struct RexxMsg *rexxmessage )
     DeleteRexxMsg( rexxmessage );
 }
 
-Prototype REXXARGS *FindRexxWaitItemFrame( FRAME *frame );
+Prototype PPTREXXARGS *FindRexxWaitItemFrame( FRAME *frame );
 
-REXXARGS *FindRexxWaitItemFrame( FRAME *frame )
+PPTREXXARGS *FindRexxWaitItemFrame( FRAME *frame )
 {
     struct Node *cn = RexxWaitList.lh_Head;
 
     while(cn->ln_Succ) {
-        REXXARGS *ra;
-        ra = (REXXARGS *)cn;
+        PPTREXXARGS *ra;
+        ra = (PPTREXXARGS *)cn;
         if(ra->frame == frame) {
             return ra;
         }
@@ -1800,13 +1800,13 @@ REXXARGS *FindRexxWaitItemFrame( FRAME *frame )
     return NULL;
 }
 
-REXXARGS *FindRexxWaitItem( struct PPTMessage *pmsg )
+PPTREXXARGS *FindRexxWaitItem( struct PPTMessage *pmsg )
 {
     return FindRexxWaitItemFrame( pmsg->frame );
 }
 
 
-void ReplyRexxWaitItem( REXXARGS *ra )
+void ReplyRexxWaitItem( PPTREXXARGS *ra )
 {
     D(bug("ReplyRexxWaitItem(ra=%08X)\n",ra));
     if( ra->args ) FreeDOSArgs( ra->args, globxd );
@@ -1829,8 +1829,8 @@ VOID EmptyRexxWaitItemList(VOID)
     struct Node *cn = RexxWaitList.lh_Head, *nn;
 
     while(nn = cn->ln_Succ) {
-        REXXARGS *ra;
-        ra = (REXXARGS *)cn;
+        PPTREXXARGS *ra;
+        ra = (PPTREXXARGS *)cn;
 
         ra->rc = -20;
         ra->rc2 = (long)"BREAK: Host closing down";

@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.9 1998/10/14 20:35:32 jj Exp $
+    $Id: frame.c,v 4.10 1998/12/15 21:23:57 jj Exp $
 
     This contains frame handling routines
 
@@ -378,7 +378,7 @@ PERROR AddFrame( FRAME *frame )
 void DeleteFrame( FRAME *f )
 {
     APTR entry;
-    REXXARGS *ra;
+    PPTREXXARGS *ra;
 
     D(bug("DeleteFrame( frame = %08X )...",f));
 
@@ -1488,10 +1488,13 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
     DISPLAY *d = f->disp;
     APTR SysBase = ExtBase->lb_Sys;
     BOOL sizechange = FALSE;
+    D(APTR b);
 
     D(bug("InitFrame(%08X)\n",f));
 
     if(!CheckPtr(f, "InitFrame(): Illegal frame address" )) return PERR_FAILED;
+
+    D(b = StartBench());
 
     LOCK(f);
 
@@ -1569,6 +1572,8 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
     UpdateFrameInfo( f );
 
     UNLOCK(f);
+
+    D(StopBench(b));
     return PERR_OK;
 }
 ///
