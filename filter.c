@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.29 1999/03/17 23:06:52 jj Exp $
+    $Id: filter.c,v 1.30 1999/04/01 23:05:40 jj Exp $
 
     Code containing effects stuff.
 
@@ -119,7 +119,7 @@ PERROR RunFilter( FRAME *frame, UBYTE *argstr )
 
     LOCKGLOB();
 
-    if(frame->selbox.MinX == ~0) {
+    if( !IsAreaSelected(frame) ) {
         SelectWholeImage( frame );
     }
 

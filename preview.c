@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 4.6 1999/03/17 23:09:17 jj Exp $
+    $Id: preview.c,v 4.7 1999/04/01 23:06:41 jj Exp $
 */
 
 #include "defs.h"
@@ -298,7 +298,7 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
          *  Calculate the selbox size
          */
 
-        if( frame->selbox.MinX != ~0 ) {
+        if( IsAreaSelected(frame) ) {
             sb.MinX = frame->selbox.MinX * pwframe->pix->width / frame->pix->width;
             sb.MinY = frame->selbox.MinY * pwframe->pix->height / frame->pix->height;
             sb.MaxX = frame->selbox.MaxX * pwframe->pix->width / frame->pix->width;

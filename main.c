@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.109 1999/03/31 13:27:54 jj Exp $
+    $Id: main.c,v 1.110 1999/04/01 23:06:20 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -187,7 +187,7 @@ VOID ZoomOut( FRAME *f )
 /// CheckArea()
 BOOL CheckArea( const FRAME *frame )
 {
-    if(frame->selbox.MinX == ~0) {
+    if( !IsAreaSelected(frame) ) {
         Req( GetFrameWin(frame),NULL,GetStr( MSG_NO_AREA_SELECTED ) );
         return FALSE;
     }
@@ -899,7 +899,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
         case MID_ZOOMIN:
             if(ObtainFrame( frame, BUSY_READONLY ) ) {
                 LOCK(frame);
-                if( frame->selbox.MinX != ~0 ) {
+                if( IsAreaSelected(frame) ) {
                     frame->zooming = TRUE;
                     ZoomIn( frame, frame->selbox );
                     DisplayFrame( frame );
@@ -2207,7 +2207,7 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
             /*
              *  Make sure the select box is on the window
              */
-            if( sb->MinX != ~0 && !(frame->selstatus & SELF_RECTANGLE) ) {
+            if( IsAreaSelected(frame) && !(frame->selstatus & SELF_RECTANGLE) ) {
                 DrawSelectBox( frame, 0L );
             }
             ClearMouseLocation();
@@ -2279,7 +2279,7 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 
         case GID_DW_INTUITICKS:
             if( !IsFrameBusy( frame ) ) {
-                if( sb->MinX != ~0 ) {
+                if( IsAreaSelected(frame) ) {
 
                     /*
                      *  This kludge tells RemoveSelectBox that it should not
