@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.41 1999/03/14 20:56:02 jj Exp $
+    $Id: initexit.c,v 1.42 1999/03/31 13:27:29 jj Exp $
 
     Initialization and exit code.
 */
@@ -12,6 +12,7 @@
 /*----------------------------------------------------------------------*/
 /* Includes */
 
+/// Includes
 #include "defs.h"
 #include "misc.h"
 #include "rexx.h"
@@ -57,7 +58,7 @@
 
 #include <stdlib.h>
 
-
+///
 
 /*----------------------------------------------------------------------*/
 /* Defines */
@@ -82,6 +83,7 @@ Prototype void Panic( const char * );
     space for us and we wouldn't need to do it. We just point at it from a
     different structure. */
 
+/// Global variables
 struct Library *BGUIBase = NULL, *GadToolsBase = NULL, *LocaleBase = NULL,
                *CyberGfxBase = NULL, *PPCLibBase = NULL;
 struct Device  *TimerBase = NULL;
@@ -111,11 +113,12 @@ const struct TextAttr defaultlistfont = {
     FS_NORMAL,
     0
 };
-
+///
 
 /*----------------------------------------------------------------------*/
 /* Locals */
 
+/// Local variables
 const struct TextAttr startupwinfont1 =
 { "helvetica.font", 24, 0, FPF_DISKFONT };
 
@@ -143,6 +146,7 @@ const char initblurb2[] =
 
 const char initblurb3[] =
     "Initializing...";
+///
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -311,6 +315,70 @@ VOID CloseStartupWindow(VOID)
 #endif
 }
 ///
+
+/// ShowTip()
+/*
+ *  Show the next tip-of-the-day.  Assumes system is up and
+ *  running.
+ */
+
+Local struct LocaleString *tips[] = {
+    mTIP_HOWTOSTART,
+    mTIP_ANNOYINGTIPS,
+    mTIP_PREFERENCES,
+    mTIP_MULTITHREAD,
+    mTIP_COLORSPACES,
+    mTIP_COLORPREVIEW,
+    mTIP_DITHERING,
+    mTIP_DOUBLECLICK,
+    NULL
+};
+
+Prototype void ShowTip(void);
+
+void ShowTip(void)
+{
+    BOOL quit = FALSE;
+    ULONG res, last_tip;
+    STRPTR tip;
+
+    for(last_tip = 0;tips[last_tip];last_tip++);
+
+    if( globals->userprefs->tipnumber >= last_tip ) globals->userprefs->tipnumber = 0;
+
+    while(!quit) {
+
+        tip = GetStr( tips[globals->userprefs->tipnumber] );
+
+        res = Req( NEGNUL, "Next Tip|Previous Tip|Disable|Close",
+                   ISEQ_C ISEQ_B ISEQ_KEEP "\nPPT Tip of the day (%ld of %ld)\n\n"
+                   ISEQ_N "%s\n",
+                   globals->userprefs->tipnumber+1, last_tip,
+                   tip );
+
+        switch(res) {
+            case 0: /* Close */
+                quit = TRUE;
+                /*FALLTHROUGH, we also pick the next tip when we are invoked the
+                  next time.*/
+            case 1: /* Next */
+                if(++globals->userprefs->tipnumber >= last_tip )
+                    globals->userprefs->tipnumber = 0;
+                break;
+            case 2: /* Previous */
+                if(--globals->userprefs->tipnumber < 0 )
+                    globals->userprefs->tipnumber = last_tip-1;
+                break;
+            case 3: /* Disable */
+                globals->userprefs->tipnumber = -1;
+                quit = TRUE;
+                break;
+        }
+    }
+}
+///
+
+/// Initialize()
 /*
     Main initialization subroutine.
 
@@ -703,7 +771,9 @@ int Initialize( void )
 
     return PERR_OK;
 }
+///
 
+/// BreakFrame()
 /*
     This will attempt to break a frame in progress. It will not return
     until it is reasonably certain the process won't die or it has
@@ -765,7 +835,8 @@ PERROR BreakFrame( FRAME *f )
     }
     return PERR_OK;
 }
-
+///
+/// FreeResources()
 /*
     Removes allocated resources
 */
@@ -955,8 +1026,9 @@ int FreeResources (GLOBALS *g)
 
     return PERR_OK;
 } /* FreeResources */
+///
 
-
+/// Panic()
 /*
     This is a general panic-out for those situations. Mainly debug
     purposes.
@@ -985,7 +1057,8 @@ void Panic( const char *msg )
 
     exit(20);
 }
-
+///
+/// Stack overflow
 #ifdef __SASC
 /*
     Provide a stack overflow checking function of our own.
@@ -1011,6 +1084,7 @@ void __stdargs _CXOVF(void)
     }
 }
 #endif
+///
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
