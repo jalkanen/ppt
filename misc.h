@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.14 1997/10/19 16:52:32 jj Exp $
+    $Id: misc.h,v 1.15 1998/06/29 22:33:37 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -14,6 +14,8 @@
 #define XLIB_FUNCS      41
 
 #define InternalError( txt )   Debug_InternalError( txt, __FILE__, __LINE__ )
+
+#define STR(x) ((STRPTR)(x))
 
 /*------------------------------------------------------------------*/
 /* Temporary defines that do not warrant a full recompile now.
