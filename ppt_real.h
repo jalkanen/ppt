@@ -2,6 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
+    $Id: ppt_real.h,v 1.2 1995/08/01 23:15:59 jj Exp $
+
     Main definitions for PPT.
 
     This file is (C) Janne Jalkanen 1994.
@@ -90,7 +92,8 @@ typedef int         PERROR;         /* Error code */
 
 #define MAXPATHLEN    256   /* Std AmigaDOS path len */
 #define NAMELEN       40    /* Maximum length of frame name */
-
+#define WINTITLELEN   80    /* Length of a window title */
+#define SCRTITLELEN   80    /* Length of the screen title */
 
 /*------------------------------------------------------------------*/
 
@@ -236,12 +239,13 @@ typedef struct {
     APTR            *visualinfo;/* Visualinfo pointer for this screen */
     struct Menu     *menustrip; /* GadTools menustrip for the real window */
     APTR            lock;       /* NULL, if window is not busy */
-    char            title[80];  /* Reserved for window title */
+    char            title[WINTITLELEN];  /* Reserved for window title */
+    char            scrtitle[SCRTITLELEN]; /* Reserved for screen title */
     struct Hook     qhook;      /* Quickrender hook for areashow */
     VMHANDLE        *bitmaphandle;  /* Rendering on disk utilizes this handle */
 } DISPLAY;
 
-/* Dithering methods. None currently implemented. */
+/* Dithering methods. FS only currently implemented. */
 
 #define DITHER_NONE         0
 #define DITHER_ORDERED      1
