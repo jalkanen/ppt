@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.4 1998/02/26 19:52:53 jj Exp $
+    $Id: frame.c,v 4.5 1998/06/28 23:14:02 jj Exp $
 
     This contains frame handling routines
 
@@ -496,6 +496,10 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
 
 #else
 
+/*
+ *  This is the new and improved version.
+ */
+
 PERROR AddAlpha( FRAME *frame, FRAME *alpha )
 {
     UBYTE cspace = frame->pix->colorspace;
@@ -516,8 +520,8 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
     }
 
     if( AttachFrame( frame, alpha, ATTACH_SIMPLE, globxd ) ) {
-        sprintf(buffer, "NAME=ADDALPHA ARGS=\"ALPHA %ld\"", alpha->ID );
-        if( RunFilter( frame, buffer ) != PERR_OK ) {
+        sprintf(buffer, "ALPHA %ld", alpha->ID );
+        if( RunFilterCommand( frame, "ADDALPHA", buffer ) != PERR_OK ) {
             Req( GetFrameWin(frame), NULL, GetStr(MSG_PERR_NO_NEW_PROCESS));
             return PERR_FAILED;
         }
@@ -1013,32 +1017,49 @@ BOOL IsAttached( FRAME *frame, ID srcid )
 /* Routines below this point are part of the support library. */
 
 
-/****i* pptsupport/CopyFrameData ******************************************
+/****u* pptsupport/CopyFrameData ******************************************
 *
 *   NAME
 *       CopyFrameData - copy the data from one frame to an another (V4)
 *
 *   SYNOPSIS
+*       error = CopyFrameData( source, dest, flags )
+*       D0                     A0      A1    D0
+*
+*       PERROR CopyFrameData( FRAME *, FRAME *, ULONG );
 *
 *   FUNCTION
-*       TBA
+*       This function copies all the image data from the source
+*       frame to the dest frame.  The frames must have the same
+*       size and the same colorspace.
 *
 *   INPUTS
+*       source - the source frame
+*       dest - the destination frame
+*       flags - controls the copying procedure. Possible flags are:
+*
+*           CFDF_SHOWPROGRESS - Specifying this flag causes a
+*               progress bar to be displayed during the copying
+*               operation.  You will want to enable this if you
+*               are copying a very large image.
 *
 *   RESULT
+*       PERR_OK if everything went ok, otherwise this can fail in
+*           numerous ways...
 *
 *   EXAMPLE
 *
 *   NOTES
 *
 *   BUGS
-*       This entry very incomplete.
+*       No error checking.
 *
 *   SEE ALSO
+*       MakeFrame(), InitFrame()
 *
 *****************************************************************************
 *
-*
+*   BUG: Really needs error checking.
 */
 
 
@@ -1108,7 +1129,7 @@ PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
 /****u* pptsupport/FindFrame ******************************************
 *
 *   NAME
-*       FindFrame -- Find a frame by it's ID code
+*       FindFrame -- Find a frame by its ID code
 *
 *   SYNOPSIS
 *       frame = FindFrame( id )
@@ -1599,6 +1620,8 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *       frame - Frame you wish to duplicate.
 *       flags - any of the following flags ORed together:
 *           DFF_COPYDATA - Copies also the image data.
+*           DFF_MAKENEWNAME - Generates a new name for the
+*               image.
 *
 *   RESULT
 *       newframe - A new frame that is an exact copy of the frame
@@ -1630,26 +1653,28 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *    This routine is part of support library and thus re-entrant.
 */
 
-SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) EXTBASE *xd )
+SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) EXTBASE *PPTBase )
 {
     FRAME *newframe;
-    struct ExecBase *SysBase = xd->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     ULONG copyflags = {0};
 
     D(bug("DupFrame( %08X, %lu )\n",frame,flags));
 
-    if(!CheckPtr(frame,"")) return NULL;
+    if(!CheckPtr(frame,"DupFrame")) return NULL;
 
-    if( PICSIZE(frame->pix) > globals->userprefs->progress_filesize  ) {
-        copyflags |= CFDF_SHOWPROGRESS;
-    }
+    if( newframe = MakeFrame( frame, PPTBase ) ) {
 
-    newframe = MakeFrame( frame, xd );
+        /*
+         *  Make up a new name unless instructed so
+         */
 
-    if(newframe) {
+        if(flags & DFF_MAKENEWNAME) {
+            MakeFrameName( NULL, newframe->name, NAMELEN-1, PPTBase );
+        }
 
-        if(InitFrame( newframe, xd ) != PERR_OK) {
-            RemFrame(newframe,xd);
+        if(InitFrame( newframe, PPTBase ) != PERR_OK) {
+            RemFrame( newframe, PPTBase );
             D(bug("\tInitFrame failed\n"));
             SetErrorCode( frame, PERR_INITFAILED );
             return NULL;
@@ -1657,12 +1682,19 @@ SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) E
 
         D(bug("Frame duplicated: %s (%s)\n",newframe->nd.ln_Name, newframe->path));
 
-        /* Image data, but only if DFF_COPYDATA is specified */
+        /*
+         *  Image data, but only if DFF_COPYDATA is specified.
+         *  We'll use the progress indicator if copying would take
+         *  a long time.
+         */
 
         if( flags & DFF_COPYDATA ) {
+            if( PICSIZE(frame->pix) > globals->userprefs->progress_filesize  ) {
+                copyflags |= CFDF_SHOWPROGRESS;
+            }
 
-            if( CopyFrameData( frame, newframe, copyflags, xd ) != PERR_OK ) {
-                RemFrame(newframe,xd);
+            if( CopyFrameData( frame, newframe, copyflags, PPTBase ) != PERR_OK ) {
+                RemFrame(newframe,PPTBase);
                 newframe = NULL;
             }
 
@@ -1759,14 +1791,15 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
     return f;
 }
 
-/****i* pptsupport/CopyFrame ******************************************
+#if 0
+/****u* pptsupport/CopyFrame ******************************************
 *
 *   NAME
 *       CopyFrame -- Copy a frame fully
 *
 *   SYNOPSIS
-*       success = CopyFrame( source, destination );
-*       D0                   A0      A1
+*       success = CopyFrame( source );
+*       D0                   A0
 *
 *       PERROR MakeFrame( FRAME *, FRAME *);
 *
@@ -1774,7 +1807,18 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
 *       This function will copy the information from one frame to
 *       an another frame.
 *
+*       The difference between this function and CopyFrameData()
+*       is that this one does have error checking as well as it will
+*       create the exactly correct frame.
+*
+*       The difference between this function and DupFrame() is a bit
+*       more subtle one.  While they basically use the same function,
+*       CopyFrame() will do things a bit more automatically and
+*       it will ensure that the new frame is a completely independent
+*       system.
+*
 *   INPUTS
+*       source - the original frame.
 *
 *   RESULT
 *
@@ -1787,6 +1831,7 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
 *       progress display will not be done.
 *
 *   SEE ALSO
+*       CopyFrameData()
 *
 *****************************************************************************
 *  Make a full duplicate.
@@ -1822,7 +1867,7 @@ SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
 
     return new;
 }
-
+#endif
 
 /****i* pptsupport/AttachFrame ******************************************
 *
