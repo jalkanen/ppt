@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.35 1998/10/14 20:35:57 jj Exp $
+    $Id: initexit.c,v 1.36 1998/11/08 00:45:25 jj Exp $
 
     Initialization and exit code.
 */
@@ -141,7 +141,7 @@ const char initblurb3[] =
 
 /*----------------------------------------------------------------------*/
 /* Code */
-
+/// OpenStartupFrame
 #ifdef USE_LOGOIMAGE
 FRAME *OpenStartupFrame(VOID)
 {
@@ -169,7 +169,8 @@ FRAME *OpenStartupFrame(VOID)
     return NULL;
 }
 #endif
-
+///
+/// OpenStartupWindow
 /*
     I'm really bored.  So this is the new startup window:
     Requires:  Libraries open
@@ -268,7 +269,8 @@ VOID OpenStartupWindow(VOID)
         D(bug("\tWARNING! Couldn't open startup window!\n"));
     }
 }
-
+///
+/// UpdateStartupWindow
 /*
  *  Will also check if the main screen is open and switch to that.
  */
@@ -288,7 +290,8 @@ VOID UpdateStartupWindow( const char *text )
         // Delay(100);
     }
 }
-
+///
+/// CloseStartupWindow
 Prototype VOID CloseStartupWindow(VOID);
 
 VOID CloseStartupWindow(VOID)
@@ -302,7 +305,7 @@ VOID CloseStartupWindow(VOID)
     if( startupframe ) RemFrame( startupframe, globxd );
 #endif
 }
-
+///
 /*
     Main initialization subroutine.
 
@@ -450,7 +453,8 @@ int Initialize( void )
     }
 
     /*
-     *  Memory pools & catalogs
+     *  Memory pools & catalogs.  After this point it is legal to use
+     *  GetStr().
      */
 
     if( OpenPool() != PERR_OK )
@@ -460,14 +464,18 @@ int Initialize( void )
     if(!globxd->catalog) D(bug("WARNING: Couldn't open ppt.catalog!\n"));
 
     /*
+     *  Initialize all the GUI locale settings
+     */
+
+    InitGUILocale();
+
+    /*
      *  Check if a copy of PPT is already running!
      */
 
     if(pubscr = LockPubScreen( PPTPUBSCREENNAME )) {
         UnlockPubScreen(NULL, pubscr);
-        Req( NEGNUL, NULL, ISEQ_C "\033k" ISEQ_B"\nAttention!\n\n"
-                           ISEQ_N "A copy of PPT is already running.\n"
-                           "At the moment you can only run one copy of PPT!\n\n" );
+        Req( NEGNUL, NULL, GetStr( mINIT_PPT_ALREADY_RUNNING ) );
         return PERR_FAILED;
     }
 
@@ -510,7 +518,7 @@ int Initialize( void )
      *  load user preferences from the disk.
      */
 
-    UpdateStartupWindow("Loading preferences...");
+    UpdateStartupWindow( GetStr(mINIT_LOADING_PREFERENCES) );
 
     p->mfont.ta_Name = p->mfontname;
     p->lfont.ta_Name = p->lfontname;
@@ -540,7 +548,7 @@ int Initialize( void )
 
     if(p->mainfont) {
         if( (p->maintf = OpenDiskFont( p->mainfont )) == NULL)
-            Req(NEGNUL,NULL,"Warning: Unable to open %s, size %d",
+            Req(NEGNUL,NULL,GetStr(mINIT_CANNOT_OPEN_FONT),
                 p->mainfont->ta_Name, p->mainfont->ta_YSize);
     } else {
         p->maintf = OpenFont( &defaultmainfont );
@@ -548,7 +556,7 @@ int Initialize( void )
 
     if(p->listfont) {
         if( (p->listtf = OpenDiskFont( p->listfont )) == NULL)
-            Req(NEGNUL,NULL,"Warning: Unable to open %s, size %d",
+            Req(NEGNUL,NULL,GetStr(mINIT_CANNOT_OPEN_FONT),
                 p->listfont->ta_Name, p->listfont->ta_YSize);
     } else {
         p->listtf = OpenFont( &defaultlistfont );
@@ -564,7 +572,7 @@ int Initialize( void )
      *  Open main PPT display
      */
 
-    UpdateStartupWindow("Opening display...");
+    UpdateStartupWindow(GetStr(mINIT_OPENING_DISPLAY));
 
     D(bug("\tOpening Display\n"));
 
@@ -577,12 +585,7 @@ int Initialize( void )
         if( OpenDisplay() != PERR_OK )
             Panic("Couldn't get screen!");
         else
-            Req(NEGNUL,NULL,ISEQ_C
-                            "\nI wasn't able to open the preferred screen\n"
-                            "so I am falling back on defaults.  It may be\n"
-                            "that you are running really low on CHIP ram\n"
-                            "or something may be wrong with the preferences\n"
-                            "settings.  Please check the PPT screen prefs!\n" );
+            Req(NEGNUL,NULL,GetStr(mINIT_NO_PREFERRED_SCREEN) );
     }
 
     WindowBusy(globals->WO_main);
@@ -591,10 +594,10 @@ int Initialize( void )
      *  Delete old virtual memory files
      */
 
-    UpdateStartupWindow( "Cleaning up the old messes..." );
+    UpdateStartupWindow( GetStr(mINIT_CLEANING_UP) );
     CleanVMDirectory( globxd );
 
-    UpdateStartupWindow( "Allocating resources..." );
+    UpdateStartupWindow( GetStr(mINIT_ALLOCING_RESOURCES) );
 
     /*
      *  Start up REXX
@@ -612,7 +615,7 @@ int Initialize( void )
                                    ASLFO_MaxHeight, FONT_MAXHEIGHT,
                                    TAG_END );
     if(fontreq == NULL) {
-        Req(NEGNUL,NULL,"\nUnable to allocate ASL font requester\n");
+        Req(NEGNUL,NULL,GetStr(mINIT_NO_ASL_REQUESTER));
         return PERR_INITFAILED;
     }
 
@@ -621,32 +624,44 @@ int Initialize( void )
                                                 ASLFR_InitialDrawer, "PROGDIR:",
                                                 TAG_DONE ) ))
     {
-        Req(NEGNUL,NULL,"\nUnable to allocate ASL file requester\n");
+        Req(NEGNUL,NULL,GetStr(mINIT_NO_ASL_REQUESTER));
         return PERR_INITFAILED;
     }
 
-    globals->LoadFileReq = FileReqObject,
+    gvLoadFileReq.Req = FileReqObject,
         ASLFR_Screen,       MAINSCR,
         ASLFR_Locale,       globxd->locale,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
         ASLFR_InitialFile,  globals->userprefs->startupfile,
+        ASLFR_InitialTopEdge,   gvLoadFileReq.prefs.initialpos.Top,
+        ASLFR_InitialLeftEdge,  gvLoadFileReq.prefs.initialpos.Left,
+        ASLFR_InitialWidth, gvLoadFileReq.prefs.initialpos.Width,
+        ASLFR_InitialHeight,gvLoadFileReq.prefs.initialpos.Height,
     EndObject;
 
-    globals->PaletteLoadReq = FileReqObject,
+    gvPaletteOpenReq.Req = FileReqObject,
         ASLFR_Screen,       MAINSCR,
         ASLFR_Locale,       globxd->locale,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
+        ASLFR_InitialTopEdge,   gvPaletteOpenReq.prefs.initialpos.Top,
+        ASLFR_InitialLeftEdge,  gvPaletteOpenReq.prefs.initialpos.Left,
+        ASLFR_InitialWidth, gvPaletteOpenReq.prefs.initialpos.Width,
+        ASLFR_InitialHeight,gvPaletteOpenReq.prefs.initialpos.Height,
     EndObject;
 
-    globals->PaletteSaveReq = FileReqObject,
+    gvPaletteSaveReq.Req = FileReqObject,
         ASLFR_Screen,       MAINSCR,
         ASLFR_Locale,       globxd->locale,
         ASLFR_DoSaveMode,   TRUE,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
+        ASLFR_InitialTopEdge,   gvPaletteSaveReq.prefs.initialpos.Top,
+        ASLFR_InitialLeftEdge,  gvPaletteSaveReq.prefs.initialpos.Left,
+        ASLFR_InitialWidth, gvPaletteSaveReq.prefs.initialpos.Width,
+        ASLFR_InitialHeight,gvPaletteSaveReq.prefs.initialpos.Height,
     EndObject;
 
-    if( !globals->LoadFileReq || !globals->PaletteLoadReq || !globals->PaletteSaveReq ) {
-        Req(NEGNUL,NULL,"\nUnable to allocate ASL file requesters\n");
+    if( !gvLoadFileReq.Req || !gvPaletteOpenReq.Req || !gvPaletteSaveReq.Req ) {
+        Req(NEGNUL,NULL,GetStr(mINIT_NO_ASL_REQUESTER));
         return PERR_INITFAILED;
     }
 
@@ -719,7 +734,7 @@ PERROR BreakFrame( FRAME *f )
 
             if(i == BREAK_HOW_MANY_TIMES) {
                 if( 0 == Req(NEGNUL,GetStr(mRETRY_IGNORE),
-                             GetStr(mEXTERNAL_DIDNT_DIE),
+                             GetStr(mEXIT_EXTERNAL_DIDNT_DIE),
                              f->currext->nd.ln_Name ) )
                 {
                     D(bug("WARNING: External %s didn't die.\n", f->currext->nd.ln_Name ));
@@ -754,6 +769,8 @@ int FreeResources (GLOBALS *g)
     BusyAllWindows(globxd);
 
     MasterQuit = TRUE;
+
+    CloseStartupWindow(); /* Just in case we die during the startup */
 
     /* Send break to all active processes.
        BUG: Should really wait until they've told they've quit all */
@@ -850,9 +867,9 @@ int FreeResources (GLOBALS *g)
 
     if(filereq) FreeAslRequest( filereq );
     if(fontreq) FreeAslRequest( fontreq );
-    if(globals->LoadFileReq) DisposeObject( globals->LoadFileReq );
-    if(globals->PaletteLoadReq) DisposeObject( globals->PaletteLoadReq );
-    if(globals->PaletteSaveReq) DisposeObject( globals->PaletteSaveReq );
+    if(gvLoadFileReq.Req)    DisposeObject( gvLoadFileReq.Req );
+    if(gvPaletteOpenReq.Req) DisposeObject( gvPaletteOpenReq.Req );
+    if(gvPaletteSaveReq.Req) DisposeObject( gvPaletteSaveReq.Req );
 
     ExitOptions();
 
