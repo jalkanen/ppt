@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.26 1998/06/29 22:32:50 jj Exp $
+    $Id: rexx.c,v 1.27 1998/06/30 20:02:37 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -97,10 +97,15 @@ Local void rx_closerender( REXXARGS *, struct RexxMsg * );
 Local void rx_askfile( REXXARGS *, struct RexxMsg * );
 Local void rx_askreq( REXXARGS *, struct RexxMsg * );
 Local void rx_showerror( REXXARGS *, struct RexxMsg * );
+Local void rx_show( REXXARGS *, struct RexxMsg * );
+Local void rx_hide( REXXARGS *, struct RexxMsg * );
 
 
 struct RexxCommand rx_commands[] = {
     "PROCESS",      "FRAME/A/N,EFFECT/A,ARGS/F",rx_process,
+
+    "HIDE",         "FRAME/A/N",                rx_hide,
+    "SHOW",         "FRAME/A/N",                rx_show,
 
     "SETAREA",      "FRAME/A/N,XBEGIN/N,YBEGIN/N,XEND/N,YEND/N,ALL/S",
                                                 rx_setarea,
@@ -908,6 +913,7 @@ void rx_frameinfo( REXXARGS *ra, struct RexxMsg *rm )
     AddStemItem( stem, "DPIY", (ULONG)frame->pix->DPIY, FALSE );
     AddStemItem( stem, "BYTESPERROW", (ULONG)frame->pix->bytes_per_row, FALSE );
     AddStemItem( stem, "PATH", (ULONG)frame->path, TRUE );
+    AddStemItem( stem, "HIDDEN", (ULONG) (frame->disp->win ? FALSE : TRUE), FALSE );
     UNLOCK(frame);
 
     ra->stem = stem;
@@ -978,6 +984,8 @@ void rx_loaderinfo( REXXARGS *ra, struct RexxMsg *rm )
 
 ///
 
+/// CROP
+
 Local
 void rx_crop( REXXARGS *ra, struct RexxMsg *rm )
 {
@@ -995,6 +1003,7 @@ void rx_crop( REXXARGS *ra, struct RexxMsg *rm )
     }
 
 }
+///
 
 /// SETAREA, GETAREA
 /*
@@ -1244,8 +1253,8 @@ void rx_saveas( REXXARGS *ra, struct RexxMsg *rm )
 Local
 void rx_save( REXXARGS *ra, struct RexxMsg *rm )
 {
-    UBYTE argstr[300]; /* BUG: Magic */
-    FRAME *frame = ra->frame;
+    // UBYTE argstr[300]; /* BUG: Magic */
+    // FRAME *frame = ra->frame;
 
     D(bug("SAVE frame %lu, (%s), args=%s\n",
            ra->args[0],ra->args[1] ? "COLORMAPPED" : "TRUECOLOR",
@@ -1352,6 +1361,27 @@ void rx_process( REXXARGS *ra, struct RexxMsg *rm )
 
     UNLOCK(frame);
 }
+///
+
+/// HIDE & SHOW
+
+/*
+    We will fail quietly, as it is less intrusive to the
+    user.
+ */
+
+Local
+void rx_hide( REXXARGS *ra, struct RexxMsg *rm )
+{
+    HideDisplayWindow( ra->frame );
+}
+
+Local
+void rx_show( REXXARGS *ra, struct RexxMsg *rm )
+{
+    ShowDisplayWindow( ra->frame );
+}
+
 ///
 
 /// Miscallaneous
