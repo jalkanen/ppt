@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 2.2 $
-        $Date: 1997/01/06 21:58:30 $
+    $Revision: 2.3 $
+        $Date: 1997/01/12 00:18:16 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 2.2 1997/01/06 21:58:30 jj Exp $
+    $Id: ppt_real.h,v 2.3 1997/01/12 00:18:16 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -66,6 +66,28 @@ typedef UBYTE *     ROWPTR;         /* Sample row pointer */
 typedef void *      FPTR;           /* Function pointer */
 typedef int         PERROR;         /* Error code */
 typedef ULONG       ID;             /* Identification code */
+
+typedef struct RGBPixel_T {
+    UBYTE r,g,b;
+} RGBPixel;
+
+typedef struct ARGBPixel_T {
+    UBYTE a,r,g,b;
+} ARGBPixel;
+
+typedef struct GrayPixel_T {
+    UBYTE g;
+} GrayPixel;
+
+/*
+ *  These macros can be used to extract an ULONG-cast
+ *  ARGB pixels components.
+ */
+
+#define ARGB_A(x) (UBYTE)((x) >> 24)
+#define ARGB_R(x) (UBYTE)((x) >> 16)
+#define ARGB_G(x) (UBYTE)((x) >> 8)
+#define ARGB_B(x) (UBYTE)(x)
 
 /* Useful macros and definitions */
 
@@ -242,16 +264,18 @@ typedef struct {
 
 #define CS_UNKNOWN          0   /* Not known at this time */
 #define CS_GRAYLEVEL        1   /* 8bit graylevel data */
-#define CS_RGB              2   /* 24bit RGB data */
+#define CS_RGB              2   /* 24 bit RGB data */
+#define CS_ARGB             4   /* 32 bit ARGB data */
 
 /* Flag definitions for PPTX_ColorSpaces.  Please note that CSF_LUT
-   is used ONLY on savers.  PPT handles only real color, but a color-
+   is used ONLY on savers.  PPT processes only in real color, but a color-
    reduced image can be saved. */
 
 #define CSF_UNKNOWN         0x01   /* Dummy. Not used. */
 #define CSF_GRAYLEVEL       0x02
 #define CSF_RGB             0x04
 #define CSF_LUT             0x08
+#define CSF_ARGB            0x10
 
 /*
     The display structure contains necessary info to open a given
@@ -609,8 +633,8 @@ struct LocaleString {
 #define PPTX_Revision           ( GTAGBASE + 2 ) /* UWORD */
 #define PPTX_VerStr             ( GTAGBASE + 3 ) /* "$VER: blahblah" */
 #define PPTX_Name               ( GTAGBASE + 4 ) /* UBYTE * */
-#define PPTX_Init               ( GTAGBASE + 5 ) /* FPTR */
-#define PPTX_Purge              ( GTAGBASE + 6 ) /* FPTR */
+#define PPTX_Init               ( GTAGBASE + 5 ) /* FPTR. OBSOLETE */
+#define PPTX_Purge              ( GTAGBASE + 6 ) /* FPTR. OBSOLETE */
 #define PPTX_InfoTxt            ( GTAGBASE + 7 ) /* STRPTR */
 #define PPTX_Author             ( GTAGBASE + 8 ) /* STRPTR */
 #define PPTX_ReqKickVersion     ( GTAGBASE + 9 ) /* UWORD */
@@ -625,17 +649,19 @@ struct LocaleString {
  */
 
 #define PPTX_Info               ( GTAGBASE + 100 ) /* FPTR. OBSOLETE */
-#define PPTX_Load               ( GTAGBASE + 101 ) /* FPTR. OBSOLETE */
+#define PPTX_Load               ( GTAGBASE + 101 ) /* FPTR/BOOL */
 #define PPTX_SaveTrueColor      ( GTAGBASE + 102 ) /* FPTR. OBSOLETE */
 #define PPTX_SaveColorMapped    ( GTAGBASE + 103 ) /* FPTR. OBSOLETE */
 #define PPTX_Check              ( GTAGBASE + 104 ) /* FPTR. OBSOLETE */
 #define PPTX_NoFile             ( GTAGBASE + 105 ) /* BOOL */
+#define PPTX_PreferredPostFix   ( GTAGBASE + 106 ) /* STRPTR */
+#define PPTX_PostFixPattern     ( GTAGBASE + 107 ) /* STRPTR */
 
 /*
     Effect specific tags
  */
 
-#define PPTX_Exec               ( GTAGBASE + 200 ) /* FPTR. OBSOLETE */
+// #define PPTX_Exec               ( GTAGBASE + 200 ) /* FPTR. OBSOLETE */
 #define PPTX_EasyExec           ( GTAGBASE + 201 ) /* FPTR */
 #define PPTX_EasyTitle          ( GTAGBASE + 202 ) /* FPTR */
 #define PPTX_NoNewFrame         ( GTAGBASE + 203 ) /* BOOL */
@@ -645,11 +671,11 @@ struct LocaleString {
     These tags can be passed to externals upon execution.
  */
 
-#define PPTX_ErrMsg             ( GTAGBASE + 1000 ) /* OBSOLETE */
+//#define PPTX_ErrMsg             ( GTAGBASE + 1000 ) /* OBSOLETE */
 #define PPTX_BitPlanes          ( GTAGBASE + 1001 ) /* UWORD , # of bitplanes to be saved */
 #define PPTX_ColorMap8          ( GTAGBASE + 1002 ) /* UBYTE * */
 #define PPTX_PlanePtrs          ( GTAGBASE + 1003 ) /* ULONG **, pointer to bitplane data */
-#define PPTX_ErrCode            ( GTAGBASE + 1004 ) /* OBSOLETE! */
+//#define PPTX_ErrCode            ( GTAGBASE + 1004 ) /* OBSOLETE! */
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
 
 
