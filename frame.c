@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.15 1997/10/08 23:33:50 jj Exp $
+    $Id: frame.c,v 4.1 1997/10/24 22:59:33 jj Exp $
 
     This contains frame handling routines
 
@@ -945,13 +945,44 @@ BOOL IsAttached( FRAME *frame, ID srcid )
     return FALSE;
 }
 
-/*
-    This makes a full duplicate of the frame data.
- */
+/*---------------------------------------------------------------------------*/
+/* Routines below this point are part of the support library. */
 
-Prototype PERROR CopyFrameData( FRAME *, FRAME *, BOOL, EXTBASE * );
 
-PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE *ExtBase )
+/****i* pptsupport/CopyFrameData ******************************************
+*
+*   NAME
+*       CopyFrameData - copy the data from one frame to an another (V4)
+*
+*   SYNOPSIS
+*
+*   FUNCTION
+*       TBA
+*
+*   INPUTS
+*
+*   RESULT
+*
+*   EXAMPLE
+*
+*   NOTES
+*
+*   BUGS
+*       This entry very incomplete.
+*
+*   SEE ALSO
+*
+*****************************************************************************
+*
+*
+*/
+
+
+Prototype ASM PERROR CopyFrameData( REG(a0) FRAME *, REG(a1) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
+
+SAVEDS ASM
+PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
+                      REG(d0) ULONG flags, REG(a6) EXTBASE *ExtBase )
 {
     UBYTE *buf;
     PERROR res = PERR_OK;
@@ -960,7 +991,7 @@ PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE 
     VMHANDLE *svmh = frame->pix->vmh;
 
     if( svmh->vm_fh ) {
-        if(showprogress)
+        if(flags & CFDF_SHOWPROGRESS)
             InitProgress(frame,"Building new frame...",
                          0, PICSIZE(frame->pix)>>10, ExtBase);
 
@@ -976,7 +1007,7 @@ PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE 
             Seek(dst,0,OFFSET_BEGINNING);
             count = 0;
             do {
-                if(showprogress) Progress(frame,count>>10,ExtBase);
+                if(flags & CFDF_SHOWPROGRESS) Progress(frame,count>>10,ExtBase);
                 nread = Read(src, buf, COPYBUFSIZE);
                 Write(dst,buf,nread);
                 count += nread;
@@ -998,7 +1029,7 @@ PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE 
             res = PERR_OUTOFMEMORY;
         }
 
-        if(showprogress) {
+        if(flags & CFDF_SHOWPROGRESS) {
             FinishProgress( frame, ExtBase );
             CloseInfoWindow( frame->mywin, ExtBase );
             ClearProgress( frame, ExtBase );
@@ -1009,9 +1040,6 @@ PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE 
 
     return res;
 }
-
-/*---------------------------------------------------------------------------*/
-/* Routines below this point are part of the support library. */
 
 /****u* pptsupport/FindFrame ******************************************
 *
@@ -1144,7 +1172,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
     FRAME *f   = NULL;
     PIXINFO *p = NULL;
     DISPLAY *d = NULL;
-    APTR SysBase = SYSBASE();
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
     static ULONG id = 1;
 
     D(bug("MakeFrame( old = %08X )\n",old));
@@ -1160,10 +1188,9 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         pfree(f); return NULL;
     }
 
-    if(!(d = pmalloc( sizeof(DISPLAY) ))) {
+    if(!(d = AllocDisplay( ExtBase ) ) ) {
         pfree(p); pfree(f); return NULL;
     }
-
 
     /*
      *  Initialize to sensible values.
@@ -1187,7 +1214,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
     }
 
     if(old == NULL) {
-        bzero( d, sizeof(DISPLAY) );
+        /* BUG: Should be in AllocDisplay() */
         d->renderq     = RENDER_NORMAL;
         d->dither      = DITHER_NONE;
         d->cmap_method = CMAP_MEDIANCUT;
@@ -1233,12 +1260,14 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         /* NOTE: Should alpha be copied? */
     }
 
+    LOCKGLOB();
     f->ID = id++;
+    UNLOCKGLOB();
     InitSemaphore( &(f->lock) );
 
     D(bug("Made a new frame @ %08X\n",f));
 
-    f->pix = p;
+    f->pix  = p;
     f->disp = d;
 
     /*
@@ -1427,9 +1456,9 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *    NB: Does not remove a frame from any lists!
 */
 
-SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *xd )
+SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 {
-    struct ExecBase *SysBase = xd->lb_Sys;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
 
     D(bug("RemFrame( frame = %08X )\n",f));
 
@@ -1442,7 +1471,7 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *xd )
          */
 
         if( f->lastframe ) {
-            RemFrame( f->lastframe, xd );
+            RemFrame( f->lastframe, ExtBase );
             f->lastframe = NULL;
         }
 
@@ -1451,7 +1480,7 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *xd )
          */
 
         if( f->mywin ) {
-            DeleteInfoWindow( f->mywin,xd );
+            DeleteInfoWindow( f->mywin, ExtBase );
         }
 
         if(f->pix) {
@@ -1463,7 +1492,7 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *xd )
                     if(f->pix->vmh->data)
                         pfree(f->pix->vmh->data);
 
-                    DeleteVMData( f->pix->vmh, xd );
+                    DeleteVMData( f->pix->vmh, ExtBase );
                 }
 
 #ifdef TMPBUF_SUPPORTED
@@ -1479,7 +1508,7 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *xd )
         if(f->disp) {
 
             if(CheckPtr(f->disp,"RemFrame(): Illegal DISPLAY pointer")) {
-                pfree(f->disp);
+                FreeDisplay( f->disp, ExtBase );
             }
 
         }
@@ -1546,14 +1575,14 @@ SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) E
 {
     FRAME *newframe;
     struct ExecBase *SysBase = xd->lb_Sys;
-    BOOL  showprogress = FALSE;
+    ULONG copyflags = {0};
 
     D(bug("DupFrame( %08X, %lu )\n",frame,flags));
 
     if(!CheckPtr(frame,"")) return NULL;
 
     if( PICSIZE(frame->pix) > globals->userprefs->progress_filesize  ) {
-        showprogress = TRUE;
+        copyflags |= CFDF_SHOWPROGRESS;
     }
 
     newframe = MakeFrame( frame, xd );
@@ -1573,7 +1602,7 @@ SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) E
 
         if( flags & DFF_COPYDATA ) {
 
-            if( CopyFrameData( frame, newframe, showprogress, xd ) != PERR_OK ) {
+            if( CopyFrameData( frame, newframe, copyflags, xd ) != PERR_OK ) {
                 RemFrame(newframe,xd);
                 newframe = NULL;
             }
@@ -1711,7 +1740,7 @@ SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
 {
     FRAME *new = NULL;
     PIXINFO *sp = source->pix;
-    BOOL showprogress = FALSE;
+    ULONG copyflags = 0;
 
     D(bug("CopyFrame(%08X)\n",source));
 
@@ -1722,9 +1751,9 @@ SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
 
             if( InitFrame( new, ExtBase ) == PERR_OK ) {
                 if( PICSIZE(sp) > globals->userprefs->progress_filesize  )
-                    showprogress = TRUE;
+                    copyflags |= CFDF_SHOWPROGRESS;
 
-                CopyFrameData( source, new, showprogress, ExtBase );
+                CopyFrameData( source, new, copyflags, ExtBase );
             } else {
                 RemFrame( new, ExtBase );
                 new = NULL;
