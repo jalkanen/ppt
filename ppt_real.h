@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 6.1 $
-        $Date: 1999/11/28 18:15:52 $
+    $Revision: 6.2 $
+        $Date: 1999/12/27 21:59:10 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 6.1 1999/11/28 18:15:52 jj Exp $
+    $Id: ppt_real.h,v 6.2 1999/12/27 21:59:10 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -530,7 +530,7 @@ struct Selection {
     struct Frame_t  *mask;
     Point           *vertices;
     LONG            nVertices;
-
+    LONG            nMaxVertices;   /* Number of allocated vertices */
 };
 
 /*!!PUBLIC*/
