@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.7 1996/09/17 20:37:54 jj Exp $
+    $Id: dither.c,v 1.8 1996/10/10 19:07:58 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -51,7 +51,8 @@ PERROR Dither_NoneD( struct RenderObject *rdo )
 /*
     Execution
 */
-VOID Dither_None( struct RenderObject *rdo )
+Local
+PERROR Dither_None( struct RenderObject *rdo )
 {
     WORD width = rdo->frame->pix->width,col;
     ROWPTR cp = rdo->cp;
@@ -73,9 +74,11 @@ VOID Dither_None( struct RenderObject *rdo )
 
         dcp[col] = (UBYTE)pixcode;
     }
+    return PERR_OK;
 }
 
-VOID Dither_NoneGray( struct RenderObject *rdo )
+Local
+PERROR Dither_NoneGray( struct RenderObject *rdo )
 {
     WORD width = rdo->frame->pix->width,col;
     ROWPTR cp = rdo->cp;
@@ -94,6 +97,7 @@ VOID Dither_NoneGray( struct RenderObject *rdo )
         pixcode = (*rdo->GetColor)( rdo, gray, gray, gray );
         dcp[col] = (UBYTE)pixcode;
     }
+    return PERR_OK;
 }
 
 
@@ -200,7 +204,8 @@ PERROR Dither_FSD( struct RenderObject *rdo )
     Execution
 
 */
-VOID Dither_FS( struct RenderObject *rdo )
+Local
+PERROR Dither_FS( struct RenderObject *rdo )
 {
     struct FSObject *fs;
     UBYTE pixelsize = rdo->frame->pix->components;
@@ -213,7 +218,6 @@ VOID Dither_FS( struct RenderObject *rdo )
     ROWPTR cp = rdo->cp;
     WORD width = rdo->frame->pix->width;
     WORD col;
-    HGRAM *hgrams = rdo->histograms;
     UBYTE *dcp = rdo->buffer;
 
     fs = (struct FSObject *) rdo->DitherObject;
@@ -321,17 +325,16 @@ VOID Dither_FS( struct RenderObject *rdo )
     errorptr[1] = (FSERROR) bpreverr1;
     errorptr[2] = (FSERROR) bpreverr2;
 
-    return;
+    return PERR_OK;
 }
 
 /*
     Execution. This is for graylevel data.
 */
 Local
-VOID Dither_FSGray8( struct RenderObject *rdo )
+PERROR Dither_FSGray8( struct RenderObject *rdo )
 {
     struct FSObject *fs;
-    UBYTE pixelsize = rdo->frame->pix->components;
     int *error_limit;
     FSERROR *errorptr;
     int dir;
@@ -341,7 +344,6 @@ VOID Dither_FSGray8( struct RenderObject *rdo )
     ROWPTR cp = rdo->cp;
     WORD width = rdo->frame->pix->width;
     WORD col;
-    HGRAM *hgrams = rdo->histograms;
     UBYTE *dcp = rdo->buffer;
 
     fs = (struct FSObject *) rdo->DitherObject;
@@ -419,7 +421,7 @@ VOID Dither_FSGray8( struct RenderObject *rdo )
 
     errorptr[0] = (FSERROR) bpreverr; /* unload prev errs into array */
 
-    return;
+    return PERR_OK;
 }
 
 
