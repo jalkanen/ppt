@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.7 1996/11/17 22:09:52 jj Exp $
+    $Id: save.c,v 1.8 1996/11/23 00:46:37 jj Exp $
 */
 
 #include "defs.h"
@@ -59,11 +59,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 
     LOCKGLOB();
 
-    if( frame->selbox.MinX != ~0 && (frame->selstatus & SELF_RECTANGLE)) {
-        DrawSelectBox( frame, frame->selbox.MinX, frame->selbox.MinY,
-                              frame->selbox.MaxX, frame->selbox.MaxY );
-        frame->selstatus &= ~(SELF_RECTANGLE);
-    }
+    RemoveSelectBox( frame );
 
     if(argstr)
         sprintf(argbuf,"%lu %s",frame, argstr);
@@ -217,10 +213,16 @@ errexit:
     }
 }
 
+/*
+    Updates the visuals on the save window.
+    BUG:  BGUI problem:  the MX_Enable/DisableButton do not work if argument
+          > 0.
+*/
 void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *xd )
 {
     ULONG activemode;
-    APTR IntuitionBase = xd->lb_Intuition, UtilityBase = xd->lb_Utility;
+    struct IntuitionBase *IntuitionBase = xd->lb_Intuition;
+    struct Library *UtilityBase = xd->lb_Utility;
 
     GetAttr( MX_Active, gads->Mode, &activemode );
 
@@ -229,26 +231,35 @@ void DoSaveMXGadgets( FRAME *frame, struct SaveWin *gads, LOADER *ld, EXTBASE *x
      *  into enabled state. BUG: should be done just once.
      */
 
-    XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, GA_Disabled, FALSE, TAG_END );
+//    XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL,
+//                     GA_Disabled, FALSE, TAG_END );
 
     /* CASE Truecolor */
 
     if( GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags ) ) {
-        XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_EnableButton, SAVE_TRUECOLOR, TAG_END );
+        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                         MX_EnableButton, SAVE_TRUECOLOR, TAG_END );
     } else {
-        XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_DisableButton, SAVE_TRUECOLOR, TAG_END );
-        if( activemode == SAVE_TRUECOLOR )
-            XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_Active, SAVE_COLORMAPPED, TAG_END );
+        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                         MX_DisableButton, SAVE_TRUECOLOR, TAG_END );
+        if( activemode == SAVE_TRUECOLOR ) {
+            XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                             MX_Active, SAVE_COLORMAPPED, TAG_END );
+        }
     }
 
     /* CASE Colormapped */
 
     if( GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags ) ) {
-        XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_EnableButton, SAVE_COLORMAPPED, TAG_END );
+        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                         MX_EnableButton, SAVE_COLORMAPPED, TAG_END );
     } else {
-        XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_DisableButton, SAVE_COLORMAPPED, TAG_END );
-        if( activemode == SAVE_COLORMAPPED )
-            XSetGadgetAttrs( xd, (struct Gadget *)gads->Mode, gads->win, NULL, MX_Active, SAVE_TRUECOLOR, TAG_END );
+        XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                         MX_DisableButton, SAVE_COLORMAPPED, TAG_END );
+        if( activemode == SAVE_COLORMAPPED ) {
+            XSetGadgetAttrs( xd, GAD(gads->Mode), gads->win, NULL,
+                             MX_Active, SAVE_TRUECOLOR, TAG_END );
+        }
     }
 }
 
@@ -257,7 +268,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
 {
     LOADER *ld;
     STRPTR file;
-    UBYTE *s;
+    UBYTE *s, *e;
     APTR entry;
     ULONG activemode;
     APTR SysBase = xd->lb_Sys, IntuitionBase = xd->lb_Intuition,
@@ -287,16 +298,21 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
                 GetAttr( MX_Active, gads->Mode, &activemode );
 
                 /*
-                 *  Get the path, split into parts and save it
+                 *  Get the path, split into parts and save it.  If the name
+                 *  has been changed, try to do something about it.
                  */
 
                 GetAttr( STRINGA_TextVal, gads->Name, (ULONG *)&file );
 
                 s = PathPart(file);
+                e = FilePart(file);
 
                 bzero( frame->path, MAXPATHLEN ); /* BUG: Clumsy */
                 strncpy( frame->path, file, (s-file) );
-                MakeFrameName( s, frame->name, NAMELEN, xd );
+
+                if( strcmp( e, frame->name ) != 0 ) {
+                    MakeFrameName( e, frame->name, NAMELEN, xd );
+                }
 
                 /*
                  *  Close window and save
@@ -339,7 +355,11 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTBASE *xd )
                 ld = (LOADER *) FindName( &globals->loaders, entry );
                 UNLOCKGLOB();
 
-                DoSaveMXGadgets(frame, gads, ld, xd );
+                if(ld) {
+                    DoSaveMXGadgets(frame, gads, ld, xd );
+                } else {
+                    InternalError("Couldn't locate saver!");
+                }
             }
             break;
     }
