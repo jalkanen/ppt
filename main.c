@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.1 1999/09/05 17:08:45 jj Exp $
+    $Id: main.c,v 6.2 1999/09/08 22:49:17 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -395,7 +395,6 @@ VOID UpdateMainWindow( FRAME *frame )
     UpdateIWSelbox( frame, TRUE ); /* NULL is OK */
 
     if( frame ) {
-        FRAME *alpha = NULL;
         static ULONG args[8];
 
         SHLOCK(frame);
@@ -1412,6 +1411,10 @@ VOID SetSelboxActive( BOOL act )
                     GA_Disabled, !act,
                     TAG_DONE );
 
+    SetGadgetAttrs( GAD(selectw.LassoFree), selectw.win, NULL,
+                    GA_Disabled, !act,
+                    TAG_DONE );
+
 }
 
 
@@ -1537,18 +1540,6 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( PAGE_Active, selectw.Page, &t );
                 D(bug("\tNew select method: %lu\n",t));
-#if 0
-                EraseSelection( frame );
-                if( t ) {
-                    D(bug("Changed into circle mode\n"));
-                    ChangeSelectMethod( frame, GINP_LASSO_CIRCLE );
-                } else {
-                    D(bug("Changed into rectangle mode\n"));
-                    ChangeSelectMethod( frame, GINP_LASSO_RECT );
-                }
-                DrawSelection( frame, 0L );
-                UpdateIWSelbox( frame, TRUE );
-#else
                 switch(t) {
                     case 0:
                         globalSelectMethod = GINP_LASSO_RECT;
@@ -1556,8 +1547,10 @@ int HandleSelectIDCMP( ULONG rc )
                     case 1:
                         globalSelectMethod = GINP_LASSO_CIRCLE;
                         break;
+                    case 2:
+                        globalSelectMethod = GINP_LASSO_FREE;
+                        break;
                 }
-#endif
             }
             break;
 
@@ -2267,6 +2260,10 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 
         case WMHI_ACTIVE:
             isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
+
+            if( IsAreaSelected(frame) && !(frame->selection.selstatus & SELF_DRAWN) ) {
+                DrawSelection( frame, 0L );
+            }
             UpdateMouseLocation( msg.xloc, msg.yloc );
             DoMainList( frame );
             UpdateMainWindow( frame );
@@ -2306,6 +2303,11 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 
         case GID_DW_RIGHTPROP:
             break;
+
+        /*
+         *  User rolls the prop gadgets.  We get this thanks to a
+         *  custom hook.
+         */
 
         case GID_DW_LOCATION:
             GetAttr( PGA_Top, d->GO_BottomProp, &left );
