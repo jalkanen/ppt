@@ -5,12 +5,14 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.15 1998/06/28 23:25:36 jj Exp $
+#       $Id: dmakefile,v 1.16 1998/09/20 22:10:10 jj Exp $
 #
 #####################################################################
 #
 #   Generic paths and stuff.
 #
+
+RELEASE = cauchy2
 
 #   The directory in which PPT source code is backed up
 #   on 'dmake backup'. The slash or colon in the end MUST exist.
@@ -25,6 +27,9 @@ DISTDIR   = TMP:PPT
 
 #   This is where the developer stuff is compiled
 DEVDIR    = $(DISTDIR)_dev
+
+#   This is where the non-free stuff is put to
+NONFREEDIR= $(DISTDIR)_nonfree
 
 #   The directory in which the distribution archive will be
 #   put.
@@ -78,7 +83,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 CC     = SC
 COPTS  = NOICONS IDIR=dinclude:pd IDIR=include IDIR=$(FLOATGADGET) IDIR=$(POWERUP) \
          CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT \
-         IGNORE=104 MATH=S
+         IGNORE=104 MATH=S MEMSIZE=HUGE
 
 # a68k makes erroneous code!
 #AS     = das
@@ -109,7 +114,7 @@ FORTLOPTS  = LIB=$(MAINDIR)/linklib/pptsupp.lib
 #
 #DCOPTS = -d1
 #LDFLAGS= $(LINKOPTS) $(FORTLOPTS) -s
-DCOPTS = DEF=DEBUG_MODE DEBUG=SF ERRORREXX GST=$(GST) CPU=68060
+DCOPTS = DEF=DEBUG_MODE DEBUG=SF ERRORREXX GST=$(GST) CPU=68000 DEF=PARANOID_MALLOC
 LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 
 #
@@ -378,7 +383,7 @@ rcs :
 
 # This makes a distribution
 
-dist : all release release020 $(DISTDIR) docs bguilibs modinfo
+dist : all release release020 $(DISTDIR) docs bguilibs modinfo non-free
         Copy $(RMAIN) $(RMAIN).debug
         Copy $(R2MAIN) $(R2MAIN).debug
         $(STRIP)
@@ -405,8 +410,21 @@ strip :
         Copy $(RMAIN).strip $(RMAIN)
         Delete $(RMAIN).strip
 
+debugdist : all
+        slink $(MAIN) TO $(MAIN).strip NOICONS STRIPDEBUG
+        copy $(MAIN) $(MAIN).debug
+        copy $(MAIN).strip $(MAIN)
+        Delete $(MAIN).strip
+        lha a ram:ppt_debug.lha $(MAIN) README_DEBUG
+
 $(DISTDIR) : $(DISTDIR)
         MakeDir $(DISTDIR)
+
+$(DEVDIR) : $(DEVDIR)
+        MakeDir $(DEVDIR)
+
+$(NONFREEDIR) : $(NONFREEDIR)
+        MakeDir $(NONFREEDIR)
 
 # And this can be used to construct the link libraries
 
@@ -471,9 +489,19 @@ ModuleInfo/moduleinfo : ppt_real.h
 # Developer archive
 #
 
-devarc : devdocs pragmas
+devarc : devdocs pragmas $(DEVDIR)
         dupdate $(MAINDIR) $(DEVDIR) FORCE DISTFILE .DistFiles_dev
         lha -r u $(ARCHIVEDIR)PPT_dev.lha $(DEVDIR)/#?
+
+#
+# Non-free stuff
+#
+
+non-free : $(NONFREEDIR)
+        dupdate $(MAINDIR) $(NONFREEDIR) FORCE DISTFILE .DistFiles_nonfree
+        cd $(NONFREEDIR)
+        lha -r u $(ARCHIVEDIR)PPT_nonfree.lha #?
+        cd $(MAINDIR)
 
 # This can be used to force recompile
 
@@ -508,4 +536,11 @@ bguilibs :
         @smake install
         @cd /
         copy sys:classes/gadgets/bgui_float.gadget libs/
+
+#
+#   Use this to name a release.  Set the $RELEASE to point at this.
+#
+
+namerelease :
+        rcs -n$(RELEASE): *.[ch] dmakefile install ReleaseNotes Catalogs/ppt.cd Docs/#?.guide
 
