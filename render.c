@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.28 1999/02/18 11:09:12 jj Exp $
+   $Id: render.c,v 1.29 1999/02/20 15:28:53 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -476,56 +476,12 @@ VOID ReleaseColorTable(FRAME * frame)
 }
 ///
 
-/// Dithering code
-/*
- *  Builds a global dithering matrix.
- *  Uses code from the netpbm package.
- *  ppmdither is (C) 1991 Christos Zoulas
- */
-
-Local
-int DithValue( int y, int x, int size )
-{
-    int d;
-
-    for( d = 0; size-- > 0; x >>= 1, y >>= 1 ) {
-        d = (d << 2) | (((x & 1) ^ (y & 1)) << 1) | (y & 1);
-    }
-    return d;
-}
-VOID MakeDitherMatrix(int dim)
-{
-    int x, y, *dat;
-
-    D(bug("MakeDitherMatrix(%d)\n",dim));
-
-    dith_dim = (1<<dim);
-    dith_dm2 = dith_dim * dith_dim;
-
-    dith_mat = (int **)smalloc( (dith_dim * sizeof(int *) ) +
-                                (dith_dm2 * sizeof(int)));
-
-    if( dith_mat == NULL ) return; // BUG: no error code
-
-    dat = (int *) &dith_mat[dith_dim];
-    for (y = 0; y < dith_dim; y++)
-        dith_mat[y] = &dat[y * dith_dim];
-
-    for (y = 0; y < dith_dim; y++) {
-        for (x = 0; x < dith_dim; x++) {
-             dith_mat[y][x] = DithValue(y, x, dim);
-
-            D(bug("%4d ",dith_mat[y][x]));
-        }
-        D(bug("\n"));
-    }
-}
-
+/// Init & exit
 Prototype VOID QuickRenderInit( VOID );
 
 VOID QuickRenderInit( VOID )
 {
-    MakeDitherMatrix( 2 );
+    MakeDitherMatrix( &dith_mat, &dith_dim, &dith_dm2, 2 );
 }
 
 Prototype VOID QuickRenderExit(VOID);
@@ -666,7 +622,7 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
                 b = DITHER(ARGB_B(argb),d);
             }
 
-            t = QuickAlphaTable[((row >> 3) + (col >> 3)) % 2];
+            t = QuickAlphaTable[((row >> 3) + (col >> 3)) & 0x01];
             c = (r+g+b)/3;
             c = ((255 - (UWORD) a) * c + (UWORD) a * t) / 255;
             c = QuickRemapTable[c];
@@ -825,7 +781,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     QuickAlphaTable[0] = ALPHA_GRAY_LOW;
     QuickAlphaTable[1] = ALPHA_GRAY_HIGH;
 
-    D(bug("\tTRUECOLOR render...\n"));
+    D(bug("\tARGB->Color render...\n"));
     for (row = 0; row < qra->winheight; row++) {
         ARGBPixel *cp;
         WORD col;
@@ -859,7 +815,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
                 b = DITHER(ARGB_B(argb),d);
             }
 
-            t = QuickAlphaTable[((row >> 3) + (col >> 3)) % 2];
+            t = QuickAlphaTable[((row >> 3) + (col >> 3)) & 0x01];
             r = ((255 - (UWORD) a) * r + (UWORD) a * t) >> 8;
             g = ((255 - (UWORD) a) * g + (UWORD) a * t) >> 8;
             b = ((255 - (UWORD) a) * b + (UWORD) a * t) >> 8;
