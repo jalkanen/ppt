@@ -2,22 +2,34 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.7 1996/08/24 16:23:48 jj Exp $
+    $Id: infowin.c,v 1.8 1996/10/10 19:09:30 jj Exp $
 
     This module contains code for handling infowindows.
  */
 
-#include <defs.h>
-#include <misc.h>
-#include <gui.h>
+/*-------------------------------------------------------------------------*/
+/* Includes */
+
+#include "defs.h"
+#include "misc.h"
+#include "gui.h"
 
 #ifndef CLIB_ALIB_PROTOS_H
 #include <clib/alib_protos.h>
 #endif
 
-#include <pragma/bgui_pragmas.h>
-#include <pragma/exec_pragmas.h>
-#include <pragma/intuition_pragmas.h>
+#ifndef PRAGMAS_BGUI_PRAGMAS_H
+#include <pragmas/bgui_pragmas.h>
+#endif
+
+#ifndef PRAGMAS_INTUITION_PRAGMAS_H
+#include <pragmas/intuition_pragmas.h>
+#endif
+
+/*-------------------------------------------------------------------------*/
+/* Local defines */
+
+// #define DO_NOT_OPEN_WINDOW    /* Do not open the info window ever. */
 
 /*-------------------------------------------------------------------------*/
 
@@ -44,6 +56,7 @@ Prototype VOID          DisableInfoWindow( INFOWIN *, EXTBASE * );
 PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
 {
     INFOWIN *iw;
+    APTR SysBase = ExtBase->lb_Sys;
 
     D(bug("AllocInfoWindow()\n"));
 
@@ -57,15 +70,29 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
             return PERR_OUTOFMEMORY;
         }
 
+        /*
+         *  Do the initialization
+         */
+
         bzero(iw, sizeof(INFOWIN) );
+        InitSemaphore( &(iw->lock) );
+
+        LOCK(iw);
+
+        LOCK(frame);
         iw->myframe = frame;
         frame->mywin = iw;
+
         if(GimmeInfoWindow( ExtBase, iw ) == NULL) {
             frame->mywin = NULL;
             pfree(iw);
             Req(NEGNUL,NULL,XGetStr(MSG_COULD_NOT_ALLOC_INFOWINDOW));
             return PERR_WINDOWOPEN;
         }
+
+        UNLOCK(frame);
+        UNLOCK(iw);
+
     } else {
         D(bug("Infowindow already existed\n"));
     }
@@ -80,21 +107,47 @@ PERROR AllocInfoWindow( FRAME *frame, EXTBASE *ExtBase )
 PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     PERROR res = PERR_OK;
+    APTR SysBase = ExtBase->lb_Sys;
 
     D(bug("OpenInfoWindow(%08X)\n",iw));
     if( iw ) {
         /*
          *  Are the window object and window pointer OK?
-         *  BUG: Should create the infowindow, if it does not exist
          */
+
+        if( !CheckPtr( iw, "Open(): bad iw" ) ) return PERR_FAILED;
+
+        LOCK(iw);
         if( iw->WO_win && !iw->win ) {
 
-            UpdateInfoWindow( iw, ExtBase );
+#ifndef DO_NOT_OPEN_WINDOW
 
-            if( (iw->win = WindowOpen( iw->WO_win )) == NULL) {
-                res = PERR_WINDOWOPEN;
+            /*
+             *  If this is the main task, do the thing, if not, send
+             *  a message to the main task.
+             */
+
+            if( FindTask(NULL) == globals->maintask ) {
+                UpdateInfoWindow( iw, ExtBase );
+
+                D(bug("\tAttempting open...\n"));
+
+                if( (iw->win = WindowOpen( iw->WO_win )) == NULL) {
+                    res = PERR_WINDOWOPEN;
+                }
+                D(bug("\tWindow opened at %08X\n",iw->win));
+            } else {
+                struct PPTMessage *msg;
+
+                msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+                msg->frame = iw->myframe;
+                msg->code  = PPTMSG_OPENINFOWINDOW;
+                msg->data  = 0L;
+                SendPPTMsg( globals->mport, msg, ExtBase );
             }
+#endif
         }
+        UNLOCK(iw);
     }
     return res;
 }
@@ -109,20 +162,32 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 
     D(bug("CloseInfoWindow(%08X)\n",iw));
 
-    LOCKGLOB();
-
     if( iw ) {
+
+        if( !CheckPtr( iw, "Close(): bad iw" ) ) return;
+
         /*
          *  Do the window AND the window object exist?
          */
-        if( iw->WO_win && iw->win ) {
 
-            WindowClose( iw->WO_win );
-            iw->win = NULL;
+        LOCK(iw);
+
+        if( (struct Process *)FindTask(NULL) == globals->maintask ) {
+            if( iw->WO_win && iw->win ) {
+                WindowClose( iw->WO_win );
+                iw->win = NULL;
+            }
+        } else {
+            struct PPTMessage *msg;
+
+            msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+            msg->frame = iw->myframe;
+            msg->code  = PPTMSG_CLOSEINFOWINDOW;
+            msg->data  = 0L;
+            SendPPTMsg( globals->mport, msg, ExtBase );
         }
+        UNLOCK(iw);
     }
-
-    UNLOCKGLOB();
 }
 
 /*
@@ -140,13 +205,18 @@ void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
     LOCKGLOB();
 
     if(iw) {
+        LOCK(iw); // No need to unlock, will be destroyed
+
         frame = iw->myframe;
 
         if(iw->WO_win)
             DisposeObject( iw->WO_win );
 
-        if(frame)
+        if(frame) {
+            LOCK(frame);
             frame->mywin = NULL;
+            UNLOCK(frame);
+        }
 
         pfree(iw);
     }
@@ -171,7 +241,7 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
 {
     EXTBASE *ExtBase = xd; /* BUG */
     FRAME *f;
-    APTR BGUIBase = xd->lb_BGUI, SysBase = xd->lb_Sys, IntuitionBase = xd->lb_Intuition;
+    APTR SysBase = xd->lb_Sys;
     struct Screen *scr;
     struct Window *win;
     ULONG posntag, posnval; /* A kludge */
@@ -219,6 +289,7 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
                 WINDOW_HelpFile,    "PROGDIR:docs/ppt.guide",
                 WINDOW_HelpNode,    "Infowindow",
                 WINDOW_LockHeight,  TRUE,
+                WINDOW_SmartRefresh,FALSE,
                 posntag,            posnval, /* Window position */
                 WINDOW_MasterGroup,
                     MyVGroupObject, HOffset(4), VOffset(4), Spacing(4),
@@ -264,25 +335,40 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
 void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
 {
     APTR IntuitionBase = xd->lb_Intuition;
+    APTR SysBase = xd->lb_Sys;
     struct TagItem tags[3] = {
         WINDOW_Title, NULL,
         WINDOW_ScreenTitle, NULL,
         TAG_DONE, 0L
     };
 
-    LOCKGLOB();
-
     if( iw != NULL ) {
-        FRAME *f = iw->myframe;
+        FRAME *f;
 
-        if(f) {
-            tags[0].ti_Data = f->disp->title;
-            tags[1].ti_Data = f->disp->scrtitle;
-            SetAttrsA( iw->WO_win, tags );
+        if( FindTask(NULL) == globals->maintask ) {
+
+            LOCK(iw);
+
+            f = iw->myframe;
+
+            if(f) {
+                SHLOCK(f);
+                tags[0].ti_Data = (ULONG) f->disp->title;
+                tags[1].ti_Data = (ULONG) f->disp->scrtitle;
+                SetAttrsA( iw->WO_win, tags );
+                UNLOCK(f);
+            }
+            UNLOCK(iw);
+        } else {
+            struct PPTMessage *msg;
+
+            msg = AllocPPTMsg( sizeof( struct PPTMessage ), xd );
+            msg->frame = iw->myframe;
+            msg->code  = PPTMSG_UPDATEINFOWINDOW;
+            msg->data  = 0L;
+            SendPPTMsg( globals->mport, msg, xd );
         }
     }
-
-    UNLOCKGLOB();
 }
 
 /*
@@ -303,18 +389,17 @@ void UpdateIWSelbox( FRAME *f )
 VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     APTR IntuitionBase = ExtBase->lb_Intuition;
+    APTR SysBase = ExtBase->lb_Sys;
     struct TagItem tags[3] = {
         GA_Disabled, TRUE,
         TAG_DONE, 0L
     };
 
-    LOCKGLOB();
-
     if( iw ) {
+        LOCK(iw);
         SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
+        UNLOCK(iw);
     }
-
-    UNLOCKGLOB();
 }
 
 /*
@@ -324,17 +409,16 @@ VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 VOID EnableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     APTR IntuitionBase = ExtBase->lb_Intuition;
+    APTR SysBase = ExtBase->lb_Sys;
     struct TagItem tags[3] = {
         GA_Disabled, FALSE,
         TAG_DONE, 0L
     };
 
-    LOCKGLOB();
-
     if( iw ) {
+        LOCK(iw);
         SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
+        UNLOCK(iw);
     }
-
-    UNLOCKGLOB();
 }
 
