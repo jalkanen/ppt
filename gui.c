@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.63 1999/02/20 15:27:58 jj Exp $
+    $Id: gui.c,v 1.64 1999/02/21 20:32:51 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1256,6 +1256,8 @@ Object *GimmePrefsWindow( VOID )
                                                                 STRINGA_LongVal, args[5],
                                                                 STRINGA_MaxChars, 5,
                                                                 STRINGA_IntegerMin, MIN_VMBUFSIZ,
+                                                                STRINGA_UndoBuffer, undobuf,
+                                                                STRINGA_WorkBuffer, workbuf,
                                                                 STRINGA_MinCharsVisible, 5,
                                                                 BT_HelpHook, &HelpHook,
                                                                 BT_HelpNode, "PPT.guide/VMSettings",
@@ -1282,6 +1284,8 @@ Object *GimmePrefsWindow( VOID )
                                                                 STRINGA_IntegerMin, 5000,
                                                                 STRINGA_MinCharsVisible, 6,
                                                                 BT_HelpHook, &HelpHook,
+                                                                STRINGA_UndoBuffer, undobuf,
+                                                                STRINGA_WorkBuffer, workbuf,
                                                                 BT_HelpNode, "PPT.guide/VMSettings",
                                                             EndObject, FixMinWidth,
                                                         EndMember,
@@ -1313,6 +1317,8 @@ Object *GimmePrefsWindow( VOID )
                                                                 STRINGA_IntegerMax, 1,
                                                                 STRINGA_MinCharsVisible, 4,
                                                                 STRINGA_MaxChars, 4,
+                                                                STRINGA_UndoBuffer, undobuf,
+                                                                STRINGA_WorkBuffer, workbuf,
                                                                 BT_HelpHook,  &HelpHook,
                                                                 BT_HelpNode,  "PPT.guide/VMSettings",
                                                             EndObject,  Weight(1),
@@ -1497,6 +1503,8 @@ Object *GimmePrefsWindow( VOID )
                                                 ULabel("Max _Undo levels"),
                                                 StringFrame,
                                                 STRINGA_LongVal,  args[6],
+                                                STRINGA_UndoBuffer, undobuf,
+                                                STRINGA_WorkBuffer, workbuf,
                                                 STRINGA_MaxChars, 3,
                                                 STRINGA_MinCharsVisible, 4,
                                                 STRINGA_IntegerMin, 0,
@@ -1598,6 +1606,10 @@ Object *GimmePrefsWindow( VOID )
                                                         GA_Disabled, TRUE,
                                                         StartMember,
                                                             prefsw.ToolItemFile = StringObject,
+                                                                STRINGA_MaxChars, MAXPATHLEN,
+                                                                STRINGA_UndoBuffer, undobuf,
+                                                                STRINGA_WorkBuffer, workbuf,
+                                                                STRINGA_Justification, STRINGRIGHT,
                                                                 Label("File"),
                                                                 Place(PLACE_LEFT),
                                                                 GA_ID, GID_PW_TOOLITEMFILE,
