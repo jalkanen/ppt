@@ -5,14 +5,14 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 6.0 1999/09/05 02:25:07 jj Exp $
+#       $Id: dmakefile,v 6.1 1999/09/06 21:18:46 jj Exp $
 #
 #####################################################################
 #
 #   Generic paths and stuff.
 #
 
-RELEASE = cauchy6
+RELEASE = descartes1
 
 #   The directory in which PPT source code is backed up
 #   on 'dmake backup'. The slash or colon in the end MUST exist.
