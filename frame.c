@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.18 1999/08/01 16:46:27 jj Exp $
+    $Id: frame.c,v 6.0 1999/09/06 21:17:38 jj Exp $
 
     This contains frame handling routines
 
@@ -983,7 +983,7 @@ VOID UpdateFrameInfo( FRAME *f )
         sprintf(d->title,"%s (%ux%u) %.3g%%",f->nd.ln_Name, p->width, p->height,100.0*(float)zoomArea/(float)picArea );
         sprintf(d->scrtitle, GetStr(MSG_FRAME_SCREEN_TITLE),
             name, p->width, p->height, p->origdepth,
-            f->origtype ? (STRPTR)f->origtype->info.nd.ln_Name : GetStr(MSG_UNKNOWN),
+            f->origtype ? (char const *)f->origtype->info.nd.ln_Name : GetStr(MSG_UNKNOWN),
             PICSIZE( f->pix ) );
     }
 
@@ -1302,7 +1302,6 @@ FindFrame( REGPARAM(d0,ULONG,seekid) )
 *    Shared structures must be handled by the following routines:
 *       MakeFrame() - when non-NULL, must still provide an alternative.
 *
-*    BUG: Should display some sort of error message upon failure.
 *    BUG: maybe the Node shouldn't be cleared after all?  The name-field...
 *    BUG: Should lock!
 */
@@ -1396,6 +1395,8 @@ FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,Ex
         f->pw           = NULL;
         f->dpw          = NULL;
         f->mywin        = NULL;
+        CopySelection( old, f );
+        RescaleSelection( old, f );
         f->selection.selectport   = NULL;
         f->editwin      = NULL;
         f->attached     = 0L;
@@ -1536,9 +1537,12 @@ PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBa
 
 
     if( f->parent ) {
+        CopySelection( f->parent, f );
+
         if( f->parent->pix->width != f->pix->width ||
             f->parent->pix->height != f->pix->height ) {
-                SelectWholeImage( f );
+                //SelectWholeImage( f );
+                RescaleSelection( f->parent, f );
                 sizechange = TRUE;
         }
     }
@@ -1729,7 +1733,6 @@ Prototype FRAME * ASM DupFrame( REGDECL(a0,FRAME *), REGDECL(d0,ULONG), REGDECL(
 FRAME * SAVEDS ASM DupFrame( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,ULONG,flags), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     FRAME *newframe;
-    struct ExecBase *SysBase = PPTBase->lb_Sys;
     ULONG copyflags = {0};
 
     D(bug("DupFrame( %08X, %lu )\n",frame,flags));
@@ -1834,7 +1837,6 @@ FRAME * SAVEDS ASM NewFrame( REGPARAM(d0,ULONG,width), REGPARAM(d1,ULONG,height)
                              REGPARAM(d2,UBYTE,components), REGPARAM(a6,EXTBASE *,xd) )
 {
     FRAME *f;
-    struct ExecBase *SysBase = xd->lb_Sys;
 
     D(bug("NewFrame( w=%lu, h=%lu, c=%lu );\n", width,height,components ));
 
