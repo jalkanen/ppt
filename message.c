@@ -2,13 +2,28 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 1.5 1996/10/13 15:09:43 jj Exp $
+    $Id: message.c,v 1.6 1996/10/25 01:39:11 jj Exp $
 
     This module contains code about message handling routines.
 */
 
 #include "defs.h"
 #include "misc.h"
+
+/*
+ *  If defined, all messages and their types will be dumped onto
+ *  the standard output.
+ */
+
+#undef DEBUG_MESSAGES
+
+/*------------------------------------------------------------------------*/
+
+#ifdef DEBUG_MESSAGES
+#define DB(x)       x;
+#else
+#define DB(x)
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -54,7 +69,7 @@ Prototype VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase );
 VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase )
 {
     if( pmsg ) {
-        D(bug("FreePPTMsg(%08X) : code %lX\n", pmsg, pmsg->code ));
+        DB(bug("FreePPTMsg(%08X) : code %lX\n", pmsg, pmsg->code ));
         sfree( pmsg );
     }
 }
@@ -65,7 +80,7 @@ VOID SendPPTMsg( struct MsgPort *mp, struct PPTMessage *pmsg, EXTBASE *ExtBase )
 {
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 
-    D(bug("SendPPTMsg(%08X) : code %lX\n",pmsg, pmsg->code ));
+    DB(bug("SendPPTMsg(%08X) : code %lX\n",pmsg, pmsg->code ));
 
     Forbid();
     PutMsg( mp, (struct Message *) pmsg );
@@ -532,7 +547,7 @@ VOID WaitForReply( ULONG code, EXTBASE *ExtBase )
     struct Message *msg;
     BOOL  quit = FALSE;
 
-    D(bug("WaitDeathMessage()\n"));
+    D(bug("WaitForReply(%ld)\n",code));
 
     while(!quit) {
         sig = Wait( 1 << mp->mp_SigBit | SIGBREAKF_CTRL_C );
