@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.18 1999/10/02 16:33:07 jj Exp $
+    $Id: external.c,v 6.0 1999/11/25 23:13:57 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -55,6 +55,7 @@ Prototype EXTBASE       *NewExtBase( BOOL );
 /*-------------------------------------------------------------------------*/
 /* Code */
 
+/// SetTaskNice()
 /*
     Set the NICE value of a task
 */
@@ -103,8 +104,9 @@ PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *PPTBase )
     return PERR_OK;
 
 }
+///
 
-
+/// NewTaskProlog()
 /*
     This is called whenever a new task is started.
 */
@@ -115,14 +117,16 @@ PERROR NewTaskProlog( FRAME *frame, EXTBASE *PPTBase )
 {
     return SetTaskNice( FindTask(NULL), 10, PPTBase );
 }
+///
 
+/// OpenModule()
 /*
     These two will open and close an external module.
 */
 
-Prototype struct Library *OpenModule( EXTERNAL *, EXTBASE * );
+Prototype struct Library *OpenModule( EXTERNAL *, ULONG version, EXTBASE * );
 
-struct Library *OpenModule( EXTERNAL *x, EXTBASE *PPTBase )
+struct Library *OpenModule( EXTERNAL *x, ULONG version, EXTBASE *PPTBase )
 {
     char buf[256];
     struct Library *ModuleBase;
@@ -136,13 +140,14 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *PPTBase )
     AddPart( buf, x->diskname, 255 );
     UNLOCKGLOB();
 
-    ModuleBase = OpenLibrary( buf, 0L );
+    ModuleBase = OpenLibrary( buf, version );
 #else
-    ModuleBase = OpenLibrary( x->diskname, 0L );
+    ModuleBase = OpenLibrary( x->diskname, version );
 #endif
     return ModuleBase;
 }
-
+///
+/// FlushLibrary()
 /*
  *  Flushes a given library from memory by calling its Expunge-vector.
  *  We can't use the base given by OpenModule because it may be different
@@ -163,7 +168,8 @@ void FlushLibrary(STRPTR name, EXTBASE *PPTBase)
         RemLibrary(result);
     Permit();
 }
-
+///
+/// CloseModule()
 /*
  *  This closes the module and expunges it from memory, if necessary.
  */
@@ -184,6 +190,7 @@ VOID CloseModule( struct Library *ModuleBase, EXTBASE *PPTBase)
         }
     }
 }
+///
 
 /*
     This function goes through all external entries, adding them to the listview object
@@ -346,7 +353,7 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *PPTBase, EXTERNAL *x, struct Window *win )
 
     D(bug("ShowNewExtInfo()\n"));
 
-    ModuleBase = OpenModule( x, PPTBase ); // BUG!
+    ModuleBase = OpenModule( x, 0L, PPTBase ); // BUG!
     if(!ModuleBase) return;
 
     txt  = (APTR)Inquire( PPTX_InfoTxt, PPTBase );
@@ -679,7 +686,7 @@ PERROR InitNewExternal( char *who, struct Library *ModuleBase )
 
         save = ModuleBase;
 
-        ModuleBase = OpenModule( prev, globxd );
+        ModuleBase = OpenModule( prev, 0L, globxd );
         if(!ModuleBase) Panic("OpenModule() failed in InitExternal()");
 
         oldcpuflags = Inquire(PPTX_CPU, globxd);
