@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.65 1999/03/13 17:33:22 jj Exp $
+    $Id: gui.c,v 1.66 1999/03/14 20:55:23 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1824,7 +1824,7 @@ PERROR GimmeSelectWindow(VOID)
                              *  Rectangle page
                              */
 
-                            VGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                            selectw.Rectangle = VGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
                                 StartMember,
                                     HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
                                         StartMember,
@@ -1858,6 +1858,7 @@ PERROR GimmeSelectWindow(VOID)
                                         StartMember,
                                             InfoObject, INFO_TextFormat, "--",
                                                         INFO_VertOffset, 3,
+                                                        NoFrame,
                                             EndObject,
                                         EndMember,
                                         StartMember,
@@ -1898,6 +1899,7 @@ PERROR GimmeSelectWindow(VOID)
                                             InfoObject, INFO_TextFormat, "Area size:",
                                                         INFO_VertOffset, 3,
                                                         INFO_FixTextWidth, TRUE,
+                                                        NoFrame,
                                             EndObject, FixMinWidth,
                                         EndMember,
                                         StartMember,
@@ -1916,6 +1918,7 @@ PERROR GimmeSelectWindow(VOID)
                                             InfoObject, INFO_TextFormat, "x",
                                                         INFO_VertOffset, 3,
                                                         INFO_HorizOffset, 3,
+                                                        NoFrame,
                                             EndObject, FixMinWidth,
                                         EndMember,
                                         StartMember,
@@ -1934,7 +1937,7 @@ PERROR GimmeSelectWindow(VOID)
                                 EndMember,
                             EndObject,
                         PageMember,
-                            VGroupObject, NormalSpacing, NormalOffset,
+                            selectw.Circle = VGroupObject, NormalSpacing, NormalOffset,
                                 StartMember,
                                     HGroupObject, NormalSpacing, Offset(0),
                                         StartMember,
