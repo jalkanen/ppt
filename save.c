@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.3 1995/08/20 18:42:04 jj Exp $
+    $Id: save.c,v 1.4 1995/09/24 17:38:08 jj Exp $
 */
 
 #include <defs.h>
@@ -70,6 +70,8 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
     else
         sprintf(argbuf,"%lu",frame);
 
+    D(bug("Running save, see save.log for log info\n"));
+
 #ifdef DEBUG_MODE
     p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, TRUE, NP_Output, Open("dtmp:save.log",MODE_NEWFILE),
                            NP_CloseOutput,TRUE, NP_Name, frame->nd.ln_Name,
@@ -94,58 +96,6 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
     return PERR_OK;
 }
 
-void CleanRender( FRAME *frame, struct RastPort *rp, EXTBASE *xb )
-{
-    int i;
-
-    for(i = 0; i < rp->BitMap->Depth; i++) {
-        if(rp->BitMap->Planes[i])
-            FreeRaster( rp->BitMap->Planes[i],
-                        (ULONG)frame->pix->width,
-                        (ULONG)frame->pix->height );
-    }
-
-    if(rp->BitMap) pfree(rp->BitMap);
-    pfree( rp );
-}
-
-struct RastPort *DummyRender( FRAME *frame, EXTBASE *xb )
-{
-    struct RastPort *rp;
-    struct BitMap   *bm;
-    WORD height = frame->pix->height, width = frame->pix->width;
-    BYTE depth,i;
-    UBYTE *ctable;
-
-    /*
-     *  Initialization phase
-     */
-
-    depth = frame->disp->depth; /* BUG! */
-    rp = pzmalloc( sizeof(struct RastPort) );
-    bm = pzmalloc( sizeof(struct BitMap) );
-    InitBitMap( bm, depth, width, height );
-    for(i = 0; i < depth; i++) {
-        if(!(bm->Planes[i] = AllocRaster( width, height ))) { /* BUG: should tell! */
-            CleanRender( frame, rp, xb );
-            return NULL;
-        }
-    }
-
-    InitRastPort( rp );
-    rp->BitMap = bm;
-
-    /*
-     *  Render phase
-     */
-
-    if(Frame2Bitmap( frame, rp, ctable, xb ) != PERR_OK) {
-        CleanRender( frame, rp, xb );
-        return NULL;
-    }
-
-    return rp;
-}
 
 /*
     Dispatches the external saver routine.
@@ -192,23 +142,19 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
             D(bug("+-+-+-+-+-\n"));
         }
     } else { /* COLORMAPPED */
-        volatile DISPLAY *realdisp;
-        volatile auto __D0 int (*X_SaveC)( __D0 BPTR, __A0 FRAME *, __A1 struct TagItem *, __A2 DISPLAY *, __A6 EXTDATA * );
+        volatile auto __D0 int (*X_SaveC)( __D0 BPTR, __A0 FRAME *, __A1 struct TagItem *, __A6 EXTDATA * );
 
         X_SaveC = (FPTR) GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags );
 
         D(bug("\tSaving colormapped image\n-+-+-+-+-+-+\n"));
 
-        if(frame->disp->scr == MAINSCR) {
+        if(frame->renderobject == NULL) {
             XReq( GetFrameWin(frame), NULL, "\nYou do not have a rendered image.\n"
                                             "Set the correct format in Render Options Menu.\n" );
             return;
         }
 
-//        realdisp = DummyRender( frame, xd );
-        realdisp = frame->disp;
-
-        res = (*X_SaveC)(fh, frame, &tags[0], realdisp, xd );
+        res = (*X_SaveC)(fh, frame, &tags[0], xd );
 
         D(bug("+-+-+-+-+-+-\n"));
     }
@@ -235,6 +181,8 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
 errexit:
 
     Close(fh);
+
+    CloseInfoWindow( frame->mywin, xd );
     if(res != PERR_OK) {
         if(DeleteFile( frame->fullname ) == FALSE)
             XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", frame->fullname );
