@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.2 1998/12/20 19:13:32 jj Exp $
+    $Id: support.c,v 5.3 1999/01/13 22:57:41 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -58,7 +58,6 @@ Prototype ASM BOOL       Progress( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBA
 Prototype ASM VOID       ClearProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM VOID       FinishProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM UWORD      GetNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
-Prototype ASM VOID       PutNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
 Prototype ASM APTR       GetPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a6) EXTBASE * );
 Prototype ASM VOID       PutPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a1) APTR, REG(a6) EXTBASE * );
 Prototype ASM UBYTE *    MakeFrameName( REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) ULONG,REG(a6) EXTBASE * );
@@ -585,12 +584,12 @@ SAVEDS ASM ROWPTR GetPixelRow( REGPARAM(a0,FRAME *,f),
 *
 */
 
-Prototype ASM VOID PutPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a1) ROWPTR, REG(a6) EXTBASE * );
+Prototype ASM VOID PutPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
-                             REG(d0) WORD row,
-                             REG(a1) ROWPTR data,
-                             REG(a6) EXTBASE *xd )
+SAVEDS ASM VOID PutPixelRow( REGPARAM(a0,FRAME *,frame),
+                             REGPARAM(d0,WORD,row),
+                             REGPARAM(a1,ROWPTR,data),
+                             REGPARAM(a6,EXTBASE *,xd) )
 {
     ROWPTR dest;
     PIXINFO *p = frame->pix;
@@ -718,10 +717,11 @@ SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
 *
 */
 
+Prototype VOID ASM PutNPixelRows( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR []), REGDECL(d0,WORD), REGDECL(d1,UWORD), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID PutNPixelRows( REG(a0) FRAME *frame, REG(a1) ROWPTR buffer[],
-                               REG(d0) WORD startrow, REG(d1) UWORD nRows,
-                               REG(a6) EXTBASE *ExtBase )
+VOID SAVEDS ASM PutNPixelRows( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,buffer[]),
+                               REGPARAM(d0,WORD,startrow), REGPARAM(d1,UWORD,nRows),
+                               REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     frame->pix->vmh->chflag = 1;
 }
