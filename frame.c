@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.13 1999/03/23 22:49:44 jj Exp $
+    $Id: frame.c,v 4.14 1999/03/31 13:26:37 jj Exp $
 
     This contains frame handling routines
 
@@ -33,12 +33,7 @@ Prototype void          DeleteFrame( FRAME * );
 Prototype PERROR        ReplaceFrame( FRAME *old, FRAME *new );
 Prototype BOOL          FrameFree( FRAME * );
 Prototype struct Window *GetFrameWin( const FRAME *frame  );
-Prototype FRAME * ASM   NewFrame( REGDECL(d0,ULONG), REGDECL(d1,ULONG), REGDECL(d2,UBYTE), REGDECL(a6,EXTBASE *) );
-Prototype VOID ASM      RemFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
-Prototype FRAME * ASM   DupFrame( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype PERROR        AddFrame( FRAME * );
-Prototype PERROR ASM   InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase );
-Prototype FRAME * ASM   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase );
 Prototype PERROR        MakeUndoFrame( FRAME * );
 Prototype FRAME         *UndoFrame( FRAME * );
 Prototype BOOL          ChangeBusyStatus( FRAME *, ULONG );
@@ -47,8 +42,6 @@ Prototype VOID          RefreshFrameInfo( FRAME *, EXTBASE * );
 Prototype VOID          SelectWholeImage( FRAME * );
 Prototype VOID          UnselectImage( FRAME * );
 Prototype BOOL          IsFrameBusy( FRAME * );
-Prototype BOOL ASM      AttachFrame( REG(a0) FRAME *,REG(a1) FRAME *,REG(d0) ULONG,REG(a6) EXTBASE * );
-Prototype VOID ASM      RemoveSimpleAttachments(REG(a0) FRAME * );
 
 Local PERROR            SetBuffers( FRAME *frame, EXTBASE *xd );
 Local VOID              FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
@@ -1340,7 +1333,9 @@ FindFrame( REGPARAM(d0,ULONG,seekid) )
 *    BUG: Should lock!
 */
 
-SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
+Prototype FRAME * ASM MakeFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *));
+
+FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     FRAME *f   = NULL;
     PIXINFO *p = NULL;
@@ -1496,7 +1491,9 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
 *
 */
 
-SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
+Prototype PERROR ASM InitFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
+
+PERROR SAVEDS ASM InitFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     PIXINFO *p = f->pix;
     DISPLAY *d = f->disp;
@@ -1637,7 +1634,9 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *    NB: Does not remove a frame from any lists!
 */
 
-SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
+Prototype VOID ASM RemFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
+
+VOID SAVEDS ASM RemFrame( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     D(bug("RemFrame( frame = %08X )\n",f));
 
@@ -1750,7 +1749,9 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *    This routine is part of support library and thus re-entrant.
 */
 
-SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) EXTBASE *PPTBase )
+Prototype FRAME * ASM DupFrame( REGDECL(a0,FRAME *), REGDECL(d0,ULONG), REGDECL(a6,EXTBASE *) );
+
+FRAME * SAVEDS ASM DupFrame( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,ULONG,flags), REGPARAM(a6,EXTBASE *,PPTBase) )
 {
     FRAME *newframe;
     struct ExecBase *SysBase = PPTBase->lb_Sys;
@@ -1852,8 +1853,10 @@ SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) E
 *
 */
 
-SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
-                            REG(d2) UBYTE components, REG(a6) EXTBASE *xd )
+Prototype FRAME * ASM   NewFrame( REGDECL(d0,ULONG), REGDECL(d1,ULONG), REGDECL(d2,UBYTE), REGDECL(a6,EXTBASE *) );
+
+FRAME * SAVEDS ASM NewFrame( REGPARAM(d0,ULONG,width), REGPARAM(d1,ULONG,height),
+                             REGPARAM(d2,UBYTE,components), REGPARAM(a6,EXTBASE *,xd) )
 {
     FRAME *f;
     struct ExecBase *SysBase = xd->lb_Sys;
@@ -1936,10 +1939,10 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
 *  Make a full duplicate.
 */
 
-Prototype FRAME * ASM CopyFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype FRAME * ASM CopyFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
-                             REG(a6) EXTBASE *ExtBase )
+FRAME *SAVEDS ASM CopyFrame( REGPARAM(a0,FRAME *,source),
+                             REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     FRAME *new = NULL;
     PIXINFO *sp = source->pix;
@@ -2006,11 +2009,13 @@ SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
 *
 */
 
+Prototype BOOL ASM AttachFrame( REGDECL(a0,FRAME *),REGDECL(a1,FRAME *),REGDECL(d0,ULONG),REGDECL(a6,EXTBASE *) );
+
 SAVEDS ASM
-BOOL AttachFrame( REG(a0) FRAME *dst,
-                  REG(a1) FRAME *src,
-                  REG(d0) ULONG how,
-                  REG(a6) EXTBASE *ExtBase )
+BOOL AttachFrame( REGPARAM(a0,FRAME *,dst),
+                  REGPARAM(a1,FRAME *,src),
+                  REGPARAM(d0,ULONG, how),
+                  REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     FRAME *cur, *next;
 
@@ -2103,8 +2108,10 @@ VOID RemoveAttachment( FRAME *frame, FRAME *attached )
     Removes all simple attachments from a frame.
 */
 
-SAVEDS ASM
-VOID RemoveSimpleAttachments(REG(a0) FRAME *frame)
+Prototype VOID ASM  RemoveSimpleAttachments(REGDECL(a0,FRAME *) );
+
+VOID SAVEDS ASM
+RemoveSimpleAttachments(REGPARAM(a0,FRAME *,frame) )
 {
     FRAME *next, *cur;
 

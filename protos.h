@@ -1,7 +1,7 @@
 /*
     Hand - made prototypes for PPT
 
-    $Id: protos.h,v 1.22 1999/02/21 20:31:44 jj Exp $
+    $Id: protos.h,v 1.23 1999/03/31 13:23:50 jj Exp $
 */
 
 #ifndef PROTOS_H
@@ -27,12 +27,14 @@
 #include <libraries/amigaguide.h>
 #endif
 
+#include <utility/utility.h> /* UtilityBase */
+
 /* render2.a */
 
-extern ASM ULONG RGBDistance( REG(d0) ULONG , REG(d1) ULONG , REG(d2) ULONG  );
-extern ASM UWORD BestMatchPen4( REG(a0) UWORD *, REG(d4) UWORD, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE );
-extern ASM UWORD BestMatchPen8( REG(a0) COLORMAP *, REG(d4) UWORD, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE );
-extern ASM ULONG Plane2Chunk( REG(a0) UBYTE **planes, REG(a1) UBYTE *dest, REG(d0) UWORD width, REG(d1) UBYTE depth );
+extern ULONG ASM RGBDistance( REGDECL(d0,ULONG), REGDECL(d1,ULONG), REGDECL(d2,ULONG)  );
+extern UWORD ASM BestMatchPen4( REGDECL(a0,UWORD *), REGDECL(d4,UWORD), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
+extern UWORD ASM BestMatchPen8( REGDECL(a0,COLORMAP *), REGDECL(d4,UWORD), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
+extern ULONG ASM Plane2Chunk( REGDECL(a0,UBYTE **), REGDECL(a1,UBYTE *), REGDECL(d0,UWORD), REGDECL(d1,UBYTE) );
 
 /* Global variables */
 
@@ -40,7 +42,8 @@ extern ASM ULONG Plane2Chunk( REG(a0) UBYTE **planes, REG(a1) UBYTE *dest, REG(d
 extern struct ExecBase      *SysBase;
 extern struct DosLibrary    *DOSBase;
 extern struct IntuitionBase *IntuitionBase;
-extern struct Library       *UtilityBase, *BGUIBase, *AslBase, *CyberGfxBase;
+extern struct UtilityBase   *UtilityBase;
+extern struct Library       *BGUIBase, *AslBase, *CyberGfxBase;
 extern struct GfxBase       *GfxBase;
 #pragma msg 72 warn
 extern GLOBALS              *globals;

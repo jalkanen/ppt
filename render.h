@@ -1,5 +1,5 @@
 /*
-    $Id: render.h,v 4.0 1998/02/28 18:02:56 jj Exp $
+    $Id: render.h,v 4.1 1999/03/31 13:24:06 jj Exp $
 */
 
 #ifndef RENDER_H
@@ -93,7 +93,7 @@ struct RenderObject {
      *  thus we're using registered arguments.
      */
 
-    ASM         UWORD (*GetColor)( REG(a0) struct RenderObject *, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE );
+    UWORD       ASM (*GetColor)( REGDECL(a0,struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
     ULONG       EHB_Data; /* EHB mode uses this.  Initialize to zero.  */
 
     /*
