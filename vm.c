@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.2 1995/07/28 23:44:15 jj Exp $
+    $Id: vm.c,v 1.3 1995/09/06 23:35:32 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -24,7 +24,7 @@
 
 #define TMPBUF          65536L
 #undef  USE_SLOW_SEEK
-#define  VM_DEBUG
+#undef  VM_DEBUG
 
 
 /*
