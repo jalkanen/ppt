@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 4.8 1999/05/30 18:14:56 jj Exp $
+    $Id: preview.c,v 4.9 1999/08/01 16:48:33 jj Exp $
 */
 
 #include "defs.h"
@@ -257,7 +257,6 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
 {
     FRAME *pwframe, *tmpframe;
     struct Library *UtilityBase = ExtBase->lb_Utility;
-    struct Rectangle sb;
     WORD pw = globals->userprefs->previewwidth,
          ph = globals->userprefs->previewheight;
 
@@ -294,21 +293,6 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
 
         D(bug("\tPreview frame is %dx%d\n",pwframe->pix->width,pwframe->pix->height ));
 
-        /*
-         *  Calculate the selbox size
-         */
-
-        if( IsAreaSelected(frame) ) {
-            sb.MinX = frame->selbox.MinX * pwframe->pix->width / frame->pix->width;
-            sb.MinY = frame->selbox.MinY * pwframe->pix->height / frame->pix->height;
-            sb.MaxX = frame->selbox.MaxX * pwframe->pix->width / frame->pix->width;
-            sb.MaxY = frame->selbox.MaxY * pwframe->pix->height / frame->pix->height;
-        } else {
-            sb.MinX = sb.MinY = 0;
-            sb.MaxX = frame->pix->width-1;
-            sb.MaxY = frame->pix->height-1;
-        }
-
         pwframe->preview.pf_IsPreview = TRUE;
 
         SetVMemMode( pwframe, VMEM_NEVER, ExtBase );
@@ -325,13 +309,23 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
                 if(tmpframe = DupFrame( pwframe, DFF_COPYDATA, ExtBase )) {
 
                     /*
+                     *  Calculate the new selbox size and save it.
+                     */
+
+                    if( IsAreaSelected(frame) ) {
+                        RescaleSelection( frame, pwframe );
+                    } else {
+                        SelectWholeImage( pwframe );
+                    }
+                    CopySelection( pwframe, tmpframe );
+
+                    /*
                      *  Set up the frame for PW frame
                      */
 
                     LOCK(frame);
 
                     ChangeBusyStatus(pwframe,BUSY_READONLY);
-                    pwframe->selbox = tmpframe->selbox = sb;
 
                     if( hook = (struct Hook *)GetTagData( PREV_PreviewHook, NULL, tags ) ) {
                         pwframe->preview.pf_Hook = hook;
