@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.31 1997/10/24 18:32:37 jj Exp $
+    $Id: initexit.c,v 1.32 1998/01/04 16:33:51 jj Exp $
 
     Initialization and exit code.
 */
@@ -121,6 +121,7 @@ struct TextFont *sfont2 = NULL;
 
 Object *Win_Startup = NULL, *GO_StartupText = NULL;
 struct Window *win_Startup;
+struct Screen *scr_Startup;
 
 const char initblurb1[] =
     ISEQ_C ISEQ_B ISEQ_HIGHLIGHT "Welcome to PPT!";
@@ -138,26 +139,26 @@ const char initblurb3[] =
 
 /*
     I'm really bored.  So this is the new startup window:
-    Requires:  The Main screen open, libraries open
+    Requires:  Libraries open
 */
 
 VOID OpenStartupWindow(VOID)
 {
-    struct Screen *scr;
+    char *blurb2args[] = { RELEASE, VERSION, VERSDATE, COPYRIGHT };
 
     if( MAINSCR )
-        scr = MAINSCR;
+        scr_Startup = MAINSCR;
     else
-        scr = NULL;
+        scr_Startup = NULL;
 
     sfont1 = OpenDiskFont( &startupwinfont1 ); // BGUI will fall back.
     sfont2 = OpenDiskFont( &startupwinfont2 );
 
     Win_Startup = WindowObject,
-        WINDOW_Screen,      scr,
+        WINDOW_Screen,      scr_Startup,
         WINDOW_SizeGadget,  FALSE,
         WINDOW_Borderless,  TRUE,
-        WINDOW_ScreenTitle, "Wait a moment...",
+        WINDOW_ScreenTitle, std_ppt_blurb,
         WINDOW_ScaleWidth,  55,
         WINDOW_ScaleHeight, 25,
         WINDOW_LockWidth,   TRUE,
@@ -171,7 +172,7 @@ VOID OpenStartupWindow(VOID)
                 VarSpace(50),
                 StartMember,
                     InfoObject,
-                        INFO_TextFormat, initblurb1,
+                        INFO_TextFormat, GetStr(mINITBLURB1),
                         BT_TextAttr,     &startupwinfont1,
                         // FRM_BackFill,    SHINE_RASTER,
                         FRM_Type,        FRTYPE_NONE,
@@ -180,7 +181,8 @@ VOID OpenStartupWindow(VOID)
                 VarSpace(40),
                 StartMember,
                     InfoObject,
-                        INFO_TextFormat, initblurb2,
+                        INFO_TextFormat, GetStr(mINITBLURB2),
+                        INFO_Args,       blurb2args,
                         INFO_MinLines,   4,
                         BT_TextAttr,     &startupwinfont2,
                         // FRM_BackFill,    SHINE_RASTER,
@@ -190,7 +192,7 @@ VOID OpenStartupWindow(VOID)
                 VarSpace(50),
                 StartMember,
                     GO_StartupText = InfoObject,
-                        INFO_TextFormat, initblurb3,
+                        INFO_TextFormat, GetStr(mINITBLURB3),
                         BT_TextAttr,     &startupwinfont2,
                         // FRM_BackFill,    SHINE_RASTER,
                         FRM_Type,        FRTYPE_NONE,
@@ -207,10 +209,19 @@ VOID OpenStartupWindow(VOID)
     }
 }
 
+/*
+ *  Will also check if the main screen is open and switch to that.
+ */
+
 Prototype VOID UpdateStartupWindow( const char *text );
 
 VOID UpdateStartupWindow( const char *text )
 {
+    if( MAINSCR && scr_Startup != MAINSCR ) {
+        CloseStartupWindow();
+        OpenStartupWindow();
+    }
+
     if( GO_StartupText ) {
         SetGadgetAttrs( (struct Gadget *)GO_StartupText, win_Startup, NULL,
                         INFO_TextFormat, text, TAG_DONE );
@@ -385,12 +396,16 @@ int Initialize( void )
     OpenpptCatalog( NULL, NULL, globxd );
     if(!globxd->catalog) D(bug("WARNING: Couldn't open ppt.catalog!\n"));
 
+    /*
+     *  Open the startup window
+     */
+
+    OpenStartupWindow();
 
     /*
      *  Clone WB screen attributes for our usage.
      *  It would be actually quite a lot neater to use SA_LikeWorkBench...
      */
-
 
     D(bug("\tCloning WB screen\n"));
     pubscr = LockPubScreen(NULL); /* Get default public screen */
@@ -418,6 +433,8 @@ int Initialize( void )
      *  Set up some things and
      *  load user preferences from the disk.
      */
+
+    UpdateStartupWindow("Loading preferences...");
 
     p->mfont.ta_Name = p->mfontname;
     p->lfont.ta_Name = p->lfontname;
@@ -471,6 +488,8 @@ int Initialize( void )
      *  Open main PPT display
      */
 
+    UpdateStartupWindow("Opening display...");
+
     D(bug("\tOpening Display\n"));
 
     if(OpenDisplay() != PERR_OK) {
@@ -489,11 +508,7 @@ int Initialize( void )
                             "settings.  Please check the PPT screen prefs!\n" );
     }
 
-    /*
-     *  Open the startup window
-     */
-
-    OpenStartupWindow();
+    WindowBusy(globals->WO_main);
 
     /*
      *  Delete old virtual memory files
@@ -594,44 +609,52 @@ PERROR BreakFrame( FRAME *f )
     int i;
 
     if( ct = (struct Task *) f->currproc ) {
-        Signal( ct, SIGBREAKF_CTRL_C );
-        for( i = 0; i < BREAK_HOW_MANY_TIMES; i++ ) {
-            struct PPTMessage *msg;
+        while(1) {
+            Signal( ct, SIGBREAKF_CTRL_C );
+            for( i = 0; i < BREAK_HOW_MANY_TIMES; i++ ) {
+                struct PPTMessage *msg;
 
-            D(bug("\tWaiting...\n"));
-            Delay(5L); /* First, a short delay */
+                D(bug("\tWaiting...\n"));
+                Delay(5L); /* First, a short delay */
 
-            /*
-             *  If we got a message, then quit.
-             */
+                /*
+                 *  If we got a message, then quit.
+                 */
 
-            if(msg = (struct PPTMessage *) GetMsg(globals->mport)) {
-                if( msg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
-                    FreePPTMsg( msg, globxd );
-                } else {
-                    if( (msg->frame == f) && (msg->code & PPTMSGF_DONE) ) {
-                        D(bug("\tframe ok\n"));
-                        f->currproc = NULL;
-                        f->currext  = NULL;
+                if(msg = (struct PPTMessage *) GetMsg(globals->mport)) {
+                    if( msg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
+                        FreePPTMsg( msg, globxd );
+                    } else {
+                        if( (msg->frame == f) && (msg->code & PPTMSGF_DONE) ) {
+                            D(bug("\tframe ok\n"));
+                            f->currproc = NULL;
+                            f->currext  = NULL;
+                            ReplyMsg( (struct Message *) msg );
+                            break;
+                        }
                         ReplyMsg( (struct Message *) msg );
-                        break;
                     }
-                    ReplyMsg( (struct Message *) msg );
                 }
+                /* wait a bit more before trying a next time */
+
+                Delay(BREAK_DELAY_PERIOD*i);
+            } // for
+
+            if(i == BREAK_HOW_MANY_TIMES) {
+                if( 0 == Req(NEGNUL,GetStr(mRETRY_IGNORE),
+                             GetStr(mEXTERNAL_DIDNT_DIE),
+                             f->currext->nd.ln_Name ) )
+                {
+                    D(bug("WARNING: External %s didn't die.\n", f->currext->nd.ln_Name ));
+                    D(Close(f->debug_handle));
+                    f->currproc = NULL;
+                    f->currext  = NULL;
+                    return PERR_GENERAL;
+                }
+            } else {
+                // Breaking was successfull
+                return PERR_OK;
             }
-            /* wait a bit more before trying a next time */
-
-            Delay(BREAK_DELAY_PERIOD*i);
-        } // for
-
-        if(i == BREAK_HOW_MANY_TIMES) {
-            Req(NEGNUL,"Ignore",ISEQ_C ISEQ_B"WARNING!\n\n"ISEQ_N"External '%s' refused to die...\n", f->currext->nd.ln_Name );
-            D(bug("WARNING: External %s didn't die.\n", f->currext->nd.ln_Name ));
-            D(Close(f->debug_handle));
-            /* BUG: Should give an offer to kill or ignore */
-            f->currproc = NULL;
-            f->currext  = NULL;
-            return PERR_GENERAL;
         }
     }
     return PERR_OK;
