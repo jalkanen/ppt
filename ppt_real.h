@@ -2,19 +2,19 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.6 $
-        $Date: 1998/02/26 19:54:01 $
+    $Revision: 4.7 $
+        $Date: 1998/06/28 23:10:45 $
       $Author: jj $
 
     Main definitions for PPT.
 
-    This file is (C) Janne Jalkanen 1994-1997.
+    This file is (C) Janne Jalkanen 1994-1998.
 
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.6 1998/02/26 19:54:01 jj Exp $
+    $Id: ppt_real.h,v 4.7 1998/06/28 23:10:45 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -22,6 +22,10 @@
 
 #ifndef PPT_H
 #define PPT_H
+
+#if defined(_POWERPC)
+#pragma options align=m68k
+#endif
 
 #ifndef INTUITION_INTUITION_H
 #include <intuition/intuition.h>
@@ -68,7 +72,7 @@
 
 typedef UBYTE *     ROWPTR;         /* Sample row pointer */
 typedef void *      FPTR;           /* Function pointer */
-typedef int         PERROR;         /* Error code */
+typedef LONG        PERROR;         /* Error code */
 typedef ULONG       ID;             /* Identification code */
 
 typedef struct RGBPixel_T {
@@ -99,13 +103,14 @@ typedef void Pixel;                 /* Use only as Pixel * */
 
 #define NEGNUL      ((void *) ~0)
 #define POKE(s,v)   ( (*(s)) = (v) )
+#define PEEKL(x)    (*( (LONG *) (x) ))
 #define MIN(a,b)    ( ((a) < (b)) ? (a) : (b) )
 #define MAX(a,b)    ( ((a) > (b)) ? (a) : (b) )
 #define SYSBASE()   (struct Library *)(* ((ULONG *)4L))
 #define MULU16(x,y) ( (UWORD)(x) * (UWORD)(y) ) /* To get DCC compile fast code */
 #define MULS16(x,y) ( (WORD)(x) * (WORD)(y) )
-#define MULUW       MULU16
-#define MULSW       MULS16
+#define MULUW(x,y)  MULU16(x,y)
+#define MULSW(x,y)  MULS16(x,y)
 
 /* This macro calculates picture size in bytes. Requires pointer to a  pixinfo
    structure.*/
@@ -165,13 +170,14 @@ struct ModuleInfo {
 /*
     A common structure to ease handling of external modules.
 
-    Note that in future this will go away, so you do not need to
-    concern yourself with this.
+    The main point is to save information that does not
+    have to be fetched each time.
 */
 
 typedef struct {
     struct Node     nd;         /* ln_Type is type of module. See below */
     BPTR            seglist;    /* Actual code */
+    void            *elfobject; /* ELF object for powerup */
     struct TagItem  *tags;
     ULONG           usecount;
     BOOL            islibrary;  /* If != 0, this is a newstyle library */
@@ -512,7 +518,6 @@ typedef struct Frame_t {
 #endif
 
     ULONG           selectmethod;
-    APTR            selectdata;
     struct MsgPort  *selectport;    /* Where the messages should be sent */
 
     struct IBox     zoombox;
@@ -527,10 +532,18 @@ typedef struct Frame_t {
 
     struct EClockVal eclock;
 
+    /*
+     *  The following few fields are reserved for the selection methods.  They
+     *  hold different values depending on the frame->selectmethod, above.
+     */
+
     struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
     WORD            fixoffsetx,     /* Hold the offset of the mouse relative */
                     fixoffsety;     /* to the corner */
 
+    WORD            circlex,        /* These hold GINP_LASSO_CIRCLE data */
+                    circley;        /* First, the center, then the radius */
+    WORD            circleradius;
 
     struct EditWindow_T *editwin;      /* Info editing window */
 
@@ -682,11 +695,13 @@ typedef struct {
 
 
 /*
-    This structure is passed to externals in addition to a pointer to globals.
+    This structure is the library base for the PPT support functions library.
     It has valid library bases if you wish to use them. These are guaranteed to be
     unique to your task. A pointer to this structure is passed to your external
-    in A6. All support functions also expect a pointer to this structure to be
+    in A5. All support functions also expect a pointer to this structure to be
     passed in A6 whenever you call them.
+
+    You don't need to explicitly open this library.
 
     Thou shalt not modify any data in it!
 
@@ -694,7 +709,7 @@ typedef struct {
     You may use this to check the PPT main version number.
 */
 
-typedef struct ExtBase {
+struct PPTBase {
     struct Library  lib;            /* A standard library structure */
 
 /* PPT public fields start here. Read, don't write. */
@@ -742,8 +757,15 @@ typedef struct ExtBase {
 
     /*!!PRIVATE*/
     Class           *FloatClass;
+    struct Library  *lb_PPC;        /* ppc.library */
     /*!!PUBLIC*/
-} EXTBASE;
+};
+
+/*
+ *  Obsolete stuff
+ */
+
+typedef struct PPTBase EXTBASE;
 
 /*------------------------------------------------------------------------*/
 /*
@@ -755,11 +777,10 @@ struct LocaleString {
     STRPTR  Str;
 };
 
+/*!!PRIVATE*/
 
 /*------------------------------------------------------------------*/
 /* Generic constants that might be of use */
-
-/*!!PRIVATE*/
 
 /*  The progress is measured in between these values. Give to
     UpdateProgress() a value between these values.
@@ -831,7 +852,11 @@ struct LocaleString {
 #define PREV_PreviewHook        ( GTAGBASE + 10000 ) /* struct Hook * */
 
 /*------------------------------------------------------------------*/
-/* Error codes */
+/* Error codes.  You should note that if you use these error
+   codes in SetErrorCode() you'll get a text box describing the
+   error in a vaguely general way.  For example, if you return
+   PERR_OUTOFMEMORY, PPT will display a requester stating that
+   your module just ran out of memory. */
 
 
 #define PERR_OK             0
@@ -839,8 +864,7 @@ struct LocaleString {
 #define PERR_OUTOFMEMORY    2 /* Pretty clear, eh? */
 #define PERR_WONTOPEN       3 /* if file refuses to open. OBSOLETE */
 #define PERR_INUSE          4 /* Someone is using the object */
-#define PERR_INITFAILED     5 /* Cannot initialize our values.
-                                 Used (mainly) by L_Init() */
+#define PERR_INITFAILED     5 /* Cannot initialize.  Could mean anything. */
 #define PERR_FAILED         6 /* A general failure */
 #define PERR_BREAK          7 /* A break signal (CTRL-C) was received */
 #define PERR_MISSINGCODE    8 /* If the loader/etc misses code. */
@@ -868,11 +892,24 @@ struct LocaleString {
 /*!!PUBLIC*/
 
 /*------------------------------------------------------------------*/
-/* Flags */
+/* Flags.
 
-#define DFF_COPYDATA        0x01
+   First, the DFF_* flags are for the DupFrame() function.  See
+   the autodoc for more information.
 
-#define CFDF_SHOWPROGRESS   1L
+*/
+
+#define DFF_COPYDATA        (1<<0)
+#define DFF_MAKENEWNAME     (1<<1)
+
+/*
+ *  Flags for the CopyFrameData() function.
+ */
+
+#define CFDF_SHOWPROGRESS   (1<<0)
+
+/* This is completely unofficial and should only be used within PPT */
+#define AFF_PPC             (1<<8)
 
 /*------------------------------------------------------------------*/
 /* Extensions.  This also contains the pre-defined names for
