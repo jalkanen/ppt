@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.27 1998/06/30 20:02:37 jj Exp $
+    $Id: rexx.c,v 1.28 1998/08/23 23:17:07 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1600,7 +1600,7 @@ SimulateRexxCommand( FRAME *frame, char *command )
     if( ra = pzmalloc(sizeof(REXXARGS)) ) {
         ra->frame = frame;
 
-        if(ra->process_args = pmalloc( strlen(command)+1 )) {
+        if(ra->process_args = smalloc( strlen(command)+1 )) {
             strcpy( ra->process_args, command );
 
             Forbid();
