@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.12 1997/01/06 22:00:19 jj Exp $
+    $Id: load.c,v 1.13 1997/01/12 22:37:00 jj Exp $
 
     Code for loaders...
 */
@@ -46,7 +46,7 @@ Prototype ASM PERROR     BeginLoad( REG(a0) FRAME *,  REG(a6) EXTBASE * );
 Prototype ASM VOID       EndLoad( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM VOID       LoadPicture( REG(a0) UBYTE * );
 Prototype FRAME *        RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
-Prototype UBYTE *        AskFile( EXTBASE * );
+Prototype UBYTE *        AskFile( EXTBASE *, STRPTR );
 
 /*---------------------------------------------------------------------*/
 /* Global variables */
@@ -77,7 +77,7 @@ const char *external_patterns[] = {
     Don't forget to free the memory with sfree()!
 */
 
-UBYTE *AskFile( EXTBASE *ExtBase )
+UBYTE *AskFile( EXTBASE *ExtBase, STRPTR initialpattern )
 {
     static char Drawer[MAXPATHLEN+1] = "Data:gfx/Pics"; /* BUG: */
     static char File[NAMELEN+1] = ""; /* BUG: */
@@ -103,6 +103,8 @@ UBYTE *AskFile( EXTBASE *ExtBase )
         ASLFR_InitialLeftEdge,  Left,
         ASLFR_Locale,           ExtBase->locale,
         ASLFR_TitleText,        "Open File",
+        ASLFR_InitialPattern,   initialpattern,
+        ASLFR_DoPatterns,       initialpattern ? TRUE : FALSE,
         EndObject;
 
     if(freq) {
@@ -206,12 +208,12 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
 
 #ifdef DEBUG_MODE
     p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, FALSE, NP_Output, OpenDebugFile( DFT_Load ),
-                           NP_CloseOutput,TRUE, NP_Name, "PPT Load",
+                           NP_CloseOutput,TRUE, NP_Name, "PPT_Load",
                            NP_StackSize, globals->userprefs->extstacksize,
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #else
     p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, FALSE, NP_Output, Open("NIL:",MODE_NEWFILE),
-                           NP_CloseOutput, TRUE, NP_Name, "PPT Load",
+                           NP_CloseOutput, TRUE, NP_Name, "PPT_Load",
                            NP_StackSize, globals->userprefs->extstacksize,
                            NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
 #endif
@@ -244,6 +246,86 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
     return frame;
 }
 
+/*
+    Make a simple check using the loader's IOCheck()-routine.
+
+    Returns:  1 if found
+              0 if check failed
+             -1 on error (no checker)
+*/
+Local
+LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
+{
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct Library *UtilityBase = ExtBase->lb_Utility;
+    static ASM int (*L_Check)( REG(d0) BPTR, REG(d1) LONG, REG(a0) UBYTE *, REG(a6) EXTBASE * );
+    struct Library *IOModuleBase = NULL;
+    ULONG res;
+
+    if( ld->info.islibrary ) {
+        IOModuleBase = OpenModule( ld, ExtBase );
+    } else {
+        L_Check = (FPTR)GetTagData( PPTX_Check,(ULONG)NULL,ld->info.tags );
+    }
+
+    if(L_Check || IOModuleBase) {
+        Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
+        if( IOModuleBase ) {
+            res = IOCheck( fh, INIT_BYTES, init_bytes, ExtBase );
+            CloseModule( IOModuleBase, ExtBase );
+        } else {
+            res = (*L_Check)( fh, INIT_BYTES, init_bytes, ExtBase );
+        }
+
+        if(res) {
+            D(bug("\tMatch found by %s\n", ld->info.nd.ln_Name ));
+            return 1;
+        }
+
+    } else {
+        D(bug("Loader %s is not able to check for data\n",ld->info.nd.ln_Name));
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+    This routine goes through all the loaders and does a Check() for
+    every one that has a PPTX_PostFixPattern defined.
+
+    BUG:  Does not call IOCheck()!
+*/
+
+Local
+LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
+{
+    struct Node *cn;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    UBYTE  pattbuf[MAXPATTERNLEN*2+8]; /* Some extra */
+
+    D(bug("CheckFilePattern(%s)\n",filename));
+
+    for( cn = globals->loaders.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
+        LOADER *ld;
+
+        ld = (LOADER *)cn;
+
+        if( ld->postfixpat[0] ) {
+            if(ParsePatternNoCase( ld->postfixpat, pattbuf, MAXPATTERNLEN*2+2 ) >= 0 ) {
+                if( MatchPatternNoCase(pattbuf, filename) ) {
+                    D(bug("Probable match found by %s\n", ld->info.realname ));
+                    return ld;
+                }
+            } else {
+                D(bug("ERROR: Pattern overflow!\n"));
+            }
+        }
+
+    } /* for */
+
+    return NULL;
+}
 
 /*
     This routine goes through all loaders and calls the Check() - routine
@@ -255,43 +337,58 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
 Local
 LOADER *CheckFileH( EXTBASE *ExtBase, BPTR fh )
 {
-    static ASM int (*L_Check)( REG(d0) BPTR, REG(a6) EXTBASE * );
     struct Node *cn;
-    APTR DOSBase = ExtBase->lb_DOS, UtilityBase = ExtBase->lb_Utility;
-    struct Library *IOModuleBase = NULL;
-    ULONG res;
+    APTR DOSBase = ExtBase->lb_DOS;
+    UBYTE init_bytes[INIT_BYTES+2]; // buffer space
+    LONG err;
 
     D(bug("CheckFileH( %08X )\n",fh));
 
+    /*
+     *  Read the INIT_BYTES bytes from the file into memory
+     *  so that IOCheck()-routine can do the faster check.
+     */
+
+    SetIoErr(0L);
+    FRead( fh, init_bytes, INIT_BYTES, 1 );
+    if((err = IoErr()) > 0) {
+        char buf[80];
+
+        Fault(err, "Error while checking:", buf, 79 );
+        D(bug(buf));
+
+        return NULL;
+    }
+
     for( cn = globals->loaders.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
 
-        if( ((EXTERNAL *)cn)->islibrary ) {
-            IOModuleBase = OpenModule( (EXTERNAL *)cn, ExtBase );
-        } else {
-            L_Check = (FPTR)GetTagData( PPTX_Check,(ULONG)NULL,((LOADER *)cn)->info.tags );
+        if( CheckOne( fh, (LOADER *)cn, init_bytes, ExtBase ) > 0) {
+            return (LOADER *)cn;
         }
 
-        if(L_Check || IOModuleBase) {
-            Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
-            if( IOModuleBase ) {
-                res = IOCheck( fh, ExtBase );
-                CloseModule( IOModuleBase, ExtBase );
-                IOModuleBase = NULL;
-            } else {
-                res = (*L_Check)( fh, ExtBase );
-            }
-
-            if(res) {
-                D(bug("\tMatch found by %s\n", cn->ln_Name ));
-                return (LOADER *)cn;
-            }
-
-        } else {
-            D(bug("Loader %s is not able to check for data\n",cn->ln_Name));
-        }
     } /* for */
 
     return NULL;
+}
+
+/*
+    Master routine for checking file types.
+*/
+Local
+LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
+{
+    LOADER *ld;
+
+    /*
+     *  First, do the postfix pattern based check
+     *  Then,  go through each of the loaders and make the check.
+     */
+
+    if(!(ld = CheckFilePattern(fh, filename, ExtBase))) {
+        ld = CheckFileH(ExtBase, fh);
+    }
+
+    return ld;
 }
 
 /*
@@ -446,7 +543,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
             OpenInfoWindow(frame->mywin,xd);
 
             if( fh ) {
-                ld = CheckFileH( xd, fh );
+                ld = CheckFileType( fh, name, xd );
             } else {
                 InternalError("No file or loader specified!");
                 res = PERR_FAILED;
