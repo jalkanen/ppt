@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 6.0 1999/09/05 02:18:57 jj Exp $
+    $Id: gui.h,v 6.1 1999/09/08 22:48:53 jj Exp $
 */
 
 #ifndef GUI_H
@@ -146,7 +146,7 @@ struct SelectWindow {
     Object          *Win;
     struct  Window  *win;
 
-    Object          *Page, *Rectangle, *Circle;
+    Object          *Page, *Rectangle, *Circle, *LassoFree;
 
     Object          *TopLeft, *TopRight, *BottomLeft, *BottomRight,
                     *Height, *Width;
