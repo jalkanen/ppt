@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.51 1998/06/29 22:31:35 jj Exp $
+    $Id: gui.c,v 1.52 1998/06/30 20:01:07 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1350,6 +1350,15 @@ Object *GimmePrefsWindow( VOID )
                                             prefsw.FlushLibs = CheckBoxObject, GA_ID, GID_PW_FLUSHLIBS,
                                                 ULabel("_Flush modules after use?"),
                                                 GA_Selected, globals->userprefs->expungelibs,
+                                                ButtonFrame,
+                                                BT_HelpHook, &HelpHook,
+                                                BT_HelpNode, "PPT.guide/MiscSettings",
+                                            EndObject, FixMinSize,
+                                        EndMember,
+                                        StartMember,
+                                            prefsw.Confirm = CheckBoxObject, GA_ID, GID_PW_CONFIRM,
+                                                ULabel("Confirm requesters?"),
+                                                GA_Selected, globals->userprefs->confirm,
                                                 ButtonFrame,
                                                 BT_HelpHook, &HelpHook,
                                                 BT_HelpNode, "PPT.guide/MiscSettings",
