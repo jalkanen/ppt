@@ -1,0 +1,229 @@
+#####################################################################
+#
+#       This is a makefile for PPT. (C) Janne Jalkanen 1995
+#
+#       This makefile is meant to be used with Matthew Dillon's
+#       DMAKE utility.
+#
+#       $Id: dmakefile,v 1.1 1995/07/24 23:33:50 janne Exp $
+#
+#####################################################################
+#
+#   Generic paths and stuff.
+#
+
+#   The directory in which PPT source code is backed up
+#   on 'dmake backup'. The slash or colon in the end MUST exist.
+BACKUPDIR = data:backup/
+
+#   This is the distribution directory, where the distribution
+#   will be done on 'dmake dist'.
+DISTDIR   = ram:ppt
+
+#   The main directory
+MAINDIR   = work:source/c/ppt
+
+#   Externals source directory
+EXTSRCDIR = $(MAINDIR)/externals/src
+
+#   Object directories. OD is for the debugging version and
+#   ROD is for the release version with no debug code.
+OD        = dtmp:ppt/
+ROD       = dtmp:ppt_rel/
+
+#####################################################################
+#
+#   Compilers and their options used.
+#   This is for the debug-version
+#
+
+CC     = dcc
+COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE
+# a68k makes erroneous code!
+AS     = das
+ASOPTS =
+
+#####################################################################
+#
+#   C sources and assembler source codes.
+#
+
+SRCS = initexit.c gui.c infowin.c debug.c load.c edit.c frame.c main.c \
+       filter.c others.c message.c support.c vm.c display.c render.c \
+       external.c prefs.c save.c rexx.c areaclass.c
+
+ASSYS = render2.a
+
+#   Object files.
+
+COBJS = $(SRCS:"*.c":"$(OD)*.o")
+AOBJS = $(ASSYS:"*.a":"$(OD)*.o")
+# Those who depend on version information
+VOBJS = $(OD)main.o $(OD)gui.o $(OD)prefs.o
+
+MAIN = ppt
+HDRS = ppt_real.h ppt.h loaders.h defs.h
+LINKOPTS = -lbgui -lm
+MFILE = t:defs.m
+
+#
+# If using Fortify, then link together with the
+# following files.
+#
+FORTOBJS = /fortify/fortify.o
+FORTCOPTS = -DFORTIFY
+FORTLOPTS = -lpptsupp -L$(MAINDIR)/linklib -s
+
+#
+# Debug version
+#
+
+CFLAGS = $(COPTS) $(FORTCOPTS)
+LDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS)
+
+
+#
+#   Release version
+#
+RCOPTS  = -proto -mi -ms
+
+RMAIN= ppt_rel
+RMFILE = T:rdefs.m
+
+#
+#   The release version flags
+#
+RCFLAGS = $(RCOPTS) -H$(RMFILE)=defs.h $(FORTCOPTS)
+RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+RCOBJS  = $(SRCS:"*.c":"$(ROD)*.o")
+ROBJS   = $(RCOBJS) $(AOBJS) $(FORTOBJS)
+RVOBJS  = $(ROD)main.o $(ROD)gui.o $(ROD)prefs.o
+
+#####################################################################
+#
+#   End of configuration, now begins the compiler stuff
+#
+
+all : $(MFILE) $(MAIN) $(OD) externals
+        @List $(MAIN) NOHEAD
+        @beep
+        @Avail FLUSH >NIL:
+
+release : $(RMFILE) $(RMAIN) $(ROD) ext
+        @List $(RMAIN) NOHEAD
+        @beep
+
+$(OD) : $(OD)
+        makedir %(left)
+
+$(ROD) : $(ROD)
+        makedir %(left)
+
+# Link phase
+
+$(MAIN) : $(OBJS) $(VOBJS)
+        $(CC) $(CFLAGS) $(OBJS) -o %(left) $(LDFLAGS)
+
+$(RMAIN) : $(ROBJS)
+        $(CC) $(RCFLAGS) $(ROBJS) -o %(left) $(RLDFLAGS)
+
+#
+# Compile phase
+#
+
+$(COBJS) : $(SRCS)
+        $(CC) $(CFLAGS) %(right) -o %(left) -c
+
+$(AOBJS) : $(ASSYS)
+        $(AS) $(ASOPTS) %(right) -o%(left)
+
+$(VOBJS) :: version.h gui.h
+
+$(OD)rexx.o :: rexx.h
+
+$(OD)external.o :: misc.h
+
+$(RCOBJS) : $(SRCS)
+        $(CC) $(RCFLAGS) %(right) -o %(left) -c
+
+$(COBJS) :: $(HDRS)
+
+$(RCOBJS) :: $(HDRS)
+
+$(RVOBJS) :: version.h gui.h
+
+$(ROD)rexx.o :: rexx.h
+
+$(ROD)external.o :: misc.h
+
+
+# Externals
+
+ext : ppt.h
+        cd $(EXTSRCDIR)
+        @dmake install
+
+$(MFILE) : defs.h ppt_real.h protos.h machine-protos.h
+        Delete t:defs.m >NIL:
+
+$(RMFILE) : defs.h ppt.h protos.h machine-protos.h
+        Delete $(RMFILE) > NIL:
+
+extern :
+        cd $(EXTSRCDIR)
+        @dmake install
+
+# Make prototypes file
+
+proto : $(SRCS)
+        makeproto -o machine-protos.h $(SRCS)
+
+# Makes a backup from everything except for object files.
+
+backup :
+        lha -r u $(BACKUPDIR)ppt.lha ~(#?.o)
+        @beep
+
+# RCS update
+
+rcs :
+        ci -l -q *.c *.h
+
+# This makes a distribution
+
+dist : all release $(DISTDIR)
+        dupdate $(MAINDIR) $(DISTDIR) FORCE
+        Rename $(DISTDIR)/ppt $(DISTDIR)/ppt.debug
+        Rename $(DISTDIR)/ppt_rel $(DISTDIR)/ppt
+        lha -r u RAM:PPT_dist.lha $(DISTDIR)/#?
+        @beep
+
+$(DISTDIR) : $(DISTDIR)
+        MakeDir $(DISTDIR)
+
+# And this can be used to construct the link libraries
+
+linklib:
+        @cd linklib
+        @dmake
+        @beep
+
+# Use this to make a new pragma library
+
+pragmas:
+        fd2pragma SAS pragma/pptsupp_pragmas.h pptsupp_lib.fd
+
+# This will reconstruct the developer docs.
+
+docs:
+        autodoc -Ft:autodoc.tmp -C -I -c $(SRCS) linklib/debug/debug.c > docs/support.doc
+        autorefs dme.refs docs/support.doc
+
+# This can be used to force recompile
+
+force : touch all
+
+touch :
+        Touch defs.h
+
