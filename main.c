@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.82 1997/10/24 22:58:48 jj Exp $
+    $Id: main.c,v 1.83 1997/10/26 21:10:57 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1281,7 +1281,7 @@ Prototype void UpdateIWSelbox( FRAME *f );
 
 void UpdateIWSelbox( FRAME *f )
 {
-    ULONG tl, tr, bl, br;
+    LONG tl, tr, bl, br;
     BOOL  disable;
 
     if( !selectw.win ) return;
@@ -1316,6 +1316,14 @@ void UpdateIWSelbox( FRAME *f )
     SetGadgetAttrs( GAD(selectw.BottomRight), selectw.win, NULL,
                     STRINGA_LongVal, br,
                     GA_Disabled, disable, TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.Width), selectw.win, NULL,
+                    STRINGA_LongVal, abs(bl-tl),
+                    GA_Disabled, disable, TAG_DONE );
+    SetGadgetAttrs( GAD(selectw.Height), selectw.win, NULL,
+                    STRINGA_LongVal, abs(br-tr),
+                    GA_Disabled, disable, TAG_DONE );
+
 }
 
 Local
@@ -1344,13 +1352,13 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.TopLeft, &t );
                 if( t > frame->pix->width ) {
-                    SetGadgetAttrs( GAD(selectw.TopLeft), selectw.win, NULL,
-                                STRINGA_LongVal, frame->pix->width, TAG_DONE );
+                    t = frame->pix->width;
                 }
                 RemoveSelectBox( frame );
                 frame->selbox.MinX = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
             }
             break;
 
@@ -1358,13 +1366,13 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.TopRight, &t );
                 if( t > frame->pix->height ) {
-                    SetGadgetAttrs( GAD(selectw.TopRight), selectw.win, NULL,
-                                STRINGA_LongVal, frame->pix->height, TAG_DONE );
+                    t = frame->pix->height;
                 }
                 RemoveSelectBox( frame );
                 frame->selbox.MinY = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
             }
             break;
 
@@ -1372,13 +1380,13 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.BottomLeft, &t );
                 if( t > frame->pix->width ) {
-                    SetGadgetAttrs( GAD(selectw.BottomLeft), selectw.win, NULL,
-                                STRINGA_LongVal, frame->pix->width, TAG_DONE );
+                    t = frame->pix->width;
                 }
                 RemoveSelectBox( frame );
                 frame->selbox.MaxX = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
             }
             break;
 
@@ -1386,16 +1394,52 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.BottomRight, &t );
                 if( t > frame->pix->height ) {
-                    SetGadgetAttrs( GAD(selectw.BottomRight), selectw.win, NULL,
-                                STRINGA_LongVal, frame->pix->height, TAG_DONE );
+                    t = frame->pix->height;
                 }
                 RemoveSelectBox( frame );
                 frame->selbox.MaxY = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
             }
             break;
 
+        case GID_SELECT_WIDTH:
+            if( frame ) {
+                LONG newx;
+
+                GetAttr( STRINGA_LongVal, selectw.Width, &t );
+                newx = frame->selbox.MinX + t;
+                RemoveSelectBox( frame );
+                if( newx < frame->pix->width ) {
+                    frame->selbox.MaxX = newx;
+                } else {
+                    frame->selbox.MaxX = frame->pix->width;
+                }
+                ReorientSelbox( &frame->selbox );
+                DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
+            }
+            break;
+
+        case GID_SELECT_HEIGHT:
+            if( frame ) {
+                LONG newy;
+
+                GetAttr( STRINGA_LongVal, selectw.Height, &t );
+                newy = frame->selbox.MinY + t;
+                RemoveSelectBox( frame );
+                if( newy < frame->pix->height ) {
+                    frame->selbox.MaxY = newy;
+                } else {
+                    frame->selbox.MaxY = frame->pix->height;
+                }
+                ReorientSelbox( &frame->selbox );
+                DrawSelectBox( frame, 0L );
+                UpdateIWSelbox( frame );
+            }
+
+            break;
 
         default:
             if(rc > MENUB && rc < 65536)
