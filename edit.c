@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  edit.c
 
-    $Id: edit.c,v 1.10 1998/06/28 23:12:48 jj Exp $
+    $Id: edit.c,v 1.11 1999/10/02 15:39:47 jj Exp $
 
     This module contains code for editing facilities. Basically
     they are all external modules, but they are fast enough to
@@ -59,7 +59,10 @@ VOID Composite( FRAME *dst, FRAME *src )
 /*
     This cuts the selected area away, putting zeros in it's way.
 */
-ASM PERROR CutPixel( REG(a0) UBYTE *r, REG(a1) UBYTE *g, REG(a2) UBYTE *b, REG(a6) EXTBASE *xd )
+
+PERROR
+ASM CutPixel( REGPARAM(a0,UBYTE *,r), REGPARAM(a1,UBYTE *,g),
+              REGPARAM(a2,UBYTE *,b), REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     *r = *g = *b = (UBYTE) 0;
     return PERR_OK;
@@ -70,6 +73,8 @@ ASM PERROR CutPixel( REG(a0) UBYTE *r, REG(a1) UBYTE *g, REG(a2) UBYTE *b, REG(a
     Cut out the marked area from the frame. Returns the new frame.
 
     If keep == TRUE, then won't rename the old one or anything.
+
+    BUG: Does not take non-rectangular areas into account.
 */
 
 FRAME *CutToFrame( FRAME *oldframe, BOOL keep  )
@@ -169,7 +174,7 @@ FRAME *Edit( FRAME *f, ULONG type )
     switch( type ) {
         case EDITCMD_CUT:
             if(!CopyToClipboard( f )) return NULL;
-            code = CutPixel;
+            code = (FPTR)CutPixel;
             title = "Cutting";
             break;
 
