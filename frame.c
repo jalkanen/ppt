@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.6 1997/05/01 20:25:36 jj Exp $
+    $Id: frame.c,v 2.7 1997/05/02 17:02:20 jj Exp $
 
     This contains frame handling routines
 
@@ -243,6 +243,7 @@ VOID ResetSharedFrameVars(FRAME *f)
 
 /*
     Add the frame to the system lists. Does not currently do much.
+    Refreshes the listview.
 */
 
 PERROR AddFrame( FRAME *frame )
@@ -254,10 +255,6 @@ PERROR AddFrame( FRAME *frame )
 
     LOCKGLOB();
     AddTail( &globals->frames, (struct Node *)frame );
-    DoMethod( framew.Frames, LVM_ADDSINGLE, NULL, frame->nd.ln_Name, LVAP_SORTED );
-    if(framew.win) {
-        RefreshList( framew.win, framew.Frames );
-    }
     UNLOCKGLOB();
 
     return PERR_OK;
