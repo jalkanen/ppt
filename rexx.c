@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.29 1998/09/05 11:32:42 jj Exp $
+    $Id: rexx.c,v 1.30 1998/10/14 20:36:50 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -154,7 +154,7 @@ struct RexxCommand rx_commands[] = {
 
 char result[MAXPATHLEN+1];
 struct List RexxWaitList;
-struct RexxHost *rxhost;
+struct RexxHost *rxhost = NULL;
 Object *RexxFileReq = NULL;
 
 const char *arnames[] = {
@@ -2024,22 +2024,24 @@ int ExitRexx( struct RexxHost *host )
      *  Remove new messages
      */
 
-    while( host->replies > 0 ) {
-        WaitPort( host->port );
+    if( host ) {
+        while( host->replies > 0 ) {
+            WaitPort( host->port );
 
-        while( rexxmsg = (struct RexxMsg *)GetMsg(host->port) ) {
-            if( rexxmsg->rm_Node.mn_Node.ln_Type == NT_REPLYMSG ) {
-                FreeRexxCommand( rexxmsg );
-                --host->replies;
+            while( rexxmsg = (struct RexxMsg *)GetMsg(host->port) ) {
+                if( rexxmsg->rm_Node.mn_Node.ln_Type == NT_REPLYMSG ) {
+                    FreeRexxCommand( rexxmsg );
+                    --host->replies;
+                }
+                else
+                    ReplyRexxCommand( rexxmsg, -20, (long) "Host closing down", NULL );
             }
-            else
-                ReplyRexxCommand( rexxmsg, -20, (long) "Host closing down", NULL );
         }
-    }
 
-    if( host->rdargs ) FreeDosObject( DOS_RDARGS, host->rdargs );
-    if( host->port ) DeletePort( host->port );
-    pfree( host );
+        if( host->rdargs ) FreeDosObject( DOS_RDARGS, host->rdargs );
+        if( host->port ) DeletePort( host->port );
+        pfree( host );
+    }
 
     return PERR_OK;
 }
