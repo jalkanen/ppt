@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.3 $
-        $Date: 1997/06/07 21:18:16 $
+    $Revision: 1.4 $
+        $Date: 1997/07/12 21:43:09 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -65,6 +65,8 @@ struct PPTMessage {
 #define PPTMSG_UPDATEINFOWINDOW 0x202L
 #define PPTMSG_UPDATEPROGRESS   0x203L        /* Is really a ProgressMsg (see below) */
 
+#define PPTMSG_START_PREVIEW    0x300L
+#define PPTMSG_STOP_PREVIEW     0x301L
 
 /*
  *  This message contains enough info to update the progress
