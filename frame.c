@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.12 1999/03/17 23:07:02 jj Exp $
+    $Id: frame.c,v 4.13 1999/03/23 22:49:44 jj Exp $
 
     This contains frame handling routines
 
@@ -33,15 +33,14 @@ Prototype void          DeleteFrame( FRAME * );
 Prototype PERROR        ReplaceFrame( FRAME *old, FRAME *new );
 Prototype BOOL          FrameFree( FRAME * );
 Prototype struct Window *GetFrameWin( const FRAME *frame  );
-Prototype FRAME * ASM   NewFrame( REG(d0) ULONG, REG(d1) ULONG, REG(d2) UBYTE, REG(a6) EXTBASE * );
-Prototype VOID ASM      RemFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype FRAME * ASM   NewFrame( REGDECL(d0,ULONG), REGDECL(d1,ULONG), REGDECL(d2,UBYTE), REGDECL(a6,EXTBASE *) );
+Prototype VOID ASM      RemFrame( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 Prototype FRAME * ASM   DupFrame( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype PERROR        AddFrame( FRAME * );
 Prototype PERROR ASM   InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase );
 Prototype FRAME * ASM   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase );
 Prototype PERROR        MakeUndoFrame( FRAME * );
 Prototype FRAME         *UndoFrame( FRAME * );
-Prototype FRAME * ASM  FindFrame( REG(d0) ULONG );
 Prototype BOOL          ChangeBusyStatus( FRAME *, ULONG );
 Prototype VOID          UpdateFrameInfo( FRAME * );
 Prototype VOID          RefreshFrameInfo( FRAME *, EXTBASE * );
@@ -99,10 +98,10 @@ Local VOID              ResetSharedFrameVars(FRAME *);
 *    BUG: Uses goto...
 */
 
-Prototype BOOL ASM ObtainFrame( REG(a0) FRAME *, REG(d0) ULONG );
+Prototype BOOL ASM ObtainFrame( REGDECL(a0,FRAME *), REGDECL(d0,ULONG) );
 
-SAVEDS ASM
-BOOL ObtainFrame( REG(a0) FRAME *frame, REG(d0) ULONG method )
+BOOL SAVEDS ASM
+ObtainFrame( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,ULONG,method) )
 {
     APTR SysBase = SYSBASE();
     FRAME *cur;
@@ -212,10 +211,10 @@ errorexit:
 *    fields.
 */
 
-Prototype BOOL ASM ReleaseFrame( REG(a0) FRAME * );
+Prototype BOOL ASM ReleaseFrame( REGDECL(a0,FRAME *) );
 
-SAVEDS ASM
-BOOL ReleaseFrame( REG(a0) FRAME *frame )
+BOOL SAVEDS ASM
+ReleaseFrame( REGPARAM(a0,FRAME *,frame) )
 {
     APTR SysBase = SYSBASE();
     FRAME *cur;
@@ -1146,11 +1145,11 @@ BOOL IsAttached( FRAME *frame, ID srcid )
 */
 
 
-Prototype PERROR ASM CopyFrameData( REG(a0) FRAME *, REG(a1) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype PERROR ASM CopyFrameData( REGDECL(a0,FRAME *), REGDECL(a1,FRAME *), REGDECL(d0,ULONG), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM
-PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
-                      REG(d0) ULONG flags, REG(a6) EXTBASE *ExtBase )
+PERROR SAVEDS ASM
+CopyFrameData( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,FRAME *,newframe),
+               REGPARAM(d0,ULONG,flags), REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     UBYTE *buf;
     PERROR res = PERR_OK;
@@ -1249,8 +1248,10 @@ PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
 *    the source code, especially since all this needs is SysBase.
 */
 
-SAVEDS ASM
-FRAME *FindFrame( REG(d0) ULONG seekid )
+Prototype FRAME * ASM  FindFrame( REGDECL(d0,ULONG) );
+
+FRAME * SAVEDS ASM
+FindFrame( REGPARAM(d0,ULONG,seekid) )
 {
     struct Node *nd = globals->frames.lh_Head, *nn;
 
