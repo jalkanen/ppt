@@ -5,22 +5,22 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.4 1996/08/25 16:45:38 jj Exp $
+    $Id: vm.c,v 1.5 1996/09/30 02:38:38 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
 /* Includes */
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
-#ifndef PRAGMA_DOS_PRAGMAS_H
-#include <pragma/dos_pragmas.h>
+#ifndef PRAGMAS_DOS_PRAGMAS_H
+#include <pragmas/dos_pragmas.h>
 #endif
 
-#ifndef PRAGMA_BGUI_PRAGMAS_H
-#include <pragma/bgui_pragmas.h>
+#ifndef PRAGMAS_BGUI_PRAGMAS_H
+#include <pragmas/bgui_pragmas.h>
 #endif
 
 #ifndef DOS_DOSTAGS_H
@@ -74,7 +74,7 @@ Prototype PERROR    CleanVMDirectory( EXTBASE * );
 PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG seekpos, bufsiz;
-    struct Library *DOSBase = xd->lb_DOS;
+    struct DosLibrary *DOSBase = xd->lb_DOS;
     LONG dir;
 
     V(bug("LoadVMData()\n"));
@@ -135,7 +135,7 @@ PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 PERROR SaveVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG bufsiz,seekpos;
-    struct Library *DOSBase = xd->lb_DOS;
+    struct DosLibrary *DOSBase = xd->lb_DOS;
 
     V(bug("SaveVMData()\n"));
     bufsiz = vmh->end - vmh->begin;
@@ -185,10 +185,11 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
-    struct Library *DOSBase = xd->lb_DOS, *BGUIBase = xd->lb_BGUI;
+    struct DosLibrary *DOSBase = xd->lb_DOS;
     BOOL tmp_name_ok = FALSE;
     VMHANDLE *vmh;
     static ULONG id = 0;
+    ULONG siz = size;
 
     D(bug("CreateVMData( size = %lu )\n",size));
 
@@ -225,7 +226,6 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
      *  Initialize VM filehandle
      */
 
-    ULONG siz = size;
 
     if(siz > globals->userprefs->vmbufsiz * 1024L )
         siz = globals->userprefs->vmbufsiz * 1024L;
@@ -267,7 +267,7 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
 {
     char vmfile[MAXPATHLEN],t[30];
-    struct Library *DOSBase = xd->lb_DOS;
+    struct DosLibrary *DOSBase = xd->lb_DOS;
 
     D(bug("DeleteVMData()\n"));
 
@@ -304,7 +304,7 @@ PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
 
 PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
 {
-    struct Library *DOSBase = xb->lb_DOS;
+    struct DosLibrary *DOSBase = xb->lb_DOS;
     ULONG size = vmh->last;
 
     V(bug("SanitizeVMData()\n"));
@@ -322,13 +322,16 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
 
 PERROR CleanVMDirectory( EXTBASE *ExtBase )
 {
-    struct Library *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     struct TagItem tags[] = {
-        SYS_Input,  Open("NIL:",MODE_NEWFILE),
-        SYS_Output, Open("NIL:",MODE_NEWFILE),
+        SYS_Input,  0L,
+        SYS_Output, 0L,
         TAG_DONE,   0L
     };
     char buffer[256] = VM_FILENAME, path[256];
+
+    tags[0].ti_Data = Open("NIL:",MODE_NEWFILE);
+    tags[1].ti_Data = Open("NIL:",MODE_NEWFILE);
 
     strcat(buffer,"#?");
 
@@ -338,6 +341,8 @@ PERROR CleanVMDirectory( EXTBASE *ExtBase )
 
     D(bug("Emptying VM dir: '%s'\n",buffer));
     SystemTagList( buffer, tags );
+
+    return PERR_OK;
 }
 
 /*----------------------------------------------------------------------*/
