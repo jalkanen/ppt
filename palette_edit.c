@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : palette.c
 
-    $Id: palette_edit.c,v 1.8 1998/07/01 21:37:23 jj Exp $
+    $Id: palette_edit.c,v 1.9 1998/11/08 00:48:06 jj Exp $
 
     Palette selector and editor.
 */
@@ -150,8 +150,8 @@ VOID DoLoadPalette( FRAME *frame )
     UBYTE *path;
     LONG nColors;
 
-    if( DoRequest( globals->PaletteLoadReq ) == FRQ_OK ) {
-        GetAttr( FRQ_Path, globals->PaletteLoadReq, (ULONG*)&path );
+    if( DoRequest( gvPaletteOpenReq.Req ) == FRQ_OK ) {
+        GetAttr( FRQ_Path, gvPaletteOpenReq.Req, (ULONG*)&path );
 
         nColors = LoadPalette( frame, path, globxd );
 
