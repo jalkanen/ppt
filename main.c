@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.100 1998/12/20 19:12:27 jj Exp $
+    $Id: main.c,v 1.101 1999/01/02 22:34:19 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1834,8 +1834,10 @@ int HandlePrefsIDCMP( ULONG rc )
                     prefsw.win = NULL;
                 }
 
-                HandleMenuIDCMP( MID_TOOLWINDOW, NULL, FROM_PREFSWINDOW );
-
+                if( toolbarchanged ) {
+                    HandleMenuIDCMP( MID_TOOLWINDOW, NULL, FROM_PREFSWINDOW );
+                    toolbarchanged = FALSE;
+                }
 
                 if( rc == GID_PW_SAVE ) {
                     if(SavePrefs( globals, NULL ) != PERR_OK ) {
