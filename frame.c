@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.14 1999/03/31 13:26:37 jj Exp $
+    $Id: frame.c,v 4.15 1999/04/01 23:05:57 jj Exp $
 
     This contains frame handling routines
 
@@ -1067,6 +1067,19 @@ VOID SelectWholeImage( FRAME *frame )
 VOID UnselectImage( FRAME *frame )
 {
     frame->selbox.MinX = frame->selbox.MinY = ~0;
+}
+///
+/// IsAreaSelected()
+/*
+ *  This routine returns TRUE, if an area has been
+ *  selected in an image.
+ */
+
+Prototype BOOL IsAreaSelected( FRAME * );
+
+BOOL IsAreaSelected( FRAME *frame )
+{
+    return (BOOL)(frame->selbox.MinX != ~0);
 }
 ///
 
