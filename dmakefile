@@ -5,14 +5,14 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.16 1998/09/20 22:10:10 jj Exp $
+#       $Id: dmakefile,v 1.17 1999/03/14 21:05:32 jj Exp $
 #
 #####################################################################
 #
 #   Generic paths and stuff.
 #
 
-RELEASE = cauchy2
+RELEASE = cauchy6
 
 #   The directory in which PPT source code is backed up
 #   on 'dmake backup'. The slash or colon in the end MUST exist.
@@ -83,7 +83,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 CC     = SC
 COPTS  = NOICONS IDIR=dinclude:pd IDIR=include IDIR=$(FLOATGADGET) IDIR=$(POWERUP) \
          CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT \
-         IGNORE=104 MATH=S MEMSIZE=HUGE
+         IGNORE=104 MATH=S MEMSIZE=HUGE IDIR=/imageclass
 
 # a68k makes erroneous code!
 #AS     = das
@@ -164,11 +164,22 @@ LINKTO  = TO
 #   C sources and assembler source codes.
 #
 
-SRCS = initexit.c debug.c load.c edit.c frame.c main.c input.c \
+SRCS = initexit.c \
+       debug.c \
+       load.c \
+       edit.c \
+       frame.c \
+#       main.c \
+#       select.c \
+       input.c \
+       toolbar.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
        render.c preview.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c ppt_cat.c \
        askreq.c gui.c extensions.c dropareaclass.c renderareaclass.c colors.c
+
+# These are compiled with profiling on
+PROFSRCS = main.c select.c
 
 # These are not compiled with optimization on.
 
@@ -187,12 +198,12 @@ HDRS = ppt_real.h defs.h
 # header files.
 
 MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
-        render.h rexx.h ppt_cat.h gui.h include/askreq.h pptmessage.h
+        render.h rexx.h ppt_cat.h gui.h include/askreq.h pptmessage.h toolbar.h
 
 # These files version on version & gfx information
 
 VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c\
-        display.c others.c
+        display.c others.c toolbar.c
 
 #
 #   Object files.
@@ -202,6 +213,7 @@ COBJS = $(SRCS:"*.c":"$(OD)/*.o")
 AOBJS = $(ASSYS:"*.a":"$(OD)/*.o")
 #SLOWOBJS = $(SLOWSRCS:"*.c":"$(OD)/*.o")
 SLOWOBJS =
+PROFOBJS = $(PROFSRCS:"*.c":"$(OD)/*.o")
 
 # Those who depend on version & gfx information
 VOBJS  = $(VSRCS:"*.c":"$(OD)/*.o")
@@ -217,7 +229,7 @@ RENDOBJS = $(OD)/colormap.o $(OD)/palette.o $(OD)/rendermod.o $(OD)/dispdevs.o \
 
 CFLAGS = $(COPTS) $(DCOPTS) $(FORTCOPTS)
 #CFLAGS = $(COPTS) $(DCOPTS)
-OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS) $(SLOWOBJS)
+OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS) $(SLOWOBJS) $(PROFOBJS)
 
 #
 #   Release version
@@ -227,7 +239,8 @@ RCFLAGS = $(COPTS) $(RCOPTS) $(FORTCOPTS)
 RCOBJS  = $(SRCS:"*.c":"$(ROD)/*.o")
 #RSLOWOBJS= $(SLOWSRCS:"*.c":"$(ROD)/*.o")
 RSLOWOBJS=
-ROBJS   = $(RCOBJS) $(AOBJS) $(FORTLITEOBJS) $(RSLOWOBJS)
+RPROFOBJS = $(PROFSRCS:"*.c":"$(ROD)/*.o")
+ROBJS   = $(RCOBJS) $(AOBJS) $(FORTLITEOBJS) $(RSLOWOBJS) $(RPROFOBJS)
 RVOBJS  = $(VSRCS:"*.c":"$(ROD)/*.o")
 
 #
@@ -238,7 +251,8 @@ R2CFLAGS = $(COPTS) $(R2COPTS) $(FORTCOPTS)
 R2COBJS  = $(SRCS:"*.c":"$(R2OD)/*.o")
 #RSLOWOBJS= $(SLOWSRCS:"*.c":"$(R2OD)/*.o")
 R2SLOWOBJS=
-R2OBJS   = $(R2COBJS) $(AOBJS) $(FORTLITEOBJS) $(R2SLOWOBJS)
+R2PROFOBJS = $(PROFSRCS:"*.c":"$(R2OD)/*.o")
+R2OBJS   = $(R2COBJS) $(AOBJS) $(FORTLITEOBJS) $(R2SLOWOBJS) $(R2PROFOBJS)
 R2VOBJS  = $(VSRCS:"*.c":"$(R2OD)/*.o")
 
 
@@ -291,6 +305,9 @@ $(COBJS) : $(SRCS)
 #$(SLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
+$(PROFOBJS) : $(PROFSRCS)
+        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
+
 $(AOBJS) : $(ASSYS)
         $(AS) $(ASOPTS) %(right) $(OBJNAME) %(left)
 
@@ -307,6 +324,9 @@ $(RCOBJS) : $(SRCS)
 
 #$(RSLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
+
+$(RPROFOBJS) : $(PROFSRCS)
+        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
 $(COBJS) :: $(HDRS)
 
@@ -325,6 +345,9 @@ $(R2COBJS) : $(SRCS)
 
 #$(R2SLOWOBJS) : $(SLOWSRCS)
 #        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
+
+$(R2PROFOBJS) : $(PROFSRCS)
+        $(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
 $(R2COBJS) :: $(HDRS)
 
@@ -373,7 +396,7 @@ proto : $(SRCS)
 # Makes a backup from everything except for object files.
 
 backup :
-        lha -r u $(BACKUPDIR)ppt.lha ~(#?.(o|lnk|gst))
+        lha -r u $(BACKUPDIR)ppt.lha ~((pptd|ppt|ppt020|#?.(o|lnk|gst|effect|iomod|debug|library|library_e)))
         @beep
 
 # RCS update
@@ -442,6 +465,10 @@ pragmas:
         fd2pragma fd/module_lib.fd  TO pragmas/module_pragmas.h  MODE=3
         fd2pragma fd/effect_lib.fd  TO pragmas/effect_pragmas.h  MODE=3
         fd2pragma fd/iomod_lib.fd   TO pragmas/iomod_pragmas.h   MODE=3
+        fd2inline fd/pptsupp_lib.fd clib/pptsupp_protos.h > inline/pptsupp.h
+        fd2inline fd/module_lib.fd clib/module_protos.h > inline/module.h
+        fd2inline fd/effect_lib.fd clib/effect_protos.h > inline/effect.h
+        fd2inline fd/iomod_lib.fd clib/iomod_protos.h > inline/iomod.h
         @cd /
 
 # This will build the ppt catalog strings
@@ -536,6 +563,7 @@ bguilibs :
         @smake install
         @cd /
         copy sys:classes/gadgets/bgui_float.gadget libs/
+        copy sys:classes/gadgets/bgui_bitmap.image libs/
 
 #
 #   Use this to name a release.  Set the $RELEASE to point at this.
