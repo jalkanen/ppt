@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.8 $
-        $Date: 1997/03/16 13:35:50 $
+    $Revision: 3.9 $
+        $Date: 1997/05/02 15:07:14 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.8 1997/03/16 13:35:50 jj Exp $
+    $Id: ppt_real.h,v 3.9 1997/05/02 15:07:14 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -304,9 +304,9 @@ typedef struct {
     UBYTE           *colortable;/* Colortable in RGB8 format */
     UWORD           height,width;  /* Sizes. */
     ULONG           dispid;     /* Standard display ID */
-    UWORD           ncolors;    /* Number of colors. May be somewhere between 2...depth */
-    UBYTE           type;       /* See below. */
-    UBYTE           depth;      /* The depth the screen should use */
+    ULONG           ncolors;    /* Number of colors. May be somewhere between 2...depth */
+    UWORD           type;       /* See below. */
+    UWORD           depth;      /* The depth the screen should use */
 
     /* All fields below this point are PRIVATE */
     /*!!PRIVATE*/
