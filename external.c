@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.16 1998/10/25 22:13:36 jj Exp $
+    $Id: external.c,v 2.17 1999/01/02 23:31:52 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -265,31 +265,6 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
     return count;
 }
 
-/*
-    This function shows info about a given external. The parent window
-    is win. If win == NULL, then uses main PPT window.
-    This routine is re-entrant.
-*/
-
-Local
-SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
-{
-    int   ver,rev;
-    APTR txt, au;
-
-    SHLOCKGLOB();
-    txt  = (APTR)GetTagData( PPTX_InfoTxt, NULL, x->tags );
-    au   = (APTR)GetTagData( PPTX_Author, NULL, x->tags );
-    ver  = GetTagData( PPTX_Version, -1, x->tags );
-    rev  = GetTagData( PPTX_Revision, -1, x->tags );
-    UNLOCKGLOB();
-
-    Req(win,NULL,
-        XGetStr( mEXTERNAL_INFO_FORMAT ),
-        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : XGetStr(mAUTHOR_UNKNOWN) );
-
-}
-
 Local
 const char *AFF2CPU( char *buf, ULONG flags )
 {
@@ -327,6 +302,39 @@ const char *AFF2CPU( char *buf, ULONG flags )
 
     return buf;
 }
+
+/*
+    This function shows info about a given external. The parent window
+    is win. If win == NULL, then uses main PPT window.
+    This routine is re-entrant.
+*/
+
+Local
+SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
+{
+    int   ver,rev;
+    APTR txt, au;
+    ULONG cpuflags;
+    char cpu[256];
+
+    SHLOCKGLOB();
+    txt  = (APTR)GetTagData( PPTX_InfoTxt, NULL, x->tags );
+    au   = (APTR)GetTagData( PPTX_Author, NULL, x->tags );
+    ver  = GetTagData( PPTX_Version, -1, x->tags );
+    rev  = GetTagData( PPTX_Revision, -1, x->tags );
+    cpuflags = GetTagData( PPTX_CPU, 0L, x->tags );
+    UNLOCKGLOB();
+
+    Req(win,NULL,
+        XGetStr( mEXTERNAL_INFO_FORMAT ),
+        x->nd.ln_Name,
+        (ULONG)ver, (ULONG)rev,
+        AFF2CPU( cpu, cpuflags ),
+        txt ? txt : "",
+        au ? au : XGetStr(mAUTHOR_UNKNOWN) );
+
+}
+
 
 Local
 SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
