@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 6.1 1999/10/02 16:33:07 jj Exp $
+    $Id: preview.c,v 6.2 1999/12/27 21:59:27 jj Exp $
 */
 
 #include "defs.h"
@@ -265,8 +265,19 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
     if(!CheckPtr(frame,"ObtainPreviewFrame():frame"))
         return NULL;
 
+    /*
+     *  Check for current preview mode and preview size validity
+     */
+
     if( ph <= 0 || pw <= 0 || globals->userprefs->previewmode == PWMODE_OFF )
         return NULL; /* Previews are disabled or broken */
+
+    /*
+     *  Temporary frames cannot have previews either
+     *  (they contain no data and have zero size.)
+     */
+
+    if( frame->istemporary ) return NULL;
 
     if(pwframe = MakeFrame( frame->parent ? frame->parent : frame, PPTBase )) {
 
