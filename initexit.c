@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.34 1998/09/05 12:21:34 jj Exp $
+    $Id: initexit.c,v 1.35 1998/10/14 20:35:57 jj Exp $
 
     Initialization and exit code.
 */
@@ -458,6 +458,18 @@ int Initialize( void )
 
     OpenpptCatalog( NULL, NULL, globxd );
     if(!globxd->catalog) D(bug("WARNING: Couldn't open ppt.catalog!\n"));
+
+    /*
+     *  Check if a copy of PPT is already running!
+     */
+
+    if(pubscr = LockPubScreen( PPTPUBSCREENNAME )) {
+        UnlockPubScreen(NULL, pubscr);
+        Req( NEGNUL, NULL, ISEQ_C "\033k" ISEQ_B"\nAttention!\n\n"
+                           ISEQ_N "A copy of PPT is already running.\n"
+                           "At the moment you can only run one copy of PPT!\n\n" );
+        return PERR_FAILED;
+    }
 
     /*
      *  Open the startup window
