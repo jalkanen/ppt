@@ -3,7 +3,7 @@
  *
  *  (C) Janne Jalkanen 1998
  *
- *  $Id: showsizes.c,v 1.2 1998/09/20 00:39:36 jj Exp $
+ *  $Id: showsizes.c,v 1.3 1999/05/30 18:16:51 jj Exp $
  */
 
 #include "defs.h"
@@ -15,43 +15,45 @@ struct {
     STRPTR text;
     ULONG  size;
 } list[] = {
-    "GLOBALS", sizeof(GLOBALS),
-    "FRAME",   sizeof(FRAME),
+    "ARRenderMsg",  sizeof(struct ARRenderMsg),
+    "ARUpdateMsg",  sizeof(struct ARUpdateMsg),
     "DISPLAY", sizeof(DISPLAY),
-    "PIXINFO", sizeof(PIXINFO),
-    "EXTERNAL", sizeof(EXTERNAL),
-    "LOADER",  sizeof(LOADER),
+    "DispPrefsWindow", sizeof(struct DispPrefsWindow),
+    "EDITWIN", sizeof(EDITWIN),
     "EFFECT",  sizeof(EFFECT),
-    "SCRIPT",  sizeof(SCRIPT),
-    "VMHANDLE", sizeof(VMHANDLE),
-    "INFOWIN", sizeof(INFOWIN),
-    "PreviewFrame", sizeof(struct PreviewFrame),
-    "PREFS",   sizeof(PREFS),
-    "PPTBase", sizeof(struct PPTBase),
+    "EffectWindow", sizeof(struct EffectWindow),
     "Extension", sizeof(struct Extension),
-    "PPTMessage", sizeof(struct PPTMessage),
+    "EXTERNAL", sizeof(EXTERNAL),
+    "ExtInfoWin", sizeof(struct ExtInfoWin),
+    "FRAME",   sizeof(FRAME),
+    "FramesWindow", sizeof(struct FramesWindow),
+    "GLOBALS", sizeof(GLOBALS),
+    "INFOWIN", sizeof(INFOWIN),
+    "LOADER",  sizeof(LOADER),
     "gPointMessage", sizeof(struct gPointMessage),
     "gRectMessage", sizeof(struct gRectMessage),
     "gFixRectMessage", sizeof(struct gFixRectMessage),
     "gCircleMessage", sizeof(struct gCircleMessage),
-    "ARUpdateMsg",  sizeof(struct ARUpdateMsg),
-    "ARRenderMsg",  sizeof(struct ARRenderMsg),
-    "EffectWindow", sizeof(struct EffectWindow),
-    "SaveWin", sizeof(struct SaveWin),
-    "DispPrefsWindow", sizeof(struct DispPrefsWindow),
+    "MouseLocationMsg",sizeof(struct MouseLocationMsg),
     "PaletteWindow", sizeof(struct PaletteWindow),
-    "ExtInfoWin", sizeof(struct ExtInfoWin),
-    "ToolWindow", sizeof(struct ToolWindow),
-    "SelectWindow", sizeof(struct SelectWindow),
-    "FramesWindow", sizeof(struct FramesWindow),
+    "PIXINFO", sizeof(PIXINFO),
+    "PPTBase", sizeof(struct PPTBase),
+    "PPTMessage", sizeof(struct PPTMessage),
+    "PREFS",   sizeof(PREFS),
     "PrefsWindow", sizeof(struct PrefsWindow),
-    "EDITWIN", sizeof(EDITWIN),
-    "StemItem", sizeof(struct StemItem),
-    "Stem", sizeof(struct Stem),
+    "PreviewFrame", sizeof(struct PreviewFrame),
     "RexxHost", sizeof(struct RexxHost),
     "REXXARGS", sizeof(REXXARGS),
     "RexxCommand", sizeof(struct RexxCommand),
     "RenderObject", sizeof(struct RenderObject),
+    "SaveWin", sizeof(struct SaveWin),
+    "SCRIPT",  sizeof(SCRIPT),
+    "Selection",sizeof(struct Selection),
+    "SelectWindow", sizeof(struct SelectWindow),
+    "StemItem", sizeof(struct StemItem),
+    "Stem", sizeof(struct Stem),
+    "ToolWindow", sizeof(struct ToolWindow),
+    "VMHANDLE", sizeof(VMHANDLE),
     0L
 };
 
