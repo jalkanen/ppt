@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.66 1999/03/14 20:55:23 jj Exp $
+    $Id: gui.c,v 1.67 1999/03/31 13:27:01 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -127,6 +127,7 @@ struct NewMenu PPTMenus[] = {
         Item( mMENU_PROJECT_ABOUT,      mMENU_PROJECT_ABOUT_KEY,        MID_ABOUT ),
         ItemBar,
         Item( mMENU_PROJECT_QUIT,       mMENU_PROJECT_QUIT_KEY,         MID_QUIT ),
+        Item( mMENU_PROJECT_QUITNOSAVE, mMENU_PROJECT_QUITNOSAVE_KEY,   MID_QUIT_NO_SAVE ),
     Title( mMENU_EDIT ),
         DItem(mMENU_EDIT_UNDO,          mMENU_EDIT_UNDO_KEY,            MID_UNDO ),
         DItem(mMENU_EDIT_CUT,           mMENU_EDIT_CUT_KEY,             MID_CUT ),
@@ -1532,6 +1533,15 @@ Object *GimmePrefsWindow( VOID )
                                                 BT_HelpNode, "PPT.guide/MiscSettings",
                                             EndObject, FixMinSize,
                                         EndMember,
+                                        StartMember,
+                                            prefsw.EnableTips = CheckBoxObject, GA_ID, GID_PW_ENABLETIPS,
+                                                ULabel("Enable tips?"),
+                                                GA_Selected, globals->userprefs->tipnumber >= 0 ? TRUE : FALSE,
+                                                ButtonFrame,
+                                                BT_HelpHook, &HelpHook,
+                                                BT_HelpNode, "PPT.guide/MiscSettings",
+                                            EndObject, FixMinSize,
+                                        EndMember,
 #ifdef DEBUG_MODE
                                         StartMember,
                                             CycleObject, GA_ID, GID_PW_ONOPEN,
@@ -1637,12 +1647,15 @@ Object *GimmePrefsWindow( VOID )
                     EndMember,
                     StartMember,
                         HGroupObject, WideSpacing, NormalHOffset, NormalVOffset, BOffset(0),
+#if 0
                             StartMember,
                                 prefsw.Save = GenericButton( GetStr(MSG_SAVE_GAD), GID_PW_SAVE ),
                             EndMember,
+#endif
                             StartMember,
                                 prefsw.Use = GenericButton( GetStr(MSG_USE_GAD), GID_PW_USE ),
                             EndMember,
+                            VarSpace(50),
                             StartMember,
                                 prefsw.Cancel = GenericButton( GetStr(MSG_CANCEL_GAD), GID_PW_CANCEL ),
                             EndMember,
