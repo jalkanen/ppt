@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.60 1999/01/02 22:33:46 jj Exp $
+    $Id: gui.c,v 1.61 1999/01/13 22:56:23 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -179,6 +179,17 @@ struct NewMenu PPTMenus[] = {
     End
 };
 #pragma msg 225 warn
+
+
+const struct NewMenu SaveMenus[] = {
+    Title("Save"),
+        Item("Save", NULL, GID_SW_SAVE),
+        Item("Get Path...", NULL, GID_SW_GETFILE),
+        Item("Cancel", NULL, GID_SW_CANCEL),
+    End
+};
+
+
 ///
 
 /* Here are some mapping codes for different type objects */
@@ -210,9 +221,9 @@ const char *scr_labels[] = {
     NULL,
 };
 
-Local UBYTE *Prefspages[] = { "System","GUI", "Misc", "Toolbar", NULL };
-Local UBYTE *preview_sizes[] = {"Off", "Small", "Medium", "Large", "Huge", NULL };
-Local UBYTE *toolbar_type_labels[] = {"Text","Image",NULL};
+Local UBYTE *Prefspages[5] = { NULL };
+Local UBYTE *preview_sizes[6] = { NULL };
+Local UBYTE *toolbar_type_labels[3] = { NULL };
 
 /* This is the screentitle */
 #ifdef DEBUG_MODE
@@ -284,6 +295,20 @@ PERROR InitGUILocale(VOID)
     color_labels[1] = GetStr(mRENDER_COLOR_EHB);
     color_labels[2] = GetStr(mRENDER_COLOR_HAM);
     color_labels[3] = GetStr(mRENDER_COLOR_HAM8);
+
+    Prefspages[0] = GetStr(mPREFS_PAGE_LABEL_SYSTEM);
+    Prefspages[1] = GetStr(mPREFS_PAGE_LABEL_GUI);
+    Prefspages[2] = GetStr(mPREFS_PAGE_LABEL_MISC);
+    Prefspages[3] = GetStr(mPREFS_PAGE_LABEL_TOOLBAR);
+
+    preview_sizes[0] = GetStr(mPREFS_PREVIEW_SIZE_OFF);
+    preview_sizes[1] = GetStr(mPREFS_PREVIEW_SIZE_SMALL);
+    preview_sizes[2] = GetStr(mPREFS_PREVIEW_SIZE_MEDIUM);
+    preview_sizes[3] = GetStr(mPREFS_PREVIEW_SIZE_LARGE);
+    preview_sizes[4] = GetStr(mPREFS_PREVIEW_SIZE_HUGE);
+
+    toolbar_type_labels[0] = GetStr(mPREFS_TOOLBAR_TYPE_TEXT);
+    toolbar_type_labels[1] = GetStr(mPREFS_TOOLBAR_TYPE_IMAGE);
 
     for( i = 0; PPTMenus[i].nm_Type != NM_END; i++ ) {
         /*
@@ -488,7 +513,7 @@ PERROR GimmePaletteWindow( FRAME *frame, ULONG depth )
                             pw->Ok = GenericButton( GetStr(MSG_OK_GAD), GID_PAL_OK ),
                         EndMember,
                         StartMember,
-                            pw->Remap = GenericButton( "Remap", GID_PAL_REMAP ),
+                            pw->Remap = GenericButton( GetStr(mPALETTE_REMAP_GAD), GID_PAL_REMAP ),
                         EndMember,
                         StartMember,
                             pw->Cancel = GenericButton( GetStr(MSG_CANCEL_GAD), GID_PAL_OK ),
@@ -514,14 +539,6 @@ PERROR GimmePaletteWindow( FRAME *frame, ULONG depth )
 /*
     Saving window. This can be open for several frames at the same time.
 */
-
-const struct NewMenu SaveMenus[] = {
-    Title("Save"),
-        Item("Save", NULL, GID_SW_SAVE),
-        Item("Get Path...", NULL, GID_SW_GETFILE),
-        Item("Cancel", NULL, GID_SW_CANCEL),
-    End
-};
 
 
 SAVEDS Object *
