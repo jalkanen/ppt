@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.15 1999/04/01 23:05:57 jj Exp $
+    $Id: frame.c,v 4.16 1999/05/30 18:13:10 jj Exp $
 
     This contains frame handling routines
 
@@ -1426,6 +1426,7 @@ FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,Ex
     bzero( f, sizeof(FRAME) );
     if(old == NULL) {
         UnselectImage( f );
+        ChangeSelectMethod( f, GINP_LASSO_RECT );
     } else {
         bcopy(old,f,sizeof(FRAME) );
         bzero(&(f->nd), sizeof(struct Node) ); /* We are not in a list yet */
