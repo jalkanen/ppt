@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.26 1998/11/08 00:43:58 jj Exp $
+    $Id: filter.c,v 1.27 1998/12/15 21:23:27 jj Exp $
 
     Code containing effects stuff.
 
@@ -65,7 +65,7 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Local FRAME *ExecFilter(EXTBASE *, FRAME *, EFFECT *, char *args, BOOL );
+Local FRAME *ExecFilter(EXTBASE *, FRAME *, EFFECT *, char *args, BOOL, ULONG * );
 Prototype ASM VOID      Filter( REG(a0) UBYTE *, REG(d0) ULONG );
 Prototype PERROR    ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
 
@@ -84,7 +84,7 @@ Prototype PERROR RunFilterCommand( FRAME *, STRPTR, STRPTR );
 PERROR
 RunFilterCommand( FRAME *frame, STRPTR filtername, STRPTR args )
 {
-    REXXARGS *ra;
+    PPTREXXARGS *ra;
     char buffer[100];
     PERROR res;
 
@@ -356,7 +356,7 @@ EFFECT *HandleFilterIDCMP( EXTBASE *ExtBase, struct EffectWindow *fw, ULONG rc )
 SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 {
     struct EffectWindow fw;
-    ULONG sigmask, sig, rc, *optarray = NULL;
+    ULONG sigmask, sig, rc, *optarray = NULL, status;
     int quit = 0;
     EXTBASE *ExtBase = NULL;
     struct Library *BGUIBase;
@@ -365,7 +365,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
     FRAME *f = NULL,*newframe = NULL;
     struct Window *win;
     EFFECT *effect = NULL;
-    struct PPTMessage *msg;
+    struct EffectMessage *emsg;
     UBYTE *filname=NULL,*args = NULL;
     BOOL rexx=FALSE;
 
@@ -467,7 +467,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 
     /* Make the actual execution. */
     if(effect != NEGNUL && effect != NULL) {
-        newframe = ExecFilter(ExtBase,f,effect,args,rexx);
+        newframe = ExecFilter(ExtBase,f,effect,args,rexx, &status);
     }
 
     D(bug("\tFilter() done, sending message\n"));
@@ -481,13 +481,14 @@ errorexit:
      *  Prepare to send message to main program
      */
 
-    msg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
-    msg->frame = f;
-    msg->code = PPTMSG_EFFECTDONE;
-    msg->data = (APTR)newframe;
+    emsg = (struct EffectMessage *)AllocPPTMsg( sizeof(struct EffectMessage), ExtBase );
+    emsg->em_PMsg.frame = f;
+    emsg->em_PMsg.code  = PPTMSG_EFFECTDONE;
+    emsg->em_NewFrame   = (APTR)newframe;
+    emsg->em_Status     = status;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, ExtBase );
+    SendPPTMsg( globals->mport, emsg, ExtBase );
 
     WaitDeathMessage( ExtBase );
 
@@ -507,12 +508,12 @@ errorexit:
  */
 
 Local
-FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, BOOL rexx )
+FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, BOOL rexx, ULONG *statusp )
 {
     char *template;
     ULONG colorspaces, *argitemarray = NULL;
     struct TagItem tags[8];
-    BOOL nonewframe;
+    BOOL nonewframe, nochangeframe;
     FRAME *newframe = NULL, *fr, *res = NULL;
     struct Library *UtilityBase = ExtBase->lb_Utility, *EffectBase = NULL;
     struct ExecBase *SysBase = ExtBase->lb_Sys;
@@ -529,12 +530,14 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
         EffectBase = OpenModule( (EXTERNAL *)effect, ExtBase );
         if(!EffectBase) return NULL; // BUG: No error message
         nonewframe  = (BOOL)EffectInquire( PPTX_NoNewFrame, ExtBase );
+        nochangeframe=(BOOL)EffectInquire( PPTX_NoChangeFrame, ExtBase );
         easyeffect  = NULL;
         colorspaces = EffectInquire( PPTX_ColorSpaces, ExtBase );
         template    = (STRPTR) EffectInquire( PPTX_RexxTemplate, ExtBase );
     } else {
         easyeffect = (FPTR)GetTagData( PPTX_EasyExec, NULL, effect->info.tags );
         colorspaces = GetTagData( PPTX_ColorSpaces, CSF_RGB, effect->info.tags );
+        nochangeframe=(BOOL)GetTagData( PPTX_NoChangeFrame, FALSE, effect->info.tags );
         nonewframe  = (BOOL)GetTagData( PPTX_NoNewFrame, FALSE, effect->info.tags );
         template    = NULL; // These don't have them.
     }
@@ -597,7 +600,7 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
          *  the original frame
          */
 
-        if(!nonewframe) {
+        if(!nonewframe && !nochangeframe) {
             D(bug("Duplicating a new frame for the program\n"));
             fr = newframe = DupFrame( frame, DFF_COPYDATA, ExtBase );
             if( !newframe ) {
@@ -639,6 +642,8 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
 
         if(res == NULL) {
 
+            *statusp = EMSTATUS_FAILED;
+
             D(bug("\tAn error occurred during the filtering...\n"));
 
             if( rexx ) {
@@ -661,6 +666,9 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
                 fr->doerror = FALSE; /* Shown */
             }
 
+        } else {
+            /* Success ! */
+            *statusp = nochangeframe ? EMSTATUS_NOCHANGE : EMSTATUS_NEWFRAME;
         }
 
         UNLOCK(fr);
