@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.50 1998/06/28 23:20:53 jj Exp $
+    $Id: gui.c,v 1.51 1998/06/29 22:31:35 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -83,76 +83,80 @@ Prototype Object *      MyNewObject( EXTBASE *, ULONG, Tag, ... );
 
    The used letters for different shortcuts are:
    A - Select All                       T - ToolBar
-   B - Break                            U -
+   B -                                  U - Save As
    C - Copy                             V - Paste
    D - Close                            W - Save
    E - Effects Window                   X - Cut
-   F - Frames Window                    Y -
-   G -                                  Z - Undo
+   F - Frames Window                    Y - Edit Info
+   G - Edit Palette                     Z - Undo
    H - Hide/Show                        + - Zoom in
    I - SelectWindow                     - - Zoom out
    J -                                  0 -
    K -                                  1 -
    L - Loaders Window                   2 -
    M -                                  3 -
-   N -                                  4 -
+   N - New                              4 -
    O - Open                             5 -
    P - Process                          6 -
    Q - Quit                             7 -
    R - Render                           8 -
    S - Scripts Window                   9 -
+   . - Break                            , -
 
 */
 
 struct NewMenu PPTMenus[] = {
     Title( "Project "),
-        Item( "Open...",        "O", MID_LOADNEW ),
-        Item("Open As...",      NULL, MID_LOADAS ),
-        // DItem("Save",           "W", MID_SAVE ),
-        DItem( "Save As...",     NULL, MID_SAVEAS ),
-        DItem( "Close",         "D", MID_DELETE ),
+        Item( "New...",         "N",    MID_NEW ),
+        Item( "Open...",        "O",    MID_LOADNEW ),
+        Item("Open As...",      NULL,   MID_LOADAS ),
+        // DItem("Save",          "W",  MID_SAVE ),
+        DItem( "Save As...",    "U",    MID_SAVEAS ),
+        DItem( "Close",         "D",    MID_DELETE ),
         ItemBar,
-        DItem( "Rename...",     NULL, MID_RENAME ),
-        DItem( "Hide/Show",     "H", MID_HIDE ),
-        Item( "Preferences...", NULL, MID_PREFS ),
+        DItem( "Rename...",     NULL,   MID_RENAME ),
+        DItem( "Hide/Show",     "H",    MID_HIDE ),
+        Item( "Preferences...", NULL,   MID_PREFS ),
         ItemBar,
-        Item( "About PPT",      NULL, MID_ABOUT ),
+        Item( "About PPT",      NULL,   MID_ABOUT ),
         ItemBar,
-        Item( "Quit",           "Q",  MID_QUIT ),
+        Item( "Quit",           "Q",    MID_QUIT ),
     Title( "Edit" ),
-        DItem( "Undo",          "Z", MID_UNDO ),
-        DItem( "Cut",           "X", MID_CUT ),
-        DItem( "Cut To New",    NULL, MID_CUTFRAME ),
-        DItem( "Copy",          "C", MID_COPY ),
-        DItem( "Paste",         "V", MID_PASTE ),
+        DItem( "Undo",          "Z",    MID_UNDO ),
+        DItem( "Cut",           "X",    MID_CUT ),
+        DItem( "Cut To New",    NULL,   MID_CUTFRAME ),
+        DItem( "Copy",          "C",    MID_COPY ),
+        DItem( "Paste",         "V",    MID_PASTE ),
 #ifdef DEBUG_MODE
-        DItem( "Crop",          NULL, MID_CROP ),
+        DItem( "Crop",          NULL,   MID_CROP ),
 #endif
         ItemBar,
-        DItem("Zoom In",        "+", MID_ZOOMIN ),
-        DItem("Zoom Out",       "-", MID_ZOOMOUT ),
+        DItem("Zoom In",        "+",    MID_ZOOMIN ),
+        DItem("Zoom Out",       "-",    MID_ZOOMOUT ),
         ItemBar,
-        DItem( "Select All",    "A", MID_SELECTALL ),
-        DItem( "Edit Info...",  NULL, MID_EDITINFO ),
+        DItem( "Select All",    "A",    MID_SELECTALL ),
+        DItem( "Edit Info...",  "Y",    MID_EDITINFO ),
     Title( "Display" ),
-        DItem( "Settings...",   NULL, MID_SETRENDER ),
-        DItem( "Render",        "R", MID_RENDER ),
-        DItem( "Close Render",  NULL,MID_CLOSERENDER ),
+        DItem( "Settings...",   NULL,   MID_SETRENDER ),
+        DItem( "Render",        "R",    MID_RENDER ),
+        DItem( "Close Render",  NULL,   MID_CLOSERENDER ),
         ItemBar,
-        DItem( "Correct Aspect","J", MID_CORRECTASPECT ),
-        DItem( "Palette",       NULL, MID_PALETTE ),
-            SubItem( "Edit...", NULL, MID_EDITPALETTE ),
-            SubItem( "Load...", NULL, MID_LOADPALETTE ),
-            SubItem( "Save...", NULL, MID_SAVEPALETTE ),
+        DItem( "Correct Aspect","J",    MID_CORRECTASPECT ),
+        DItem( "Palette",       NULL,   MID_PALETTE ),
+            SubItem( "Edit...", "G",    MID_EDITPALETTE ),
+            SubItem( "Load...", NULL,   MID_LOADPALETTE ),
+            SubItem( "Save...", NULL,   MID_SAVEPALETTE ),
     Title( "Process" ),
-        DItem( "Process...",    "P", MID_PROCESS ),
-        DItem( "Break",         "B", MID_BREAK ),
-        DItem( "Remove Alpha",  NULL, MID_REMOVEALPHA ),
+        DItem( "Process...",    "P",    MID_PROCESS ),
+        DItem( "Break",         ".",    MID_BREAK ),
+#ifdef USE_OLD_ALPHA
+        DItem( "Remove Alpha",  NULL,   MID_REMOVEALPHA ),
+#endif
 #ifdef DEBUG_MODE
     Title( "Debug" ),
-        Item( "SavPalette", NULL, MID_SAVEMAINPALETTE ),
-        Item( "Memory Check",   NULL, MID_MEMCHECK ),
-        Item( "Test AskReq()",  NULL, MID_TESTAR ),
+        Item( "SavPalette",     NULL,   MID_SAVEMAINPALETTE ),
+        Item( "Memory Check",   NULL,   MID_MEMCHECK ),
+        Item( "Test AskReq()",  NULL,   MID_TESTAR ),
         Item( "Memory Fail Rate", NULL, MID_MEMFAIL ),
             { NM_SUB, " 0 %", NULL, CHECKIT|MENUTOGGLE|CHECKED, ~1, (APTR)MID_MEMFAIL0 },
             { NM_SUB, "10 %", NULL, CHECKIT|MENUTOGGLE, ~2, (APTR)MID_MEMFAIL10 },
@@ -160,12 +164,12 @@ struct NewMenu PPTMenus[] = {
             { NM_SUB, "50 %", NULL, CHECKIT|MENUTOGGLE, ~8, (APTR)MID_MEMFAIL50 },
 #endif
     Title( "Window" ),
-        { NM_ITEM, "Frames",    "F", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_FRAMEWINDOW },
-        { NM_ITEM, "Toolbar",   "T", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_TOOLWINDOW },
-        { NM_ITEM, "Select",    "I", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_SELECTWINDOW },
-        { NM_ITEM, "Effects",   "E", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_EFFECTS },
-        { NM_ITEM, "Loaders",   "L", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_LOADERS },
-        { NM_ITEM, "Scripts",   "S", CHECKIT|MENUTOGGLE, 0L, (APTR)MID_REXXWINDOW },
+        { NM_ITEM, "Frames",    "F",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_FRAMEWINDOW },
+        { NM_ITEM, "Toolbar",   "T",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_TOOLWINDOW },
+        { NM_ITEM, "Select",    "I",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_SELECTWINDOW },
+        { NM_ITEM, "Effects",   "E",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_EFFECTS },
+        { NM_ITEM, "Loaders",   "L",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_LOADERS },
+        { NM_ITEM, "Scripts",   "S",    CHECKIT|MENUTOGGLE, 0L, (APTR)MID_REXXWINDOW },
     End
 };
 ///
