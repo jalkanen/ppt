@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 6.1 1999/10/02 16:33:07 jj Exp $
+    $Id: support.c,v 6.2 2000/02/06 19:24:15 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -470,34 +470,56 @@ GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
     GrayPixel *gray, pgray[4];
     WORD width = frame->pix->width;
 
-    switch( frame->pix->colorspace ) {
-        case CS_RGB:
-            rgb = (RGBPixel *)GetPixelRow( frame, 0, PPTBase );
-            prgb[0] = rgb[0]; prgb[1] = rgb[width-1];
-            rgb = (RGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
-            prgb[2] = rgb[0]; prgb[3] = rgb[width-1];
-            ((RGBPixel *)pixel)->r = (((ULONG)prgb[0].r + prgb[1].r + prgb[2].r + prgb[3].r)/4);
-            ((RGBPixel *)pixel)->g = (((ULONG)prgb[0].g + prgb[1].g + prgb[2].g + prgb[3].g)/4);
-            ((RGBPixel *)pixel)->b = (((ULONG)prgb[0].b + prgb[1].b + prgb[2].b + prgb[3].b)/4);
-            break;
+    /*
+     *  A temporary frame gets the background color as black, otherwise
+     *  calculates one from the image.
+     */
 
-        case CS_ARGB:
-            argb = (ARGBPixel *)GetPixelRow( frame, 0, PPTBase );
-            pargb[0] = argb[0]; pargb[1] = argb[width-1];
-            argb = (ARGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
-            pargb[2] = argb[0]; pargb[3] = argb[width-1];
-            ((ARGBPixel *)pixel)->r = (((ULONG)pargb[0].r + pargb[1].r + pargb[2].r + pargb[3].r)/4);
-            ((ARGBPixel *)pixel)->g = (((ULONG)pargb[0].g + pargb[1].g + pargb[2].g + pargb[3].g)/4);
-            ((ARGBPixel *)pixel)->b = (((ULONG)pargb[0].b + pargb[1].b + pargb[2].b + pargb[3].b)/4);
-            break;
+    if( frame->istemporary ) {
+        switch( frame->pix->colorspace ) {
+            case CS_RGB:
+                ((RGBPixel *)pixel)->r = ((RGBPixel *)pixel)->g = ((RGBPixel *)pixel)->b = 0;
+                break;
 
-        case CS_GRAYLEVEL:
-            gray = (GrayPixel *)GetPixelRow( frame, 0, PPTBase );
-            pgray[0] = gray[0]; pgray[1] = gray[width-1];
-            gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
-            pgray[2] = gray[0]; pgray[3] = gray[width-1];
-            ((GrayPixel *)pixel)->g = (((ULONG)pgray[0].g + pgray[1].g + pgray[2].g + pgray[3].g)/4);
-            break;
+            case CS_ARGB:
+                ((ARGBPixel *)pixel)->r = ((ARGBPixel *)pixel)->g = ((ARGBPixel *)pixel)->b = 0;
+                ((ARGBPixel *)pixel)->a = 0;
+                break;
+
+            case CS_GRAYLEVEL:
+                ((GrayPixel *)pixel)->g = 0;
+                break;
+        }
+    } else {
+        switch( frame->pix->colorspace ) {
+            case CS_RGB:
+                rgb = (RGBPixel *)GetPixelRow( frame, 0, PPTBase );
+                prgb[0] = rgb[0]; prgb[1] = rgb[width-1];
+                rgb = (RGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
+                prgb[2] = rgb[0]; prgb[3] = rgb[width-1];
+                ((RGBPixel *)pixel)->r = (((ULONG)prgb[0].r + prgb[1].r + prgb[2].r + prgb[3].r)/4);
+                ((RGBPixel *)pixel)->g = (((ULONG)prgb[0].g + prgb[1].g + prgb[2].g + prgb[3].g)/4);
+                ((RGBPixel *)pixel)->b = (((ULONG)prgb[0].b + prgb[1].b + prgb[2].b + prgb[3].b)/4);
+                break;
+
+            case CS_ARGB:
+                argb = (ARGBPixel *)GetPixelRow( frame, 0, PPTBase );
+                pargb[0] = argb[0]; pargb[1] = argb[width-1];
+                argb = (ARGBPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
+                pargb[2] = argb[0]; pargb[3] = argb[width-1];
+                ((ARGBPixel *)pixel)->r = (((ULONG)pargb[0].r + pargb[1].r + pargb[2].r + pargb[3].r)/4);
+                ((ARGBPixel *)pixel)->g = (((ULONG)pargb[0].g + pargb[1].g + pargb[2].g + pargb[3].g)/4);
+                ((ARGBPixel *)pixel)->b = (((ULONG)pargb[0].b + pargb[1].b + pargb[2].b + pargb[3].b)/4);
+                break;
+
+            case CS_GRAYLEVEL:
+                gray = (GrayPixel *)GetPixelRow( frame, 0, PPTBase );
+                pgray[0] = gray[0]; pgray[1] = gray[width-1];
+                gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, PPTBase );
+                pgray[2] = gray[0]; pgray[3] = gray[width-1];
+                ((GrayPixel *)pixel)->g = (((ULONG)pgray[0].g + pgray[1].g + pgray[2].g + pgray[3].g)/4);
+                break;
+        }
     }
 
     return res;
