@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.8 1996/10/10 19:08:18 jj Exp $
+    $Id: external.c,v 1.9 1996/10/28 13:09:26 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -548,14 +548,19 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
 {
     struct Library *LocaleBase;
     struct ExecBase *SysBase;
+    struct IORequest ior;
 
     SysBase = (struct ExecBase *)SYSBASE();
     LocaleBase = xd->lb_Locale;
+    ior.io_Device = xd->lb_Timer;
+    ior.io_Unit   = 0;
 
     // D(bug("\tCloseLibBases()\n"));
 
     ClosepptCatalog( xd );
     if(xd->locale)      CloseLocale(xd->locale);
+
+    if(xd->lb_Timer)    CloseDevice( &ior );
 
     if(xd->lb_Locale)   CloseLibrary(xd->lb_Locale);
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
@@ -578,6 +583,7 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 {
     struct ExecBase *SysBase;
     struct Library  *LocaleBase;
+    struct IORequest ior = {0};
 
     // D(bug("\tOpenLibBases()\n"));
 
@@ -595,6 +601,10 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
     // D(bug("done\n"));
     xd->lb_Gfx =        OpenLibrary("graphics.library",37L);
     xd->lb_GadTools =   OpenLibrary("gadtools.library",37L);
+
+    OpenDevice("timer.device", 0, &ior, 0L );
+    xd->lb_Timer =      ior.io_Device;
+
     LocaleBase = xd->lb_Locale = OpenLibrary("locale.library",0L);
 
     if( xd->lb_Locale ) {
