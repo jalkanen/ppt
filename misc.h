@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.4 1996/09/17 20:34:54 jj Exp $
+    $Id: misc.h,v 1.5 1996/09/30 02:44:36 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -35,6 +35,7 @@
 
 #define pmalloc(x) malloc(x)
 #define pfree(x)   free(x)
+#define pzmalloc(x) F_pzmalloc(x, __FILE__, __LINE__ )
 
 #define CheckPtr( ptr, txt )   Debug_CheckPtr( txt, ptr, __FILE__, __LINE__ )
 
@@ -44,6 +45,7 @@ extern BOOL Debug_CheckPtr( const char *, APTR, const char *file, int );
 
 #define pmalloc(x) AllocVec( (x), 0L )
 #define pfree(x)   FreeVec( (x) )
+#define pzmalloc(x) AllocVec( (x), MEMF_CLEAR )
 
 #define CheckPtr( ptr,txt )   1
 
