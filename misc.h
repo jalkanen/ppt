@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.5 1996/09/30 02:44:36 jj Exp $
+    $Id: misc.h,v 1.6 1996/11/23 00:39:28 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -11,7 +11,7 @@
 #ifndef MISC_H
 #define MISC_H
 
-#define XLIB_FUNCS      33
+#define XLIB_FUNCS      31
 
 #define InternalError( txt )   Debug_InternalError( txt, __FILE__, __LINE__ )
 
@@ -21,9 +21,6 @@
 
 #define ATTACH_SIMPLE       0x01
 #define ATTACH_ALPHA        0x02
-
-#define PPTMSG_STOP_INPUT   99L
-#define PPTMSG_ACK_INPUT    100L
 
 /*------------------------------------------------------------------*/
 /* This is for memory debugging. I really would prefer Enforcer,
@@ -51,8 +48,8 @@ extern BOOL Debug_CheckPtr( const char *, APTR, const char *file, int );
 
 #endif
 
-#define smalloc(x)  pmalloc(x)
-#define sfree(x)    pfree(x)
+#define smalloc(x)  SMalloc(x)
+#define sfree(x)    SFree(x)
 
 
 #endif /* MISC_H */
