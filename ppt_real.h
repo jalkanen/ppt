@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 5.5 $
-        $Date: 1999/06/15 12:49:38 $
+    $Revision: 5.6 $
+        $Date: 1999/08/01 16:44:28 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 5.5 1999/06/15 12:49:38 jj Exp $
+    $Id: ppt_real.h,v 5.6 1999/08/01 16:44:28 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -493,7 +493,9 @@ struct Selection {
     VOID            (*MouseMove)(struct Frame_t *,struct MouseLocationMsg *);
     VOID            (*DrawSelection)(struct Frame_t *,ULONG);
     VOID            (*EraseSelection)(struct Frame_t *);
-    BOOL            (*IsInArea)(struct Frame_t *,struct MouseLocationMsg *);
+    BOOL            (*IsInArea)(struct Frame_t *,WORD,WORD);
+    VOID            (*Rescale)(struct Frame_t *, struct Frame_t *);
+    VOID            (*Copy)(struct Frame_t *, struct Frame_t *);
 
     /*
      *  GINP_FIXED_RECT
@@ -511,6 +513,8 @@ struct Selection {
                     circley;        /* First, the center, then the radius */
     WORD            circleradius;
 
+    ULONG           cachedmethod;   /* Used during Start/StopInput to return
+                                       previous method back to life. */
 };
 
 /*!!PUBLIC*/
