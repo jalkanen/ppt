@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.15 1998/09/05 12:22:05 jj Exp $
+    $Id: external.c,v 2.16 1998/10/25 22:13:36 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -129,6 +129,7 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     struct ExecBase   *SysBase = ExtBase->lb_Sys;
 
+#if 0
     strcpy( buf, globals->userprefs->modulepath );
 
     SHLOCKGLOB();
@@ -136,6 +137,9 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
     UNLOCKGLOB();
 
     ModuleBase = OpenLibrary( buf, 0L );
+#else
+    ModuleBase = OpenLibrary( x->diskname, 0L );
+#endif
     return ModuleBase;
 }
 
@@ -287,11 +291,50 @@ SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 }
 
 Local
+const char *AFF2CPU( char *buf, ULONG flags )
+{
+    strcpy(buf, "");
+
+    if (!flags) {
+        strcpy(buf, "68000");
+        return buf;
+    }
+    if (flags & AFF_68010)
+        strcat(buf, "68010,");
+
+    if (flags & AFF_68020)
+        strcat(buf, "68020,");
+
+    if (flags & AFF_68030)
+        strcat(buf, "68030,");
+
+    if (flags & AFF_68040)
+        strcat(buf, "68040,");
+
+    if (flags & AFF_68060)
+        strcat(buf, "68060,");
+
+    if (flags & AFF_68881)
+        strcat(buf, "68881,");
+
+    if (flags & AFF_68882)
+        strcat(buf, "68882,");
+
+    if (flags & AFF_PPC)
+        strcat(buf, "PowerPC,");
+
+    buf[strlen(buf) - 1] = '\0';        // Remove last comma.
+
+    return buf;
+}
+
+Local
 SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 {
     struct Library *ModuleBase;
     int   ver,rev;
     APTR  txt, au;
+    char  cpu[256];
 
     D(bug("ShowNewExtInfo()\n"));
 
@@ -305,11 +348,16 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 
     Req(win,NULL,
         XGetStr( mEXTERNAL_INFO_FORMAT ),
-        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : XGetStr(mAUTHOR_UNKNOWN) );
+        x->nd.ln_Name,
+        (ULONG)ver, (ULONG)rev,
+        AFF2CPU( cpu, Inquire(PPTX_CPU, ExtBase) ),
+        txt ? txt : "",
+        au ? au : XGetStr(mAUTHOR_UNKNOWN) );
 
     CloseModule( ModuleBase, ExtBase );
 }
 
+/// ShowExtInfo()
 /*
     An useless stub, I hope, in the future.
 */
@@ -326,7 +374,7 @@ VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
                 prg = "More";
         }
 
-        sprintf(buf, "%s rexx/%s PUBSCREEN=PPT", prg, x->nd.ln_Name );
+        sprintf(buf, "%s %s PUBSCREEN=PPT", prg, x->diskname );
 
         SystemTags( buf, SYS_Asynch, TRUE,
                     SYS_Input, Open("NIL:", MODE_OLDFILE ),
@@ -339,8 +387,9 @@ VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
             ShowOldExtInfo( xd, x, win );
     }
 }
+///
 
-
+/// PurgeOldExternal()
 Local
 PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 {
@@ -371,7 +420,8 @@ PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 
     return PERR_OK;
 }
-
+///
+/// PurgeNewExternal()
 Local
 PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
 {
@@ -386,15 +436,16 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
 
     if( who->nd.ln_Type != NT_SCRIPT ) {
         if( globals->userprefs->expungelibs || force )
-            FlushLibrary( who->diskname, globxd );
+            FlushLibrary( FilePart(who->diskname), globxd );
     }
 
     sfree(who);
 
     return PERR_OK;
 }
+///
 
-
+/// PurgeExternal()
 /*
     Purges an external from memory, removing it from our
     lists, as well.
@@ -414,8 +465,9 @@ PERROR PurgeExternal( EXTERNAL *w, BOOL f )
         return PurgeOldExternal( w, f );
     }
 }
+///
 
-
+/// InitOldExternal()
 /*
     This routines opens the given external and then executes
     it's Init() - routine. If it is successful, the external
@@ -494,8 +546,8 @@ PERROR InitOldExternal( const char *who, BPTR seglist )
         x->nd.ln_Type = type;
         x->nd.ln_Name = name;
         x->nd.ln_Pri  = (BYTE)GetTagData( PPTX_Priority, 0L, m->tagarray );
-        strncpy( x->diskname, FilePart(who), 39 );
-        strncpy( x->realname, (STRPTR)GetTagData( PPTX_Name, (ULONG)"", m->tagarray ), NAMELEN-1 );
+        strncpy( x->diskname, who, MAXPATHLEN+NAMELEN );
+        strncpy( x->realname, (STRPTR)GetTagData( PPTX_Name, (ULONG)"", m->tagarray ), NAMELEN );
 
         LOCKGLOB();
         if(type == NT_LOADER)
@@ -512,7 +564,8 @@ PERROR InitOldExternal( const char *who, BPTR seglist )
 
     return PERR_OK;
 }
-
+///
+/// InitScript()
 /*
     Initializes a script.
 */
@@ -529,7 +582,7 @@ PERROR InitScript( const char *who )
     x->nd.ln_Type = NT_SCRIPT;
     x->nd.ln_Name = x->realname;
     x->nd.ln_Pri  = 0;
-    strncpy( x->diskname, who, 39 );
+    strncpy( x->diskname, who, MAXPATHLEN+NAMELEN );
     strncpy( x->realname, FilePart(who), 39 );
 
     LOCKGLOB();
@@ -540,7 +593,8 @@ PERROR InitScript( const char *who )
 
     return PERR_OK;
 }
-
+///
+/// InitNewExternal()
 /*
     Open new style external
 */
@@ -656,8 +710,8 @@ PERROR InitNewExternal( char *who, struct Library *ModuleBase )
     x->nd.ln_Type = type;
     x->nd.ln_Name = x->realname;
     x->nd.ln_Pri  = (BYTE)Inquire( PPTX_Priority, globxd );
-    strncpy( x->diskname, FilePart(who), 39 );
-    strncpy( x->realname, name, 39 );
+    strncpy( x->diskname, who, MAXPATHLEN+NAMELEN );
+    strncpy( x->realname, name, NAMELEN );
 
     /*
      *  Set up loader specific stuphs.  Mainly this means
@@ -692,8 +746,9 @@ nogood:
 
     return res;
 }
+///
 
-
+/// OpenExternal()
 PERROR OpenExternal( const char *who, UBYTE type )
 {
     struct Library *ModuleBase;
@@ -716,10 +771,11 @@ PERROR OpenExternal( const char *who, UBYTE type )
 
     return res;
 }
-
+///
 
 /*---------------------------------------------------------------------------*/
 
+/// CloseLibBases()
 /*
     Opposite of OpenLibBases().
     Note: This routine has no bugs.
@@ -754,8 +810,8 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTBASE *xd )
     if(xd->lb_GadTools) CloseLibrary(xd->lb_GadTools);
     if(xd->mport)       DeleteMsgPort(xd->mport); /* Exec call. Safe to do. */
 }
-
-
+///
+/// OpenLibBases()
 /*
     Opens up libraries:
 
@@ -813,8 +869,8 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 
     return PERR_OK;
 }
-
-
+///
+/// NewExtBase()
 /*
     Allocates a new ExtBase structure.
     if open == TRUE, calls OpenLibBases to allocate new library bases.
@@ -853,7 +909,8 @@ SAVEDS EXTBASE *NewExtBase( BOOL open )
     }
     return ExtBase;
 }
-
+///
+/// RelExtBase()
 /*
     Use to release ExtBase allocated in NewExtBase()
 */
@@ -869,5 +926,5 @@ SAVEDS VOID RelExtBase( EXTBASE *xb )
     realptr = (APTR) ((ULONG)xb - (EXTSIZE - sizeof(EXTBASE)));
     pfree(realptr);
 }
-
+///
 
