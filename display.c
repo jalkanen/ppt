@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.49 1997/12/06 22:49:19 jj Exp $
+    $Id: display.c,v 1.50 1997/12/18 22:56:02 jj Exp $
 
     Contains display routines.
 
@@ -978,8 +978,8 @@ PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
          *  BUG: Will overflow at some point.
          */
 
-        winbox.Top    = frame->ID * 8;
-        winbox.Left   = frame->ID * 8;
+        winbox.Top    = (frame->ID % 10) * 8 + (frame->ID/10)*8;
+        winbox.Left   = (frame->ID % 10) * 8;
         winbox.Width  = p->width;
 
         if( p->DPIX && p->DPIY )
