@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 2.4 1998/06/28 23:22:59 jj Exp $
+    $Id: message.c,v 6.0 1999/09/08 22:49:47 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -170,7 +170,7 @@ VOID SendInputMsg( FRAME *f, struct PPTMessage *pmsg )
 
     pmsg->frame = f;
 
-    SendPPTMsg( f->selectport, pmsg, globxd );
+    SendPPTMsg( f->selection.selectport, pmsg, globxd );
 }
 
 
