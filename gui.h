@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.26 1998/02/26 19:53:43 jj Exp $
+    $Id: gui.h,v 1.27 1998/06/28 23:10:15 jj Exp $
 */
 
 #ifndef GUI_H
@@ -130,8 +130,13 @@ struct SelectWindow {
 
     Object          *Win;
     struct  Window  *win;
+
+    Object          *Page;
+
     Object          *TopLeft, *TopRight, *BottomLeft, *BottomRight,
                     *Height, *Width;
+
+    Object          *CircleX, *CircleY, *CircleRadius;
 };
 
 /*
@@ -434,12 +439,17 @@ extern const ULONG dpcol_fl2sl[];
 /* Selection window */
 
 #define SELGIDB             (11200)
+#define GID_SELECT_PAGE     (SELGIDB + 0)
 #define GID_SELECT_TOPRIGHT (SELGIDB + 1)
 #define GID_SELECT_TOPLEFT  (SELGIDB + 2)
 #define GID_SELECT_BOTTOMLEFT (SELGIDB + 3)
 #define GID_SELECT_BOTTOMRIGHT (SELGIDB + 4)
 #define GID_SELECT_WIDTH    (SELGIDB + 5)
 #define GID_SELECT_HEIGHT   (SELGIDB + 6)
+#define GID_SELECT_CIRCLEX  (SELGIDB + 7)
+#define GID_SELECT_CIRCLEY  (SELGIDB + 8)
+#define GID_SELECT_CIRCLERADIUS  (SELGIDB + 9)
+
 
 /*
  *  Global Menus
