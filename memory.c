@@ -5,7 +5,7 @@
     This contains the code for different memory allocation schemes
     and stuff.
 
-    $Id: memory.c,v 1.3 1998/08/23 23:16:06 jj Exp $
+    $Id: memory.c,v 1.4 1999/03/17 23:08:53 jj Exp $
 */
 
 #include "defs.h"
@@ -33,9 +33,9 @@ Local void   *poolhead;
     This is normally #defined as pmalloc()
 */
 
-Prototype ASM APTR F_pzmalloc( REG(d0) ULONG, REG(a0) char *, REG(d1) int );
+Prototype APTR ASM F_pzmalloc( REGDECL(d0,ULONG), REGDECL(a0,char *), REGDECL(d1,int) );
 
-ASM APTR F_pzmalloc( REG(d0) ULONG size, REG(a0) char *file, REG(d1) int line )
+APTR ASM F_pzmalloc( REGPARAM(d0,ULONG,size), REGPARAM(a0,char *,file), REGPARAM(d1,int,line) )
 {
     APTR area;
 

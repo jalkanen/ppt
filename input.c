@@ -5,7 +5,7 @@
     This file contains the input-handlers of PPT for the external
     modules.
 
-    $Id: input.c,v 1.2 1999/03/14 20:56:29 jj Exp $
+    $Id: input.c,v 1.3 1999/03/17 23:07:23 jj Exp $
 
  */
 
@@ -16,8 +16,8 @@
 
 /*------------------------------------------------------------------------*/
 
-Prototype ASM PERROR        StartInput( REG(a0) FRAME *, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
-Prototype ASM VOID          StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype PERROR ASM       StartInput( REG(a0) FRAME *, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype VOID ASM         StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
 
 /*------------------------------------------------------------------------*/
 

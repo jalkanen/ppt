@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.11 1998/12/16 22:39:30 jj Exp $
+    $Id: frame.c,v 4.12 1999/03/17 23:07:02 jj Exp $
 
     This contains frame handling routines
 
@@ -33,23 +33,23 @@ Prototype void          DeleteFrame( FRAME * );
 Prototype PERROR        ReplaceFrame( FRAME *old, FRAME *new );
 Prototype BOOL          FrameFree( FRAME * );
 Prototype struct Window *GetFrameWin( const FRAME *frame  );
-Prototype ASM FRAME *   NewFrame( REG(d0) ULONG, REG(d1) ULONG, REG(d2) UBYTE, REG(a6) EXTBASE * );
-Prototype ASM VOID      RemFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
-Prototype ASM FRAME *   DupFrame( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype FRAME * ASM   NewFrame( REG(d0) ULONG, REG(d1) ULONG, REG(d2) UBYTE, REG(a6) EXTBASE * );
+Prototype VOID ASM      RemFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype FRAME * ASM   DupFrame( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype PERROR        AddFrame( FRAME * );
-Prototype ASM PERROR    InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase );
-Prototype ASM FRAME *   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase );
+Prototype PERROR ASM   InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase );
+Prototype FRAME * ASM   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase );
 Prototype PERROR        MakeUndoFrame( FRAME * );
 Prototype FRAME         *UndoFrame( FRAME * );
-Prototype ASM FRAME *   FindFrame( REG(d0) ULONG );
+Prototype FRAME * ASM  FindFrame( REG(d0) ULONG );
 Prototype BOOL          ChangeBusyStatus( FRAME *, ULONG );
 Prototype VOID          UpdateFrameInfo( FRAME * );
 Prototype VOID          RefreshFrameInfo( FRAME *, EXTBASE * );
 Prototype VOID          SelectWholeImage( FRAME * );
 Prototype VOID          UnselectImage( FRAME * );
 Prototype BOOL          IsFrameBusy( FRAME * );
-Prototype ASM BOOL      AttachFrame( REG(a0) FRAME *,REG(a1) FRAME *,REG(d0) ULONG,REG(a6) EXTBASE * );
-Prototype ASM VOID      RemoveSimpleAttachments(REG(a0) FRAME * );
+Prototype BOOL ASM      AttachFrame( REG(a0) FRAME *,REG(a1) FRAME *,REG(d0) ULONG,REG(a6) EXTBASE * );
+Prototype VOID ASM      RemoveSimpleAttachments(REG(a0) FRAME * );
 
 Local PERROR            SetBuffers( FRAME *frame, EXTBASE *xd );
 Local VOID              FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
@@ -99,7 +99,7 @@ Local VOID              ResetSharedFrameVars(FRAME *);
 *    BUG: Uses goto...
 */
 
-Prototype ASM BOOL ObtainFrame( REG(a0) FRAME *, REG(d0) ULONG );
+Prototype BOOL ASM ObtainFrame( REG(a0) FRAME *, REG(d0) ULONG );
 
 SAVEDS ASM
 BOOL ObtainFrame( REG(a0) FRAME *frame, REG(d0) ULONG method )
@@ -212,7 +212,7 @@ errorexit:
 *    fields.
 */
 
-Prototype ASM BOOL ReleaseFrame( REG(a0) FRAME * );
+Prototype BOOL ASM ReleaseFrame( REG(a0) FRAME * );
 
 SAVEDS ASM
 BOOL ReleaseFrame( REG(a0) FRAME *frame )
@@ -1146,7 +1146,7 @@ BOOL IsAttached( FRAME *frame, ID srcid )
 */
 
 
-Prototype ASM PERROR CopyFrameData( REG(a0) FRAME *, REG(a1) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype PERROR ASM CopyFrameData( REG(a0) FRAME *, REG(a1) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 
 SAVEDS ASM
 PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
@@ -1935,7 +1935,7 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
 *  Make a full duplicate.
 */
 
-Prototype ASM FRAME *CopyFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype FRAME * ASM CopyFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
 
 SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
                              REG(a6) EXTBASE *ExtBase )

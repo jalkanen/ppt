@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 4.5 1998/02/26 19:51:32 jj Exp $
+    $Id: preview.c,v 4.6 1999/03/17 23:09:17 jj Exp $
 */
 
 #include "defs.h"
@@ -248,7 +248,7 @@ PERROR ScaleFrame( REG(a0) FRAME *src, REG(a1) FRAME *dst,
 *            of rendering the imagery.
 */
 
-Prototype ASM FRAME *ObtainPreviewFrameA( REG(a0) FRAME *,REG(a1) struct TagItem *,REG(a6) EXTBASE * );
+Prototype FRAME * ASM ObtainPreviewFrameA( REG(a0) FRAME *,REG(a1) struct TagItem *,REG(a6) EXTBASE * );
 
 SAVEDS ASM
 FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
@@ -415,7 +415,7 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
 *
 *    Release preview frame obtained by ObtainPreviewFrame()
 */
-Prototype ASM VOID ReleasePreviewFrame( REG(a0) FRAME *, REG(a6) EXTBASE *);
+Prototype VOID ASM ReleasePreviewFrame( REG(a0) FRAME *, REG(a6) EXTBASE *);
 
 SAVEDS ASM
 VOID ReleasePreviewFrame( REG(a0) FRAME *pwframe,
@@ -500,7 +500,7 @@ VOID ReleasePreviewFrame( REG(a0) FRAME *pwframe,
 *   BUG: Should do a bit more error checking.
 */
 
-Prototype ASM PERROR RenderFrame( REG(a0) FRAME *, REG(a1) struct RastPort *, REG(a2) struct IBox *, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype PERROR ASM RenderFrame( REG(a0) FRAME *, REG(a1) struct RastPort *, REG(a2) struct IBox *, REG(d0) ULONG, REG(a6) EXTBASE * );
 
 SAVEDS ASM
 PERROR RenderFrame( REG(a0) FRAME *frame,

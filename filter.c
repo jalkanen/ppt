@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.28 1999/01/13 22:55:38 jj Exp $
+    $Id: filter.c,v 1.29 1999/03/17 23:06:52 jj Exp $
 
     Code containing effects stuff.
 
@@ -66,7 +66,7 @@
 /* Internal prototypes */
 
 Local FRAME *ExecFilter(EXTBASE *, FRAME *, EFFECT *, char *args, BOOL, ULONG * );
-Prototype ASM VOID      Filter( REG(a0) UBYTE *, REG(d0) ULONG );
+Prototype VOID ASM  Filter( REGDECL(a0,UBYTE *), REGDECL(d0,ULONG) );
 Prototype PERROR    ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
 
 /*----------------------------------------------------------------------*/
