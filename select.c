@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: select.c,v 6.0 1999/09/05 02:23:57 jj Exp $
+    $Id: select.c,v 6.1 1999/09/08 22:50:23 jj Exp $
 
  */
 
@@ -117,6 +117,7 @@ void UpdateIWSelbox( FRAME *f, BOOL final )
     SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
                     STRINGA_LongVal, cy,
                     TAG_DONE );
+
 }
 ///
 
@@ -192,6 +193,7 @@ VOID ClearSelectMethod( FRAME *frame )
  *    GINP_LASSO_RECT
  *    GINP_LASSO_ELLIPSE
  *    GINP_FIXED_RECT
+ *    GINP_LASSO_FREE
  */
 
 Prototype VOID ChangeSelectMethod( FRAME *frame, ULONG mode );
@@ -220,6 +222,10 @@ VOID ChangeSelectMethod( FRAME *frame, ULONG mode )
 
         case GINP_PICK_POINT:
             err = InitPickPointSelection( frame );
+            break;
+
+        case GINP_LASSO_FREE:
+            err = InitFreeSelection( frame );
             break;
 
         default:
