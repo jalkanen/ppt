@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 1.4 1996/10/10 19:05:32 jj Exp $
+    $Id: message.c,v 1.5 1996/10/13 15:09:43 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -54,7 +54,7 @@ Prototype VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase );
 VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase )
 {
     if( pmsg ) {
-        D(bug("FreePPTMsg(%08X) : code %lu\n", pmsg, pmsg->code ));
+        D(bug("FreePPTMsg(%08X) : code %lX\n", pmsg, pmsg->code ));
         sfree( pmsg );
     }
 }
@@ -65,7 +65,7 @@ VOID SendPPTMsg( struct MsgPort *mp, struct PPTMessage *pmsg, EXTBASE *ExtBase )
 {
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 
-    D(bug("SendPPTMsg(%08X) : code %lu\n",pmsg, pmsg->code ));
+    D(bug("SendPPTMsg(%08X) : code %lX\n",pmsg, pmsg->code ));
 
     Forbid();
     PutMsg( mp, (struct Message *) pmsg );
@@ -483,6 +483,8 @@ LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *ExtBase )
 /*
     This waits for a deathmessage sent by our master and replies to
     all other messages.  It will also release any replied message.
+
+    BUG:  Redundant code with WaitForReply().
 */
 
 Prototype VOID WaitDeathMessage( EXTBASE * );
@@ -513,6 +515,40 @@ VOID WaitDeathMessage( EXTBASE *ExtBase )
             }
         }
 
+    }
+}
+
+/*
+    Waits for a reply to given message code.
+*/
+
+Prototype VOID WaitForReply( ULONG, EXTBASE * );
+
+VOID WaitForReply( ULONG code, EXTBASE *ExtBase )
+{
+    struct MsgPort *mp = ExtBase->mport;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    ULONG sig;
+    struct Message *msg;
+    BOOL  quit = FALSE;
+
+    D(bug("WaitDeathMessage()\n"));
+
+    while(!quit) {
+        sig = Wait( 1 << mp->mp_SigBit | SIGBREAKF_CTRL_C );
+
+        if( sig & SIGBREAKF_CTRL_C ) return;
+
+        while( msg = GetMsg( mp ) ) {
+            if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
+                if( ((struct PPTMessage *)msg)->code == code ) {
+                    quit = TRUE;
+                }
+                FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
+            } else {
+                ReplyMsg( msg );
+            }
+        }
     }
 }
 
