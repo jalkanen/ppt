@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.59 1998/12/20 19:11:51 jj Exp $
+    $Id: gui.c,v 1.60 1999/01/02 22:33:46 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -85,8 +85,8 @@ Prototype Object *      MyNewObject( EXTBASE *, ULONG, Tag, ... );
    G - Edit Palette                     Z - Undo
    H - Hide/Show                        + - Zoom in
    I - SelectWindow                     - - Zoom out
-   J -                                  0 -
-   K -                                  1 -
+   J - Correct Aspect                   0 -
+   K - Close Render                     1 -
    L - Loaders Window                   2 -
    M -                                  3 -
    N - New                              4 -
