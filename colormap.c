@@ -1,12 +1,13 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.9 1996/10/10 19:07:05 jj Exp $
+    $Id: colormap.c,v 1.10 1996/10/19 02:43:27 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
 
         * Colormapped (upto 256 colors)
+        * HAM
         * HAM8
 */
 
@@ -23,6 +24,7 @@ Prototype ASM UWORD GetColor_Normal( REG(a0) struct RenderObject *, REG(d0) UBYT
 Prototype ASM UWORD GetColor_NormalGray( REG(a0) struct RenderObject *, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE ) ;
 Prototype ASM UWORD GetColor_HAM( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE );
 Prototype ASM UWORD GetColor_HAM8( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE  );
+Prototype ASM UWORD GetColor_EHB( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE  );
 
 /*--------------------------------------------------------------------*/
 /* Defines */
@@ -37,6 +39,33 @@ Prototype ASM UWORD GetColor_HAM8( REG(a0) struct RenderObject *, REG(d0) UBYTE 
 
 /*--------------------------------------------------------------------*/
 /* Code */
+
+/*
+    Return an EHB color.  Assume the first 32 colors of the colormap
+    are OK and the rest are just halved.
+*/
+
+ASM UWORD GetColor_EHB( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
+{
+    UWORD pen;
+    int i;
+
+    if( rdo->EHB_Data == 0 ) {
+        UBYTE *colortable = rdo->colortable;
+        int offset = rdo->ncolors * 3;
+
+        for( i = 0; i < rdo->ncolors*3; i++ ) {
+            colortable[i+offset] = colortable[i] >> 1;
+        }
+        rdo->ncolors *= 2;
+        rdo->EHB_Data = 1;
+        D(DoShowColorTable( rdo->ncolors, colortable ));
+    }
+
+    pen = GetColor_Normal( rdo, r, g, b );
+
+    return pen;
+}
 
 /*
     Uses HAM8 but in 16 colors to create an approximation, then
@@ -224,6 +253,8 @@ ASM UWORD GetColor_HAM8( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(
 
 /*
     Returns the new color index & the new color values.
+
+    Uses rdo->histograms to cache pen values.
 */
 
 ASM UWORD GetColor_Normal( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
