@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.12 1997/10/06 21:52:42 jj Exp $
+    $Id: infowin.c,v 1.13 1998/07/01 21:36:17 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -135,7 +135,15 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 
             if( FindTask(NULL) == globals->maintask ) {
                 LOCK(iw);
+
+                /*
+                 *  Make sure all of the attributes are correct and we're
+                 *  going to open on the PPT screen (which may have changed
+                 *  due to a preferences change).
+                 */
+
                 UpdateInfoWindow( iw, ExtBase );
+                SetAttrs( Win, WINDOW_Screen, MAINSCR, TAG_DONE );
 
                 D(bug("\tAttempting open...\n"));
 
