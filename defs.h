@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.27 1998/10/14 20:31:21 nobody Exp $
+    $Id: defs.h,v 1.28 1998/12/15 23:16:35 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -268,20 +268,32 @@ enum DebugFile_T {
 
 
 #ifdef _DCC
-#define SAVEDS __geta4
+#define SAVEDS  __geta4
 #define ASM
-#define REG(x) __ ## x
+#define REG(x)  __ ## x
+#define FAR     __far
+#define ALIGNED
+#define INLINE
 #else
-#ifdef __GCC__
-#define SAVEDS
-#define ASM
+#ifdef __GNUC__
+#define SAVEDS  __saveds
+#define ASM     __asm
 #define REG(x)
+#define GREG(x) __asm( #x )
+#define ALIGNED __aligned
+#define INLINE  __inline
 #else
-#define SAVEDS __saveds
-#define ASM    __asm
-#define REG(x) register __ ## x
+#define SAVEDS  __saveds
+#define ASM     __asm
+#define REG(x)  register __ ## x
+#define GREG(x)
+#define ALIGNED __aligned
+#define INLINE  __inline
 #endif
 #endif
+
+#define REGPARAM( reg, type, name ) REG(reg) type name GREG(reg)
+#define REGDECL( reg, type ) REG(reg) type GREG(reg)
 
 #ifndef PPT_H
 #include "ppt_real.h"
