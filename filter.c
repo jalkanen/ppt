@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.27 1998/12/15 21:23:27 jj Exp $
+    $Id: filter.c,v 1.28 1999/01/13 22:55:38 jj Exp $
 
     Code containing effects stuff.
 
@@ -356,7 +356,7 @@ EFFECT *HandleFilterIDCMP( EXTBASE *ExtBase, struct EffectWindow *fw, ULONG rc )
 SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 {
     struct EffectWindow fw;
-    ULONG sigmask, sig, rc, *optarray = NULL, status;
+    ULONG sigmask, sig, rc, *optarray = NULL, status = EMSTATUS_FAILED;
     int quit = 0;
     EXTBASE *ExtBase = NULL;
     struct Library *BGUIBase;
@@ -641,8 +641,6 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
          */
 
         if(res == NULL) {
-
-            *statusp = EMSTATUS_FAILED;
 
             D(bug("\tAn error occurred during the filtering...\n"));
 
