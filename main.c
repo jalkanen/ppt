@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.2 1999/09/08 22:49:17 jj Exp $
+    $Id: main.c,v 6.3 1999/10/14 16:20:44 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1830,9 +1830,7 @@ int HandlePrefsIDCMP( ULONG rc )
             }
 
             if( res == PERR_OK ) {
-                PREFS kludgeprefs;
                 DISPLAY kludgedisp;
-                BOOL  kludgevm = FALSE;
                 BOOL  redrawframes = FALSE; /* if set, redraws everything */
 
                 /*
@@ -1844,15 +1842,7 @@ int HandlePrefsIDCMP( ULONG rc )
                     redrawframes = TRUE;
                 }
 
-                CopyPrefs( globals->userprefs, &kludgeprefs );
                 memcpy(&kludgedisp, globals->maindisp, sizeof(DISPLAY));
-
-                if( strcmp( tmpprefs.vmdir, globals->userprefs->vmdir ) != 0 ||
-                    tmpprefs.vmbufsiz != globals->userprefs->vmbufsiz)
-                {
-                    Req( NEGNUL, NULL, GetStr( mSOME_SETTINGS_CANT_BE_USED) );
-                    kludgevm = TRUE;
-                }
 
                 CopyPrefs( &tmpprefs, globals->userprefs );
                 bcopy( &tmpdisp, globals->maindisp, sizeof(DISPLAY) );
@@ -1916,11 +1906,6 @@ int HandlePrefsIDCMP( ULONG rc )
                     if(SavePrefs( globals, NULL ) != PERR_OK ) {
                         Req(NEGNUL,NULL,GetStr(mCOULDNT_SAVE_PREFERENCES) );
                     }
-                }
-
-                if( kludgevm ) {
-                    strcpy( globals->userprefs->vmdir, kludgeprefs.vmdir );
-                    globals->userprefs->vmbufsiz = kludgeprefs.vmbufsiz;
                 }
 
                 return HANDLER_DELETED;
