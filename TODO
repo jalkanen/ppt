@@ -1,0 +1,575 @@
+· = crazy idea
+- = idea
++ = Should be done
+* = MUST be done!
+o = under construction
+
+-------
+
+KNOWN BUGS (? = not reproducible)
+==========
+
+* Hang - jos save ei saa oikeaa viestiformaattia
+
+* Virheviestit eivät tule kunnolla alas GetArgs()ilta.
+
++ Message passing messes quotes completely.  Not good.
+    - vain SHOWERROR, joka menee sekaisin kun sille tarjoaa
+      lainausmerkkejä.  Tämä johtuu ParseDOSArgsista, joka taasen
+      ei hyväksy kahta kertaa lainausmerkkejä samalla rivillä.
+
+* Twirl
+    * Check floatgadget
+    - Better UI
+
+* Still problems with preview and undo: selection type is ignored?
+    - Transparency & UNDO don't work together too well... CRASH!
+
+
+- Multiple warnings from old selection.
+
+- Selecting rendering colors to less than 1<<n causes the rest
+  of the colors to contain garbage.
+
+* Menus are not Disabled correctly (Palette, for example).
+
++ ExtList out of sync: jos laitat New ja sitten Remove
+
++ TIFF is incomplete
+
++ EXTF_ULONG and EXTF_FLOAT are not implemented yet.
+
+*? If Composite fails, machine hangs
++? Composite vaatii vähintään yhden liikutuksen, ennen kuin OK sallitaan
+*? Composite discards last message : memory leak!
++? Composite ei tallenna arvojaan.
+
+
+- CGX bug? SA_AutoScroll does not.
+   - seems to happen on AGA, as well...
+
++ Prefs item: Snapshot prefs on exit? -> snapshots window locations, everything.
+
+- after a change to native screenmodes from CGX the windows-menu shows
+  wrong results. (or was it a loadnew?)
+
++ SelectBox seems to suffer from roundoff errors...
+
+- main task crashes on 'Open As...' -> Datatypes -> 0rose.jpg
+    - this may be due to the JPEG codec used... akJFIF does not work!
+
+- Optimizer screws up colorchange?  Get mungwall hits...
+    - nope, this is BGUI.  DisposeObject(Win) gives these hits.
+
+*? Transparency screws ARGB images...
+    - or not?
+
++ In a zoomed state the selbox is not drawn properly.  Also,
+  selecting the bottom right corner seems to snap the selbox
+  a bit.
+
+- When Process is selected, should really use the currently selected
+  effect on the effectwindow.  Only if the window is closed, then pop
+  up a new window.
+
+- if an image is zoomed and a size change is made, should really use the
+  original zoom ratio.
+
+- If we open the palette edit window on a HAM screen, the
+  number of colors is wrong - the trouble is that the machine
+  uses the old palette object when it should recreate it if the
+  screen mode changes.
+
+- Palette windows are not handled properly as shared structures
+  everywhere.
+
+- Save does not render properly at the moment.
+
++ Not all externals use the AskReq help system.  The following do:
+    - Gamma, Autocrop, Brightness, Contrast, Extract, JPEG, Median,
+      Noise, Plain, Resize, Rotate, Shear, Shift, Threshold, Roll, EmbedFile,
+      ExtractFile
+
+- If the colormap has been remapped, Cancel does not work as expected.
+  This is because PPT will remap on the original colormap -> will
+  need a new one.
+
+o Circular alpha channel chains are possible.
+    - oldstyle only
+
+o Infowindows MUST be created at frame creation time, not at the
+  first InitProgress().
+    - LoadFrame() handles this, but what if a frame is
+      created somehow else?
+
+- GIF fails on tmp:t/wyattearp.gif
+
++ EasyExec() requires rewriting.
+    - What if EasyExec() returns a pointer to a function which
+      is the correct one to this workarea?
+    - Pass an userdata pointer from EasyExec() to the function.
+    - We need also an EndEasyExec(), if the userdata needs to be
+      released or something.
+    - How about just the ImageFX style?
+
+* PNG loader crashes the system, if one attempts to read a 8bit
+  grayscale image.
+
+o When forcing palette should check if the source and destination
+  images have different depths, and do something.
+
+· Put proper lib id strings in all effects!
+    $VER: Negative v. 0.3. (Nov 11 1996)
+
+- Screenmode/depth selection requires more work
+
+- Slow algorithms: RIP, Rotate, Local HistEq, ILBM save
+
+o (Animated) display rectangle uses 11 % of CPU-time. Must do something
+  about this...
+    - Use PolyDraw()?  After this, we must WaitBlit()...
+    - Problem is in calculations.  We beat ImageStudio but lose
+      at ImageEngineer
+
+- Tool window location is snapshot, but if we use large fonts, it cannot
+  reduce itself whenever moving back to a smaller font size.
+
+- When no area is selected, should disable Zoom gadgets.
+
+- If original loader cannot save: Save As... will allow you to save.
+
+· PNG iomod does not support aspect ratios.
+
+*? It seems that there is a bug manifesting when there are two
+  objects and the other attempts to close a render.
+
+?* Several hangs if do too many effects... What is this about???
+
+?* If a process is broken, effectbase is not closed.
+   - Seems to hang input.device?
+   - fixed?
+
+· FIXED_RECT screws up image drawing when there is a second window
+  over the image.  This is a bug in CyberGfx 41.2pl68.
+    - Is gone in pl69
+
+· Sometimes online-help screws up CyberGfx 41.2pl68.
+
+· If saving over an old image, canceling the options-screen of the
+  iomodule will end up having the old image erased.
+
+FIRST RELEASE FEATURE SET:
+==========================
+
+* Should I use opacity or transparency for alpha???
+
++ Make up a replacement for PPTX_EasyExec
+
+* Make sure HELP-key works in more places!
+    - Backdrop window
+
+- Add a vignette alpha channel and a tutorial on how to use it
+  (idea by Fygir)
+    - a loader, perhaps?
+
+* fix above bugs
+
+
+IDEAS
+=====
+
++ add automatic icon generation for save.
+
+- J-P Jokela: Add tree view to script window.
+    - will have to wait for BGUI treeview
+
+* Make the main loop into a hash-based lookup system:
+    HashItem {
+        struct Window *win;
+        Object        *Win;
+        APTR          object; // &exts, &extf, &
+        int           (*handler)(APTR object, ULONG rc)
+    }
+
+    Handler {
+        // Search correct sigwin
+        while((rc = HandleEvent( hi->Win )) != WMHI_NOMORE) {
+            if( hi->object )
+                res = hi->handler(hi->object,rc);
+            else
+                res = hi->handler(frame,rc);
+            if( res > 0 ) quit += res;
+        }
+    }
+
++ Selection tool window:
+    · Rectangle, ellipse, lasso
+
+- Fast color routines:
+  ulong calc_blend(ulong color1, ulong color2)
+    {
+      return ((color1 & 0xFEFEFEFE)>>1)+
+             ((color2 & 0xFEFEFEFE)>>1)+
+              (color1 & color2 & 0x01010101L));
+    }
+
+
+   A fast color addition with clipping to 0xff:
+
+    ulong calc_add(ulong c1, ulong c2)
+    {
+      return ((((((c1^c2)>>1)^((c1>>1)+
+                  (c2>>1)))&0x80808080L)>>7)*0xFF)|(c1+c2);
+    }
+
+       Now subtraction:
+
+    ulong calc_sub(ulong c1, ulong c2)
+    {
+      c2 ^= 0xFFFFFFFFL;
+      return ((((((c1^c2)>>1)^((c1>>1)+(c2>>1)))&
+                   0x80808080L)>>7)*0xFF)&(c1+c2+1);
+    }
+
+
++ Use more enumeration types for easier type checking.
+
+- Tooltype PREFSFILE that describes the location of the preferences file
+
+- add possibility to use several startup directories a la IE
+
++ Iconification (requested by Ivo Kroone)
+
+· Use ASLFR_Window & ASLFR_IntuiMsgFunc so that intuition messages are filtered
+  in as well.  This could mean that progress windows are still being refreshed.
+
+- Add option to have simple/smartrefresh previews
+
++ Preview dither
+
++ Fonts are not properly used in every place. Noted places:
+   - file requestor, all requesters, window&screen titles
+   - these actually use system default
+
+o Add ToolTips for gadgets and also add the online-help (AmigaGuide?)
+
+· Make the colormaps objects.
+
++ Separate Quickrender completely from the render object and
+  reserve DISPLAY completely for rendered objects.
+
+o Memory allocation must be done with MEMF_PUBLIC set.
+
+· Should be able to apply filter to several frames. (Multiselect)
+    - is required for animation support
+
+- store the Filerequester attributes.
+
+- snapshot window location info from different externals as well.
+
+· FetchExternals() should allow retry/cancel choice if loading fails.
+
+· Add PPTX_Date (STRPTR)
+
++ not every instance ObtainSemaphores() or Forbid()s correctly
+
+· What if I trash PIXINFO completely and add it to the FRAME structure?
+
+o COLOR SPACES
+    + CS_COMPLEX
+        components          = 1
+        bits_per_component  = 128 (8*2*8) = 16 bytes
+        pixel = struct complex { double re, im; };
+                0 <= re,im <= 1
+
+    + CS_GRAY16
+        components          = 1
+        bits_per_component  = 16 = 2 bytes
+        pixel               = UWORD val; 0 <= val <= 65535
+
+    - CS_RGB16
+        components          = 3
+        bits_per_component  = 16 = 6 bytes
+        pixel = struct { UWORD r,g,b };  0 <= r,g,b <= 65535
+
+    o CS_LUT
+        components          = 1
+        bits_per_component  = 8
+        pixel               = from a look-up table (pix->colortable)
+
+    - needs a pix->bytes_per_pixel;
+
+o MENUS
+    - Need to think about a notif system
+
+o EDITING:
+    · Copy (to Amiga Clipboard)
+        - Need to make an internal IFF 24bit SAVE/LOAD
+    · Paste from Amiga Clipboard
+
+o FILTERS:
+    - Flip should not probably accept input if just neither of the gadgets is down...
+      Maybe put a cycle gadget instead?
+    o Median filter (3x3, 5x5, 7x7 with selectable areas (cross, doublecross...)
+    - FFT and IFFT
+        - require CS_COMPLEX
+
+    + Histogram transform
+        - Maybe show current histogram ala IE?
+
+    * Highlight
+    * Shadow
+        - add to one and call it Threshold?
+
+    · Internal filters ... Add FetchInternals().
+    + Shear should have option: Expand Border that would copy the
+      background data to the filled area.
+    + Ditto with Rotate
+
+    - Change Transparency to handle:
+      - set a separate transparent color instead of turning everything
+        into ARGB
+
+        Add PIXEL *frame->transparentcolor;
+            WORD   frame->transparentcolorindex;
+
+        While rendering, frame->transparentcolorindex = the closest color
+        to transparentcolor.
+
+    - Messaging to Composite really sucks: gotta make separating messages
+      between rexx and internals more clear.  Maybe use a new tag:
+      PPTX_WithFrame, which would contain the secondary frame?
+        - Better name: PPTX_SecondaryFrame
+
+    * Preview capabilities:
+        a) uses AskReq, lets PPT redraw
+            - works.  Nothing fancy here.
+
+        b) uses AskReq, wants to redraw himself
+            - should return ARR_DONTREDRAW
+            - what about damage to the window?
+              - must provide a rendering hook.
+
+        c) makes its own GUI, lets PPT redraw
+            - calls RedrawPreview() whenever it feels like it.
+
+        d) makes its own GUI, wants to redraw by itself.
+            - Nothing we can do, must allocate the PreviewFrame.
+              ext must be made aware of the tempframe as well,
+              ObtainPreviewFrame() returns struct PreviewFrame *?
+
+- PALETTE EDITOR
+
+o LOADERS:
+    + Check aspect ratios
+    - PPTX_FileID tag that would allow skipping Check() completely
+      by pattern-matching bytes from the beginning.
+
+    o ILBM
+        - should use a bigger buffer when loading... Seems to crash?
+        - uncompressed ILBM
+
+    o GIF load/save
+        - Load is very slow: Need to find a better decoding algorithm.
+        -? Load seems to crash on some files.
+        - Load does not handle extensions.
+
+    o Targa load/save
+        - Colormapped save still missing
+
+    · PPM ASCII save
+    - Internal Loaders/Savers
+        - ILBM24 really needed only for Clipboard handling
+        - Make FetchInternals(), that works like FetchExternals, but
+          knows where to locate the internal code and fakes loading an external.
+
+    o PNG
+        - Colormapped!
+
+    + Saving SUCKS! You must render the picture first... Should utilize
+      DummyRender().
+    + Implement a way to save pictures with more colors than the display
+      hardware is capable of... Maybe render to disk?
+        - CS_LUT would take care of this...
+
+o RENDERER (24bit->2,4,...256 colors.) TESTRENDER: 5 s
+    + Make BestMatchPen8() faster... See SIGGRAPH 82: Heckbert
+        - Maybe just use ObtainPen()?
+
+    o EHB rendering
+        - sucks bigtime at the moment.
+
+    + Maybe should try to use a modified median cut for
+      HAM... Divide for example in RG-level, so that we get as much
+      long but narrow areas in RGB cube.
+    + The renderer could be quicker :)
+    · Add quickrender brightness selector
+    + Add preview dither
+    - Add more ditherers
+    + Color preview loses colors -> need bigger buffer than 4096 bytes,
+      because the median cut causes similar colors to be allocated.
+
+o Virtual memory:
+    · Deal properly with overlapping memory buffers, so that stuff is copied around in memory, rather
+      than always loaded from the disk.
+    - Cache last call and compare new call and the old call. Then decide whether we should
+      load forward or backward.
+    + Clean Undo buffers. Maybe do so automatically under low memory situations?
+    + VM is slow... See for alternate caching schemes in literature.
+        - have several pages in memory?
+    · Make VM a separate link or shared library
+    + Add a possibility NOT to use virtual memory.
+        - Add ULONG VMBufferSize()
+
+o PREFERENCES:
+    - Make new layout
+    o Set main screen
+        - depth > 3 (8 colors). 4 beginning stored.
+        · How about an EHB/HAM/HAM8 screen?
+        - Use ASL screenmode requester or ReqTools, if OS < 38
+        · Open on any public screen
+    · Checkbox: Open display on load?
+    + Add module path/rexx path gadgets
+
+o DISPLAY PREFS
+    + Clean up the code
+    · possibly should show mode properties? (requester takes care of this)
+
+- INFOWINDOW:
+    - add numeric display for progress also?
+        - Maybe on display window?
+
+- Online Help
+    - Amigaguide help file
+    · Window help thingys?
+
++ DOCS
+    - Docs should be in following formats:
+       * AmigaGuide
+       * Text
+       · HTML
+       · PS (Any good dvi2html converters there?)
+          - There are latex2html and html2latex converters
+
+- TOOLBAR
+    - Render
+    - Render Opts
+    - Use Icons instead of text
+
+    * Format of toolbar files (separate config file?):
+      command = IMAGE|TEXT path
+
+
+- MAIN WINDOW
+    · Thumbnails?
+        - Maybe make a thumbnail picture for each frame, then
+          attach to the listview.
+
+    o Short image info:
+        - Image size (move/copy from top of the screen)
+        - Image type (colorspace)
+
+· AREXX
+    - Currently the return values of the filters are not properly done.
+
+    - Need to think about SYNC/ASYNC commands
+        - DISPLAYFRAME  <frame>
+        - UNDISPLAYFRAME <frame>
+        - GETPIXELROW FRAME <frame> ROW <row>
+        - PUTPIXELROW FRAME <frame> ROW <row> DATA <ptr>
+
+    - HIDEWINDOW/SHOWWINDOW
+    - DISPLAYFRAME <frame> ON|OFF (controls whether the frame is updated)
+
+
+- SUPPORT
+    - Add more objects to AskReq()'s capabilities
+        - Menus, too!
+        - Add a Hook and a Notification system.
+
+    - Buildhistograms()
+    o AskFile()
+        - Must be able to be connected to AskReq().
+        - Should probably have several variants, like
+          AskPalette(), AskFileForSave()...
+          These could be just interfaces to the same object?
+
+    o C2P() - routines:
+        - PERROR C2P( UBYTE *src, UBYTE *dest[], UBYTE nplanes );
+
+    - PIXELPTR GetPixel( FRAME *, WORD x, WORD y )
+    - VOID     PutPixel( FRAME *, WORD x, WORD y, PIXELPTR px )
+    - ULONG    GetBitMapPixel( FRAME *, WORD x, WORD y )
+
+    - The extensions (see above)
+
+· DRAWING MODE
+    o Something that can be done on a single pixel. (EasyExec()...)
+    · Draw brush
+    · How about a paint layer similar to Photogenics?
+    · A floating tool bar (line, freehand, box, circle, ellipse)
+
+* RELEASE VERSION
+    * Remember to include:
+        libs/bgui.library
+        sys:classes/gadgets/palette_bgui.gadget
+        bgui_float.gadget
+
+    o Redo directory structure: ( @ = dev, @@ = full
+        ppt executable(s)
+        README
+        HISTORY
+        @@ *.c, *.h *.a
+
+        @include <dir>
+            ppt.h
+            externals.i
+            fd <dir>
+                pptsupp_lib.fd
+            pragma <dir>
+                pptsupp_pragmas.h
+            clib <dir>
+                pptsupp_protos.h
+            proto <dir>
+                pptsupp.h
+
+        @developer <dir>
+            docs <dir>
+                developer.doc
+                support.doc
+            linklib <dir>
+                *.lib
+                README
+                @@ lib.def, etc.
+                @@ support <dir>
+                @@ debug <dir>
+            examples <dir>
+                effects <dir>
+                io <dir>
+
+        docs <dir>
+            ppt.guide
+            effects.guide
+            loaders.guide
+            arexx.guide
+
+        modules <dir>
+            *.effect
+            *.iomod
+
+        @@externals <dir>
+
+            @@ src <dir>
+                flip <dir>
+                ...
+
+----
+
+* BGUI NITPICKING:
+
+    * Require WINDOW_HelpHook, since windowclass is not derived
+      from baseclass.
+    * If an external gadget is not found, system freezes
+    * BT_HelpHook does not work for groupglass objects
+
+

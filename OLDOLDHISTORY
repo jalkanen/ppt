@@ -1,0 +1,1257 @@
+
+PPT is an image processing package.
+
+
+VERSION HISTORY:
+================
+
+Version 0.1 (Thursday, 10-Nov-94 13:47:14)
+------------------------------------------
+Initial version.
+
+
+Version 0.2 (Friday, 11-Nov-94 12:21:27)
+----------------------------------------
+- Req() now locks the caller's window and it also now opens
+  the requester in the middle of the screen instead of the window.
+
+
+Version 0.3 (Friday, 11-Nov-94 23:36:17)
+----------------------------------------
+- Delete frame now works... used to crash the machine.
+
+
+Version 0.4 (Monday, 14-Nov-94 14:51:47)
+----------------------------------------
+- Preliminary work for virtual memory (vm.c created with *VMData())
+
+
+Version 0.5 (Monday, 14-Nov-94 23:45:41)
+----------------------------------------
+- more work on VM. Added FlushVMData().
+- in support.c, added GetPixelRow() and PutPixelRowBuf()
+
+
+Version 0.6 (Tuesday, 15-Nov-94 21:11:34)
+-----------------------------------------
+- VM now works.
+
+
+Version 0.7 (Thursday, 17-Nov-94 13:27:04)
+------------------------------------------
+- Deleting VM files wouldn't work. Close() apparently returns 0 for failure
+  and != 0 for success. Fixed.
+
+
+Version 0.8 (Friday, 18-Nov-94 21:58:21)
+----------------------------------------
+- Now is able to open on a custom screen
+- Cleaned the code somewhat, throwing away all sorts of
+  debug stuff from stable sections.
+
+
+Version 0.9 (Saturday, 19-Nov-94 13:17:57)
+------------------------------------------
+- Changed preferences file completely
+- Fixed a bug crashing machine... vmdir != &vmdir[0] ???
+
+
+Version 0.10 (Monday, 21-Nov-94 15:48:08)
+-----------------------------------------
+- Implemented pixel caching in renderer. Now renders test pic in 28 s.
+
+
+Version 0.11 (Monday, 21-Nov-94 21:57:00)
+-----------------------------------------
+- Quick grayscale renderer added.
+- Now renders to a window on PPT main screen
+- Cleaned up debug code
+
+
+Version 0.12 (Tuesday, 22-Nov-94 15:12:11)
+------------------------------------------
+- OpenMainScreen() didn't allocate enough memory for colormap... Ooops.
+- Added CloseMainScreen()
+- Added a second page to mainwindow containing progress display. Changed
+  UpdateProgress() so that it knows about it and can update it.
+- Changed LoadPicture() so that it knows how to update the main progress display
+
+
+Version 0.13 (Wednesday, 23-Nov-94 13:13:32)
+--------------------------------------------
+- Added LoadRGB8() and modified source to use it and not LoadRGB4().
+
+
+Version 0.14 (Wednesday, 23-Nov-94 13:51:59)
+--------------------------------------------
+- Added Render Quality & Display Mode cycle gadgets into InfoWindow
+
+
+Version 0.15 (Wednesday, 23-Nov-94 15:36:11)
+--------------------------------------------
+- Added the menu bar for infowindows and moved the display prefs there.
+
+
+Version 0.16 (Wednesday, 23-Nov-94 16:36:35)
+--------------------------------------------
+- CreateVMData() failed to call SetFileSize() correctly, causing
+  VM file creation to be ssslllooowww... Fixed.
+
+
+Version 0.17 (Thursday, 24-Nov-94 15:11:48)
+-------------------------------------------
+- Changed tag names to be more consistent
+- Added the ability to change window & list fonts.
+
+
+Version 0.18 (Sunday, 27-Nov-94 13:05:16)
+-----------------------------------------
+- Added filter code (Filter(), ExecFilter(), GimmeFilterWindow()).
+
+
+Version 0.19 (Sunday, 27-Nov-94 23:02:14)
+-----------------------------------------
+- More work on filter stuff: Click-selection now possible. And it even runs!
+- Added a global Message port for subtasks to talk to.
+
+
+Version 0.20 (Tuesday, 29-Nov-94 01:04:08)
+------------------------------------------
+- Changed the pix height/width names to something more intelligible
+- Some minor work in gui.c, added object fields to INFOWIN
+- Filtering now works! (Apparently bgui does not like if it is opened
+  twice by the same task)
+
+
+Version 0.21 (Tuesday, 29-Nov-94 23:48:34)
+------------------------------------------
+- Revamped prefs window design... Added display mode gadgets, but no code.
+- Added PutIWToSleep() and AwakenIW(). Now properly shuts down infowindow
+  during busy times.
+- Removed last bits of picture type dependancy in support.c
+
+
+Version 0.22 (Thursday, 01-Dec-94 01:15:08)
+-------------------------------------------
+- Created DeleteFrame()
+- Added PutNPixelRows() and GetNPixelRows() and made GetPixel()
+  a public function
+- Added DupFrame()
+- Made lots of changes in filter.c to facilitate to operating on
+  new frames created from old ones. Not entirely operational yet.
+- Added PPTX_NoNewFrame tag and made it work for filters.
+- PPTX_ReqKickVersion and PPTX_ReqPPTVersion now work.
+
+
+Version 0.23 (Friday, 02-Dec-94 00:35:54)
+-----------------------------------------
+- LoadVMData() now centers the buffer loaded, if possible. This will mean
+  more frequent loading, but it'll also mean that filters operating
+  backwards work better. If the line is very long (~16 Kpixels) it won't
+  operate the new way.
+- Changed message handling between filters.c and main.c: moved actual
+  frame handling mostly to main program... Saves a lot of trouble :)
+- Few cosmetic changes on GUI.
+
+
+Version 0.24 (Sunday, 04-Dec-94 00:35:15)
+-----------------------------------------
+- Changed external calls so that an EXTDATA * is passed in __A0 whenever
+  an external is executed. I also changed the conventions to be more consistent.
+- Moved to use #pragmas in filter.c and gui.c (those parts who need it.) More work
+  is required on vm.c and support.c. Also, there seems to be a big bug, since
+  ExecFilter() crashes upon calling X_Exec().
+
+
+Version 0.25 (Friday, 09-Dec-94 12:43:36)
+-----------------------------------------
+- OpenLibBases() now checks whether it got them or not.
+- The bug in V0.24 was not in PPT, but in a filter, which didn't correctly
+  reference the library base.
+
+
+Version 0.26 (Saturday, 10-Dec-94 00:24:33)
+-------------------------------------------
+- Changed frame structure to contain data for a select rectangle
+- added Panic()
+
+
+Version 0.27 (Sunday, 11-Dec-94 22:45:51)
+-----------------------------------------
+- FreeResources() now correctly signals externals upon quitting.
+- ExecFilter() quits cleanly if there's no error message.
+
+
+Version 0.28 (Sunday, 18-Dec-94 21:25:04)
+-----------------------------------------
+- Reworked internal data structures
+- Passes now FRAME * to externals in A1, globals moved to extdata structure
+- Renderer now uses WritePixelLine8()... Doubled rendering speed!
+- Added GetScreenMode()
+
+
+Version 0.29 (Thursday, 12-Jan-95 13:37:00)
+-------------------------------------------
+- Now allocates globals variables structure dynamically instead of
+  just declaring it
+- Cleaned up some code that caused global pointer to be in A1
+  when calling externals
+- Changed vm.c to require an EXTDATA pointer in all functions.
+- Added message port to EXTDATA, moved Sysbase there, too.
+
+
+Version 0.30 (Thursday, 12-Jan-95 15:52:56)
+-------------------------------------------
+- Rearranged Filter window gadgets
+- Info gadget in Filter window now works.
+- Req() now discriminates between requests and information requesters
+
+
+Version 0.31 (Thursday, 12-Jan-95 22:39:30)
+-------------------------------------------
+- Now clones WB screen for main screen, if no user prefs have been set.
+
+
+Version 0.32 (Friday, 13-Jan-95 00:48:12)
+-----------------------------------------
+- Created external.c
+- Rearranged code to be in more logical places
+- Added UndisplayFrame()
+
+
+Version 0.33 (Sunday, 15-Jan-95 19:18:40)
+-----------------------------------------
+- Added OpenDisplay() and CloseDisplay() to facilitate changing
+  screen rez on the fly & iconifying
+
+
+Version 0.34 (Monday, 16-Jan-95 01:24:40)
+-----------------------------------------
+- Added GimmeExtInfoWindow() and code to facilitate filter and
+  loader information windows and made them accessible through
+  main menu.
+- Removed some debug code from external.c
+
+
+Version 0.35 (Monday, 16-Jan-95 19:07:56)
+-----------------------------------------
+- Display Window is now kept on-screen constantly.
+- Added HandleDispWindowIDCMP(), changed DisplayFrame() so that
+  it works with on-screen displays
+- Added NewQuickRender() which can scale the picture on-line.
+
+
+Version 0.36 (Monday, 16-Jan-95 21:25:28)
+-----------------------------------------
+- Added DrawSelectBox()
+- Now you can drag-select an area to be handled
+
+
+Version 0.37 (Tuesday, 17-Jan-95 14:40:29)
+------------------------------------------
+- Created edit.c, added Edit(), CutRect() and ReplaceFrame()
+- Fixed a bug causing switch between two frame display modes
+  to crash the machine on exit
+- Lassoing an area now works better
+- 50232 bytes
+
+
+Version 0.38 (Thursday, 19-Jan-95 15:04:33)
+-------------------------------------------
+- Added PPTX_EasyExec and PPTX_EasyTitle for quick and easy
+  filters.
+- Added EasyFilter() - routine.
+
+
+Version 0.39 (Thursday, 19-Jan-95 16:18:13)
+-------------------------------------------
+- All support functions now expect an EXTDATA * in A6.
+
+
+Version 0.40 (Thursday, 19-Jan-95 16:24:43)
+-------------------------------------------
+- Added ClearProgress() as a support function.
+- 51008 bytes
+
+
+Version 0.41 (Thursday, 19-Jan-95 21:19:45)
+-------------------------------------------
+- Moved to new register conventions:
+   A6 = EXTDATA, A0 = FRAME
+
+
+Version 0.42 (Thursday, 19-Jan-95 23:19:38)
+-------------------------------------------
+- Changed ExtInfoWindow layout a bit, added Cancel - button
+
+
+Version 0.43 (Friday, 20-Jan-95 12:58:55)
+-----------------------------------------
+- Activated Cut in Edit Menu.
+- Split EasyFilter() into two parts for use with our internal
+  routines as well. EasyExecFilter() created.
+- 51632 bytes
+
+
+Version 0.44 (Saturday, 21-Jan-95 18:25:16)
+-------------------------------------------
+- Bug fix: Select box no longer stays on window if another
+  area is selected
+- Added GimmeDisplayPrefsWindow()
+
+
+Version 0.45 (Wednesday, 25-Jan-95 18:30:36)
+--------------------------------------------
+- Added CloseWindowSafely()
+- Rewrote GimmeDispPrefsWindow() to have some sense in it
+- Made a few cosmetical changes
+- Changed to use the makeproto utility for automated prototype
+  generation
+
+
+Version 0.46 (Friday, 27-Jan-95 02:10:54)
+-----------------------------------------
+- Cosmetical changes.
+- Cleaned up header files (added machine-protos.h)
+
+
+Version 0.47 (Friday, 27-Jan-95 22:17:18)
+-----------------------------------------
+- Changed ExtInfoWindow and Prefs window to use a shared
+  IDCMP port with the main window to cut down signal bit usage.
+
+
+Version 0.48 (Saturday, 28-Jan-95 00:24:13)
+-------------------------------------------
+- Created frame.c and moved some subroutines there.
+
+
+Version 0.49 (Saturday, 28-Jan-95 16:07:13)
+-------------------------------------------
+- Moved infowindows to use a shared IDCMP port with main windows
+- Added PPTMenus - struct and made them shared between prefs,
+  and extinfos
+- Added HandleMenuIDCMP()
+- About... shows now also compile date
+- ExtInfowindows are no longer Disposed every time, but
+  retain their former attributes.
+- 54192 bytes
+
+
+Version 0.50 (Sunday, 29-Jan-95 22:48:40)
+-----------------------------------------
+- Display Windows and Main Window now use also the global
+  menu structure. HandleMenuIDCMP() grew a lot!
+- Removed Load and Save + pic size display from infowindow
+- All windows are now correcly made busy if something is happening.
+- Infowindow is now resizeable
+- 55244 bytes
+
+
+Version 0.51 (Monday, 30-Jan-95 21:43:17)
+-----------------------------------------
+- Now infowindows also use the global menu
+- BUG FIX: Argument vector for ExecFilter is no longer allocated
+  from stack. Now it is allocated dynamically. (Had to extend
+  FRAME to fit it in).
+
+
+Version 0.52 (Saturday, 04-Feb-95 23:31:26)
+-------------------------------------------
+- Changed to use pmalloc() and pfree() in most of the code.
+- Uses now Fortify by Simon P. Bullen to debug memory allocations
+
+
+Version 0.53 (Sunday, 05-Feb-95 02:52:14)
+-----------------------------------------
+- Bug fix: UndisplayFrame() could sometimes free the colortable
+  even if there wasn't any.
+
+
+Version 0.54 (Sunday, 05-Feb-95 03:30:22)
+-----------------------------------------
+- Made filter.c more robust by adding check-up code. Still encounters
+  problems every now and then.
+
+
+Version 0.55 (Sunday, 05-Feb-95 13:10:52)
+-----------------------------------------
+- Bug fix: No longer leaves infowindow unreleased after a Delete
+
+
+Version 0.56 (Sunday, 05-Feb-95 21:48:40)
+-----------------------------------------
+- Found the bug causing that crashes Filter(). Unfortunately
+  I can't do much about it, 'cos it is BGUI's fault.
+- DrawSelectBox() now takes real picture co-ordinates and scales
+  them correctly.
+- Created version.h
+
+
+Version 0.57 (Monday, 06-Feb-95 14:31:02)
+-----------------------------------------
+- Bug fix: The usecount for filters and loaders is now incremented
+  and decremented correctly.
+
+
+Version 0.58 (Monday, 06-Feb-95 14:51:17)
+-----------------------------------------
+- Added PPTX_ErrCode and ErrorMsg()
+
+
+Version 0.59 (Wednesday, 08-Feb-95 12:57:32)
+--------------------------------------------
+- DrawSelectBox() no longer draws the box if it does not exist
+
+
+Version 0.60 (Wednesday, 08-Feb-95 13:15:21)
+--------------------------------------------
+- Bug fix: Now fails correctly if main screen could not be opened.
+
+
+Version 0.61 (Sunday, 12-Feb-95 22:33:31)
+-----------------------------------------
+- Rewrote QuickMapRow() completely in assembly, which resulted
+  in quite a speed increase in the QuickRender() - routine.
+- Renamed NewQuickRender() to QuickRender() and removed the old one
+
+
+Version 0.62 (Monday, 13-Feb-95 23:00:24)
+-----------------------------------------
+- Added HandleDispPrefsWindowIDCMP() and made GimmeDispPrefsWindow() work
+- Main window filter gadget is now active
+
+
+Version 0.63 (Thursday, 16-Feb-95 13:54:53)
+-------------------------------------------
+- Made the release version and changed the makefile to reflect this
+- FrameFree() now acts properly if the frame is in use but not by
+  any filter
+
+
+Version 0.64 (Thursday, 16-Feb-95 16:45:27)
+-------------------------------------------
+- Bug fix: GetPixelRow() calculated the end of a row completely false.
+  Oops...
+
+
+Version 0.65 (Monday, 20-Feb-95 16:59:37)
+-----------------------------------------
+- Changed some debug code
+- CreateNewFrame() now checks for duplicate vm id's.
+
+
+Version 0.66 (Monday, 20-Feb-95 19:48:10)
+-----------------------------------------
+- Radical change: display & pixinfo structures are no longer
+  embedded into the frame & globals structures. The new use of pointers
+  allows more growth in the future.
+
+
+Version 0.67 (Monday, 20-Feb-95 21:24:17)
+-----------------------------------------
+- DISPLAY now contains space for the title text
+- Now shows frame name and size in display window title
+
+
+Version 0.68 (Thursday, 23-Feb-95 20:14:52)
+-------------------------------------------
+- The color table for the renderer is now done using a median cut
+  algorithm
+- Renderer now opens the display behind all others and brings it to
+  front when the rendering is complete
+
+
+Version 0.69 (Friday, 24-Feb-95 20:30:29)
+-----------------------------------------
+- Fixed some bugs in median cut algorithm
+- Added GetFrameWin(). The requesters should now open on correct screens,
+  so you no longer get invisible requesters
+- Loads the colormap to the ViewPort *before* rendering.
+
+
+Version 0.70 (Friday, 24-Feb-95 21:19:36)
+-----------------------------------------
+- Now masks out HAM and EHB flags in dispid when rendering.
+
+
+Version 0.71 (Saturday, 25-Feb-95 14:55:22)
+-------------------------------------------
+- Reworked data structures (again). Now private fields are clearly
+  marked and after the public fields
+- Now Frame2Bitmap() knows about different palette selection modes.
+
+
+Version 0.72 (Wednesday, 01-Mar-95 00:08:20)
+--------------------------------------------
+- Added save.c and lots of code for saving things.
+
+
+Version 0.73 (Saturday, 04-Mar-95 21:19:37)
+-------------------------------------------
+- Saving now works as a separate process.
+- Added PutPixelRow(), BeginLoad() and EndLoad().
+
+
+Version 0.74 (Saturday, 04-Mar-95 22:14:12)
+-------------------------------------------
+- Added DPI and Aspect -fields to PIXINFO
+- Bug fix: no longer crashes if you select Delete when in display window.
+
+
+Version 0.75 (Saturday, 04-Mar-95 23:07:23)
+-------------------------------------------
+- Added ReqA() and XReq().
+- Fixed a couple of bugs in saving.
+
+
+Version 0.76 (Sunday, 05-Mar-95 23:32:49)
+-----------------------------------------
+- After a BIG amount of work, loading now also works as a separate process. Most
+  of the code had to be rewritten though.
+
+
+Version 0.77 (Monday, 06-Mar-95 22:19:03)
+-----------------------------------------
+- FreeResources() forgot to signal any load processes if we are quitting... Oops.
+
+
+Version 0.78 (Monday, 06-Mar-95 22:30:09)
+-----------------------------------------
+- Fixed a couple of bugs in DeleteFrame()
+
+
+Version 0.79 (Tuesday, 07-Mar-95 18:45:49)
+------------------------------------------
+- Finally put the frame name data inside the frame itself instead of ugly pointers.
+
+
+Version 0.80 (Tuesday, 07-Mar-95 19:33:55)
+------------------------------------------
+- Fixed some more bugs in DeleteFrame()... No longer frees dpw twice
+- ReplaceFrame() modified to modify other windows as well...
+
+
+Version 0.81 (Tuesday, 07-Mar-95 21:38:49)
+------------------------------------------
+- DisplayFrame() now understands about aspect ratios and opens windows accordingly
+
+
+Version 0.82 (Tuesday, 07-Mar-95 23:06:52)
+------------------------------------------
+- Reworked DisplayPrefs window a lot. Palette selection works now.
+
+
+Version 0.83 (Wednesday, 08-Mar-95 18:28:40)
+--------------------------------------------
+- Save requester now opens in correct directory and points at right file.
+- Gadgets are now ghosted correctly in DispPrefsWindows.
+- Added origdepth in PIXINFO and ncolors in DISPLAY
+
+
+Version 0.84 (Wednesday, 08-Mar-95 18:51:54)
+--------------------------------------------
+- If no area selected, acts as if the user had selected all of the picture.
+
+
+Version 0.85 (Thursday, 09-Mar-95 01:07:22)
+-------------------------------------------
+- Now you can set the amount of colors to render to in display prefs window.
+
+
+Version 0.86 (Thursday, 09-Mar-95 23:18:25)
+-------------------------------------------
+- Reworked interface from the externals completely: Changed EXTDATA to
+  EXTBASE, which now looks like a library base to the externals. Added NewExtBase(),
+  RelExtBase() and CreateExtLib().
+- support library became rather useless, so I removed most of the stub code.
+- Created .fd and pragma-files.
+
+
+Version 0.87 (Friday, 10-Mar-95 00:14:50)
+-----------------------------------------
+- Now DisplayFrame() uses the SA_Overscan tag correctly when opening
+  on custom screen.
+
+
+Version 0.88 (Friday, 10-Mar-95 13:27:50)
+-----------------------------------------
+- The global EXTBASE is now allocated properly
+- Updated tags.doc & developer.doc
+- Begun working on AmigaGuide documentation.
+
+
+Version 0.89 (Sunday, 12-Mar-95 00:20:26)
+-----------------------------------------
+- Bug fix: Did not free all of the already reserved memory if an error occurred
+  during initialization phase.
+- Under V39+ uses BestModeID() to get the display mode where applicable.
+
+
+Version 0.90 (Sunday, 12-Mar-95 12:53:36)
+-----------------------------------------
+- Speeded up both preview and real rendering.
+
+
+Version 0.91 (Sunday, 12-Mar-95 23:53:20)
+-----------------------------------------
+- Reorganised code: added messages.c and moved some functions to more logical places.
+- Bug fix: save code forgot to build the ext.library base.
+
+
+Version 0.92 (Monday, 13-Mar-95 13:10:29)
+-----------------------------------------
+- Bug fix: RelExtBase() tried to close lib bases even if it wasn't supposed to.
+- Split ppt.h to ppt_real.h and ppt.h.
+- Added bytes_per_row into PIXINFO.
+
+
+Version 0.93 (Monday, 13-Mar-95 23:51:27)
+-----------------------------------------
+- Added InitProgress() and Progress() as support functions.
+
+
+Version 0.94 (Friday, 17-Mar-95 19:08:52)
+-----------------------------------------
+- Added AREXX port: rexx.c created, added InitRexx() and DoRexxCommand().
+
+
+Version 0.95 (Friday, 17-Mar-95 21:50:21)
+-----------------------------------------
+- Bug fix: BeginLoad() didn't set bytes_per_row correctly.
+- Rewrote PutNPixelRows() for more speed and less disk accesses.
+- Small fixes in GetPixelRow() for speed.
+
+
+Version 0.96 (Friday, 17-Mar-95 22:56:56)
+-----------------------------------------
+- Now shows # of frames & threads in memory.
+- Now renders picture automatically after load.
+
+
+Version 0.97 (Saturday, 18-Mar-95 19:09:57)
+-------------------------------------------
+- Bug fix: RunLoad() referenced Frame after freeing it. Now it returns also
+  an FRAME * instead of int.
+- Rewrote the entire AREXX routines, since DICE does not provide a good system.
+
+
+Version 0.98 (Saturday, 18-Mar-95 19:30:10)
+-------------------------------------------
+- Added REXX command SETAREA
+
+
+Version 0.99 (Saturday, 18-Mar-95 21:42:49)
+-------------------------------------------
+- REXX interface finally accepts arguments. Added FORCE keyword to QUIT
+- ReqA() now brings the screen on which it is opening, to front.
+
+
+Version 0.100 (Sunday, 19-Mar-95 01:13:07)
+------------------------------------------
+- Implemented synchronous AREXX modes for loaders.
+
+
+Version 0.101 (Monday, 20-Mar-95 12:14:42)
+------------------------------------------
+- ShowExtInfo() works now without any kludges. Req() apparently does not like
+  %d:s, but requires %ld:s...
+
+
+Version 0.102 (Monday, 20-Mar-95 21:54:22)
+------------------------------------------
+- Removed tag methods from support functions, since they got obsolete.
+- ppt.h changed : suppfuncs field removed from GLOBALS.
+
+
+Version 0.103 (Tuesday, 21-Mar-95 00:25:01)
+-------------------------------------------
+- Added AddFrame() and CheckArea()
+- Added new edit command: Cut to New Frame.
+
+
+Version 0.104 (Wednesday, 22-Mar-95 14:10:11)
+---------------------------------------------
+- Bug fix: QuickRender() made too narrow pixels due to a simple miscalculation.
+- Windows now have a minimum size
+- The selbox changed: Now adheres to C conventions.
+
+
+Version 0.105 (Wednesday, 22-Mar-95 14:35:58)
+---------------------------------------------
+- Fixed some problems with DrawSelectBox().
+
+
+Version 0.106 (Friday, 24-Mar-95 00:16:43)
+------------------------------------------
+- Created infowin.c and UpdateIWSelbox()
+- Added 8bit rendering in QuickRender()
+- Infowindow now shows the currently selected area.
+
+
+Version 0.107 (Saturday, 25-Mar-95 16:08:15)
+--------------------------------------------
+- Now works almost completely also in 8 bit gray scales
+- Added TagData() and FillInFrame()
+- Added PPTX_ColorSpaces tag for filters/savers.
+
+
+Version 0.108 (Sunday, 26-Mar-95 13:28:47)
+------------------------------------------
+- No longer allocates too much space for small frames.
+- Many little bug fixes, mainly to do with 8 bit color.
+
+
+Version 0.109 (Monday, 27-Mar-95 18:14:59)
+------------------------------------------
+- Increased histogram size quite a lot
+- Speeded up median cut algorithm
+- Speeded up pixel rendering by using a largish cache
+- Added gray level rendering
+
+
+Version 0.110 (Monday, 27-Mar-95 23:22:16)
+------------------------------------------
+- Cut down median cut stack usage and speeded it up so that
+  it is now actually faster than the fast popularity algorithm...
+
+
+Version 0.111 (Tuesday, 28-Mar-95 13:00:55)
+-------------------------------------------
+- Minor speed improvements in QuickRender()
+- Begin working on REXX FILTER command
+
+
+Version 0.112 (Monday, 03-Apr-95 22:30:59)
+------------------------------------------
+- Slight changes in the GUI: Render control works more consistently.
+- Added Render Now - gadget
+
+
+Version 0.113 (Thursday, 06-Apr-95 14:19:59)
+--------------------------------------------
+- Added MakeFrame() and InitFrame(). Removed FillInFrame() completely.
+- Renamed Save as Save As.
+
+
+Version 0.114 (Thursday, 06-Apr-95 17:15:55)
+--------------------------------------------
+- Many bug fixes concerning infowindows.
+- Main window now opens at top right corner.
+
+
+Version 0.115 (Monday, 10-Apr-95 23:20:08)
+------------------------------------------
+- Preview windows changed to use BGUI, thanks to Jaba and AreaClass. Lots
+  of functions added, lots of functions modified.
+- started to use autodoc in support functions
+
+
+Version 0.116 (Thursday, 13-Apr-95 01:06:21)
+--------------------------------------------
+- Bug fix: Close gadgets didn't work because 100000 > 100. Now they do.
+
+
+Version 0.117 (Thursday, 20-Apr-95 14:11:28)
+--------------------------------------------
+- colortable is now allocated just once for each DISPLAY
+- Implemented colormapped save.
+
+
+Version 0.118 (Monday, 24-Apr-95 20:46:47)
+------------------------------------------
+- Bug fix: No longer hangs on display window close
+- Bug fix: Main listview is now refreshed correctly
+
+
+Version 0.119 (Tuesday, 25-Apr-95 12:12:35)
+-------------------------------------------
+- Introduced VMHANDLE and moved all virtual memory fields to it. Heavy
+  changes in vm.c, but now it is independent of the frame structure.
+
+
+Version 0.120 (Thursday, 27-Apr-95 21:48:30)
+--------------------------------------------
+- Added GetBitMapRow(). No VM support yet, but should work.
+
+
+Version 0.121 (Friday, 28-Apr-95 23:40:10)
+------------------------------------------
+- Added StartBench() and StopBench() in debug.c
+- Tried to speedup quickrender, but failed miserably. However, added
+  some speedups in normal renderer, but nothing major.
+
+
+Version 0.122 (Sunday, 30-Apr-95 20:52:22)
+------------------------------------------
+- Added Undo
+- Added LockFrame() and UnlockFrame()
+- Several bug fixes: VM is now disposed of correctly when there's an
+  error in initialization; InfoWindows are now correctly updated;
+  etc.
+
+
+Version 0.123 (Sunday, 30-Apr-95 23:53:35)
+------------------------------------------
+- Added Debug_CheckPointer() and added quite a lot of checkup code
+
+
+Version 0.124 (Monday, 01-May-95 19:28:31)
+------------------------------------------
+- Fixed some bugs in undo and added an undo level limit.
+
+
+Version 0.125 (Tuesday, 02-May-95 11:08:48)
+-------------------------------------------
+- The select box is now removed from the display while saving... It used
+  to haunt in the bitmap saved files :)
+- Added RunSave()
+
+
+Version 0.126 (Thursday, 04-May-95 00:17:19)
+--------------------------------------------
+- Added GetLong()
+- Added some more documentation on support library functions.
+
+
+Version 0.127 (Thursday, 04-May-95 18:23:34)
+--------------------------------------------
+- Implemented Floyd-Steinberg dithering.
+
+
+Version 0.128 (Sunday, 07-May-95 17:15:34)
+------------------------------------------
+- Got rid of GetLong() and replaced it with AskReq(). Implemented
+  AR_SLIDER object.
+
+
+Version 0.129 (Monday, 08-May-95 14:35:42)
+------------------------------------------
+- Changed AskReq() to AskReqA() and made it use taglists instead of structs.
+- Added a lot more support library documentation.
+
+
+Version 0.130 (Tuesday, 09-May-95 11:29:09)
+-------------------------------------------
+- Bug fix: return value from savers was ignored.
+
+
+Version 0.131 (Tuesday, 09-May-95 12:02:51)
+-------------------------------------------
+- The original loader type is now heeded in Save.
+
+
+Version 0.132 (Tuesday, 09-May-95 12:30:07)
+-------------------------------------------
+- Most listviews now allow for a double click.
+- Added some more documentation.
+
+
+Version 0.133 (Tuesday, 16-May-95 14:13:08)
+-------------------------------------------
+- Screen mode was not changed correctly after the render prefs
+  were changed. Fixed by reopening the screen whenever needed.
+- Opening up windows now brings the correct screen to front.
+
+
+Version 0.134 (Tuesday, 16-May-95 15:19:00)
+-------------------------------------------
+- Bug fix: EndLoad() crashed machine due to an improperly placed
+  Remove(). Fixed.
+- Added PPTX_Priority.
+
+
+Version 0.135 (Wednesday, 17-May-95 00:41:50)
+---------------------------------------------
+- Added some more documentation.
+- LoadRGB8() now calculates the four-bit color gun conversion
+  correctly by dividing the values by 17 instead of just masking
+  off the lower bits.
+
+
+Version 0.136 (Wednesday, 17-May-95 19:03:50)
+---------------------------------------------
+- Bug fix: Cutting a new frame out of an existing one hanged the machine
+  due to uninitialized variables. Fixed.
+- Some little bug fixes here and there.
+
+
+Version 0.137 (Wednesday, 17-May-95 22:55:37)
+---------------------------------------------
+- Bug fix: Now externals are signalled correctly whenever quitting.
+- Added BreakFrame().
+
+
+Version 0.138 (Thursday, 18-May-95 12:06:49)
+--------------------------------------------
+- Bug fix: display rectangle now behaves properly
+- Bug fix: errors in externals should no more result in two
+  requesters...
+
+
+Version 0.139 (Saturday, 20-May-95 15:29:10)
+--------------------------------------------
+- Added FinishProgress().
+
+
+Version 0.140 (Saturday, 20-May-95 18:07:28)
+--------------------------------------------
+- Changed REXX frame handling a bit - now returns the frame ID.
+- Added DELETEFRAME, FindFrame().
+
+
+Version 0.141 (Saturday, 20-May-95 19:38:07)
+--------------------------------------------
+- REXX handler is now able to return stems.
+- Added GETAREA and FRAMEINFO and all stem code.
+
+
+Version 0.142 (Monday, 29-May-95 21:28:51)
+------------------------------------------
+- Added filtering REXX routines.
+- Begun on saving REXX routines.
+
+
+Version 0.143 (Sunday, 04-Jun-95 00:16:21)
+------------------------------------------
+- Memory is now allocated with the MEMF_PUBLIC flag set.
+- Worked on save.c REXX interface.
+
+
+Version 0.144 (Sunday, 04-Jun-95 23:21:57)
+------------------------------------------
+- Almost finished REXX save.
+- Added ParseDOSArgs() & FreeDOSArgs().
+
+
+Version 0.145 (Monday, 05-Jun-95 19:51:33)
+------------------------------------------
+- All externals now use ParseDOSArgs()
+
+
+Version 0.146 (Monday, 05-Jun-95 20:04:22)
+------------------------------------------
+- The rexx frame handling is now much more sensibly done - removed
+  all excess FindName()s...
+
+
+Version 0.147 (Saturday, 10-Jun-95 23:03:55)
+--------------------------------------------
+- Bug fix: ExecFilter() thought every command was from AREXX... Fixed.
+
+
+Version 0.148 (Saturday, 10-Jun-95 23:29:21)
+--------------------------------------------
+- Bug fix: Window titles were not refreshed correctly after
+  a size change was made by some externals.
+
+
+Version 0.149 (Saturday, 01-Jul-95 23:20:05)
+--------------------------------------------
+- Added LISTEFFECTS rexx command
+
+
+Version 0.150 (Sunday, 02-Jul-95 12:35:09)
+------------------------------------------
+- Changed the concept 'Filter' as concept 'Effect'
+- Changed default directory configuration so that externals now have
+  an own directory with sources in a separate directory.
+
+
+Version 0.151 (Sunday, 02-Jul-95 13:02:56)
+------------------------------------------
+- Added REXX command 'LISTLOADERS'
+
+
+Version 0.152 (Sunday, 02-Jul-95 13:38:09)
+------------------------------------------
+- Added REXX commands LOADERINFO and EFFECTINFO
+
+
+Version 0.153 (Sunday, 09-Jul-95 22:37:36)
+------------------------------------------
+- Now the active main view listentry corresponds to the active window.
+- Opens the display window at top left corner now.
+
+
+Version 0.154 (Tuesday, 11-Jul-95 22:03:48)
+-------------------------------------------
+- No longer builds ExtBase by hand... Now uses exec/MakeFunctions()
+
+
+Version 0.155 (Wednesday, 19-Jul-95 00:50:27)
+---------------------------------------------
+- Removed LockFrame() and UnlockFrame() and replaced them with
+  Obtain/ReleaseFrame().
+- Added a new field in the FRAME structure: busy.
+- Changed the code to use the new arbitration functions.
+- DisplayFrame() does not render if frame is busy.
+
+
+Version 0.156 (Monday, 24-Jul-95 23:02:26)
+------------------------------------------
+- Some bug fixes with busy frame handling.
+- AwakenAllWindows() is no longer so slow.... Forgot one Delay() there.
+
+
+Version 0.157 (Friday, 28-Jul-95 23:45:47)
+------------------------------------------
+- VM is now a bit faster.
+
+
+Version 0.158 (Tuesday, 01-Aug-95 23:18:36)
+-------------------------------------------
+- The screen title for display window shows now info
+  comparable to the infowindow
+
+
+Version 0.159 (Wednesday, 02-Aug-95 21:29:25)
+---------------------------------------------
+- Screen title now shows image size in bytes
+- Bug fix: frames that are loading are now shown properly in About req.
+
+
+Version 0.160 (Tuesday, 08-Aug-95 21:53:54)
+-------------------------------------------
+- Uses now LoadRGB32() under OS 39+.
+
+
+Version 0.161 (Thursday, 10-Aug-95 19:35:11)
+--------------------------------------------
+- Screen title now shows frame file name cropped to a suitable
+  length.
+
+
+Version 0.162 (Sunday, 20-Aug-95 18:43:37)
+------------------------------------------
+- The Great Infowindow reorganization
+- Bug fix: Filter window now opens correctly
+
+
+Version 0.163 (Sunday, 20-Aug-95 19:11:32)
+------------------------------------------
+- Bug fix: Main window listview is now updated properly after
+  loading.
+  loading.
+
+
+Version 0.164 (Monday, 28-Aug-95 23:56:47)
+------------------------------------------
+- Complete new handling of PutNPixels() and GetNPixels(). Now work
+  much more intelligently.
+
+
+Version 1.0 (Saturday, 23-Sep-95 22:12:30)
+------------------------------------------
+- Rewrote completely the rendering routines. Now they're much more
+  modular and cleaner and even a bit faster.
+
+
+Version 1.1 (Sunday, 24-Sep-95 17:38:57)
+----------------------------------------
+- Worked saving and colormap handling
+
+
+Version 1.2 (Monday, 02-Oct-95 21:43:50)
+----------------------------------------
+- Load As now works
+- Added support for loaders, which do not need a file by adding
+  tag PPTX_NoFile
+
+
+Version 1.3 (Thursday, 05-Oct-95 21:34:54)
+------------------------------------------
+- Small bug fixes
+- The load requester now remembers place and file
+
+
+Version 1.4 (Thursday, 26-Oct-95 14:17:29)
+------------------------------------------
+- Added HAM8/HAM rendering
+- Bug fix: The preview window overflowed, if the values were near white
+
+
+Version 1.5 (Sunday, 03-Dec-95 01:13:21)
+----------------------------------------
+- Added Toolwindow
+- Added ability to force a palette to an image
+
+
+Version 1.6 (Sunday, 03-Dec-95 13:46:39)
+----------------------------------------
+- Palette loading and saving now conform to EA IFF specs.
+
+
+Version 1.7 (Wednesday, 06-Dec-95 21:16:43)
+-------------------------------------------
+- Added Project/Rename
+- Added AR_SliderObject to AskReq()
+- small bug fixes
+
+
+
+Version 1.8 (Monday, 08-Jan-96 23:42:29)
+----------------------------------------
+- Localization
+- The first command line parameter now sets the debug directory
+
+
+Version 1.9 (Thursday, 08-Feb-96 11:40:53)
+------------------------------------------
+- Added window border prop gadgets and zooming.
+
+
+Version 1.10 (Thursday, 15-Feb-96 11:48:31)
+-------------------------------------------
+- Heavy duty work in Attachments, added lots of functions.
+- Reworked pgeta4()/prela4()
+
+
+Version 1.11 (Wednesday, 06-Mar-96 00:56:47)
+--------------------------------------------
+- Added different input methods
+- Rewrote main listview handling
+- Changed the frame fullname to path + name - fields
+
+
+Version 1.12 (Monday, 25-Mar-96 22:22:58)
+-----------------------------------------
+- Added graylevel FS-dither and Median Cut.
+
+
+Version 1.13 (Monday, 15-Jul-96 23:11:09)
+-----------------------------------------
+- Fixed some serious bugs in new frame handling, changed MakeFrame()
+  behaviour.
+- Made CoordWin fully font-sensitive. Some bugs left, though.
+
+
+Version 1.14 (Friday, 19-Jul-96 02:14:25)
+-----------------------------------------
+- Finally fixed the zoom problem with BGUI 41.5 and some glue code...
+
+
+Version 1.15 (Friday, 09-Aug-96 01:10:06)
+-----------------------------------------
+- Fixed two Enforcer hits
+
+
+Version 1.16 (Wednesday, 14-Aug-96 21:40:28)
+--------------------------------------------
+- Added DoAllWindows(), fixed - hopefully - a couple of Enforcer
+  hits.
+
+
+Version 1.17 (Wednesday, 21-Aug-96 10:32:37)
+--------------------------------------------
+- Reduced code size by building a DropAreaClass
+
+
+Version 1.18 (Saturday, 24-Aug-96 16:26:42)
+-------------------------------------------
+- Bug fix: no longer runs off the edge of the main frame list when hunting
+  for IDCMP stuff.
+- Menu disabling/enabling
+
+
+Version 1.19 (Sunday, 25-Aug-96 16:54:08)
+-----------------------------------------
+- A major rework:  Removed the LoadAs window and incorporated the functionality
+  into the ExtInfowindows, which can now be opened via the menubar also.
+- Effects work also the new way.
+
+
+Version 1.20 (Tuesday, 17-Sep-96 21:13:38)
+------------------------------------------
+- Added new style effect support
+- Added stupid startup window
+
+
+Version 1.21 (Sunday, 22-Sep-96 18:08:38)
+-----------------------------------------
+- Now flushes used effects from memory
+
+
+Version 1.22 (Sunday, 29-Sep-96 02:53:57)
+-----------------------------------------
+- Display now respects image dimensions on initial quickrender.
+
+
+Version 1.23 (Monday, 30-Sep-96 03:00:39)
+-----------------------------------------
+- Now it's possible to run rexx scripts from within the program itself.
+- Added script window
+
+
+Version 1.24 (Thursday, 10-Oct-96 19:23:18)
+-------------------------------------------
+- Completely new infowindow/progress handling
+- Now uses memory pools
+
+
+Version 1.25 (Sunday, 13-Oct-96 00:42:17)
+-----------------------------------------
+- Bug fix: zooming now works (finally!)
+- Renaming frames works also; it was broken when the new frame name
+  placement
+  was started
+
+
+Version 1.26 (Sunday, 13-Oct-96 15:12:14)
+-----------------------------------------
+- Fixed rendering bugs caused by incorrect frame locking
+
+
+Version 1.27 (Saturday, 19-Oct-96 02:48:34)
+-------------------------------------------
+- HAM palette generation is now smarter
+- Added EHB rendering (but it does not work very well yet)
+
+
+Version 1.28 (Friday, 25-Oct-96 01:41:40)
+-----------------------------------------
+- Implemented Asynchronous Amigaguide help system
+- Updated docs a lot.  Now they finally have some meaning
+- Several bug fixes
+
+
+Version 1.29 (Sunday, 03-Nov-96 02:03:05)
+-----------------------------------------
+- Animated select box added
+- Bug fix: used to hang when a loader was too quick
+- Bug fix: select box no longer overflows
+
+
+Version 1.30 (Monday, 04-Nov-96 01:31:11)
+-----------------------------------------
+- Fixed and extended preferences.  Now they actually work.
+- Now prints out correct display names instead of hex numbers.
+- Added two new rexx commands: RENAMEFRAME & COPYFRAME
+- Enhanced documentation by several kilobytes
+
+
+Version 1.31 (Monday, 04-Nov-96 19:33:53)
+-----------------------------------------
+- Now saves window positions on Preferences/save
+- Fixed font preferences to work
+.
+
+
+Version 1.32 (Saturday, 09-Nov-96 15:14:54)
+-------------------------------------------
+- Fixed coordbox using topaz 8 all the time
+- Fixed display prefs cancel, which didn't really cancel anything.
+
+
+Version 1.33 (Sunday, 17-Nov-96 22:12:10)
+-----------------------------------------
+- Many little changes
+- updated docs a lot
+
+
+Version 2.0 (Friday, 22-Nov-96 23:38:33)
+----------------------------------------
+- Major updates
+- Lots of cleaning up
+- First (beta) release: Archimedes.
+

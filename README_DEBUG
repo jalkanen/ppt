@@ -1,0 +1,33 @@
+
+Hi there!
+
+You've just received the internal debug version of PPT.  Please note that
+you may not under any circumstances spread this version.
+
+You will need to make the following assignment before starting PPT:
+
+Assign DTMP: <some place on your hard drive>
+
+I recommend using a non-critical partition, because if PPT crashes during
+execution, it may cause invalidation of the partition.  You have been warned.
+Another possibility is to start PPT from CLI, and state the location of the
+debug directory from the command  line, like:
+
+pptd hd2:debug_directory
+
+When PPT has finished executing, you will find a number of files in the
+DTMP: directory.  The files are as follows:
+
+    ppt.log : the main log file
+    load_??.log : loader log file
+    save_??.log : save log file
+    effect_??.log : effect log file
+    render_??.log : rendering log file
+
+If you encounter problems, please send me these files, as well as any
+Enforcer logs, output from ShowConfig, CGXConfig and anything else
+you can think of.  "List sys:wbstartup" might also be a good idea.
+
+
+/Janne
+

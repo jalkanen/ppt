@@ -1,0 +1,12 @@
+; PPT v.0.156 configuration file
+; PPT is (C) Janne Jalkanen 1995
+; This is a demonstration file, edited by hand.
+VMBUFSIZ=500
+SCRMODEID=0x00099004
+SCRHEIGHT=467
+SCRWIDTH=704
+SCRDEPTH=8
+MAXUNDO=4
+VMDIR=dtmp:
+MAINFONT=diamond.font 12
+COLORPREVIEW=TRUE

@@ -1,0 +1,713 @@
+
+
+Version 2.0 (Friday, 22-Nov-96 23:38:33)
+----------------------------------------
+- Major updates
+- Lots of cleaning up
+- First (beta) release: Archimedes.
+
+
+Version 2.1 (Sunday, 24-Nov-96 20:22:32)
+----------------------------------------
+- Bug fix: save window could cause crashes on open failure
+- Beautified output a bit
+- Added progressive JPEG encoder
+
+
+Version 2.2 (Wednesday, 27-Nov-96 22:56:29)
+-------------------------------------------
+- Fixed ILBM loader and saver, which had some *serious* bugs.  Reported
+  by Peter Bornhall
+- Forgot to initialize some frame variables, oops...
+- Cleaned some compiler warnings
+
+
+Version 2.3 (Thursday, 28-Nov-96 23:24:53)
+------------------------------------------
+- AskReqA() got confused with frame names. Fixed.
+- Added a background window, so that you can access menus from everywhere.
+  Thanks to Peter Bornhall for suggesting this.
+- Frames window can now be opened and closed from the Window Menu.
+- Load has been opened to Open throughout the line.  Also Project/Delete
+  is now called Project/Close
+- Filerequester now remembers the last file.
+- Prefs file format changed slightly.  Nothing fatal, I assure you.
+- Miscallaneous UI fixes.
+- Big thanks to Peter Bornhall for being the first, brave betatester.
+
+
+Version 2.4 (Monday, 02-Dec-96 22:32:09)
+----------------------------------------
+- Bug fix: External processes' stack size was too small.  Increased
+  to 10K.
+- Added hide gadget in the window top border.  Clicking it will make the
+  window to be closed and the close gadget will close the entire project.
+  Thanks to Peter Bornhall for suggesting this.
+
+
+Version 2.5 (Wednesday, 04-Dec-96 22:25:16)
+-------------------------------------------
+- Added a new menu item: Project/Hide/Show
+- Added a new menu item: Project/Correct Aspect (Ratio)
+- Added a new gadget in the image window top border, which zips the
+  window into the frames win.  Close gadget now closes the project, as
+  it should be.  Thanks to Peter Bornhall for suggesting this.
+- Bug fix: no longer redraws the image buffer in certain conditions twice
+- Display preferences window now has a new gadget: OK&Render
+- Bug fix: frames window menus were not updated at all.  Oops.
+- Bug fix: When calculating a median cut palette for gray scale images, sometimes
+  a division-by-zero error was made.
+- Bug fix: SETRENDERPREFS Arexx command did not work in all cases.
+- Miscallaneous UI fixes
+
+
+Version 2.6 (Sunday, 08-Dec-96 20:38:06)
+----------------------------------------
+- Added new prefs option to change the external processes' stack size
+- Now tries to wake up external process instead of saying "Frame is
+  in use" which can be a bit annoying.  Will bring the active window
+  to front, if need be.
+  (Thanks to Peter Bornhall for suggesting this)
+- Release A3
+
+
+Version 2.7 (Saturday, 14-Dec-96 12:17:33)
+------------------------------------------
+- Added shortcut keys to Preferences window
+- Rearranged Display Preferences using a suggestion by Peter Bornhall
+
+
+Version 2.8 (Monday, 16-Dec-96 00:53:51)
+----------------------------------------
+- Added plenty of Help sensitivity in the gadgets
+- Removed debug code causing speedups
+- Bug fix: no longer redraws the display twice immediately after
+  load (this one was a bit tricky...)
+
+
+Version 2.9 (Monday, 06-Jan-97 18:44:25)
+----------------------------------------
+- Finally fixed that annoying doublerefresh right after loading
+  and image... It was trickier than I thought!
+- Reworked the internal messaging system.  Composite no longer
+  hangs...
+
+
+Version 2.10 (Monday, 06-Jan-97 22:02:54)
+-----------------------------------------
+- Added support to new style shared library iomodules
+  (ex-loaders)
+
+
+Version 2.11 (Sunday, 12-Jan-97 00:29:15)
+-----------------------------------------
+- Added a new colorspace: CS_ARGB, which has an alpha channel
+- Bug fix: Select All didn't clear selected area from display
+- Bug fix: Effect window wasn't completely updated to the new style
+  effects
+
+
+Version 2.12 (Sunday, 12-Jan-97 22:42:07)
+-----------------------------------------
+- Speeded up file recognition by adding two new ways of
+  recognizing files.
+- If a loader has internal patterns defined, these will be used
+  to filter out other files whenever Open As is used
+- Save window now changes the file postfix according to which
+  saver is selected.  It looks kinda neat.
+
+
+Version 3.0 (Friday, 17-Jan-97 23:42:29)
+----------------------------------------
+- Collected all changes on the new loader format and fixed the
+  AREXX port to use these new modules.
+- Some minor GUI changes...
+
+
+Version 3.1 (Sunday, 19-Jan-97 04:41:59)
+----------------------------------------
+- Forgot to bump pptsupp.library version to 3. Oops.
+- PPT now supports OS 39+ pen sharing mechanism.  I did this in order
+  to allow the colorwheel to be opened on the same screen.  It's also
+  a bit nicer.  Got an excuse to clean up the screen allocation code,
+  as well.
+- ARGB color rendering is a bit slower, but it actually works now...
+
+
+Version 3.2 (Sunday, 02-Feb-97 00:34:38)
+----------------------------------------
+- Bug fix: a hidden frame was opened whenever an effect was applied to it
+- Whenever an ARGB image is rendered, the transparent areas are shown 
+  using a checkerboard pattern.  Let me know if you like it.
+- Bug fix: Close Render -menu item got ghosted sometimes even when there
+  was a render to be closed
+
+
+Version 3.3 (Monday, 03-Feb-97 00:28:36)
+----------------------------------------
+- Added support for different CPU types (PPT can now load the correct
+  type)
+- Bug fix: doubleclicking now de-hides the window
+
+
+Version 3.4 (Friday, 07-Feb-97 00:16:29)
+----------------------------------------
+- Added GetBackgroundRow() into the support library
+
+
+Version 3.5 (Tuesday, 11-Feb-97 23:59:27)
+-----------------------------------------
+- Fixed problem with Window menu checkmarks getting out of
+  sync.  I'd really like to see a proper menuclass for BGUI,
+  though.
+
+
+Version 3.6 (Saturday, 22-Feb-97 21:40:28)
+------------------------------------------
+- Added GetOptions() & PutOptions().
+
+
+Version 3.7 (Sunday, 23-Feb-97 14:50:40)
+----------------------------------------
+- Added an Extension system.  Now PPT will retain the author & etc.
+  info on an image.  Unfortunately, you can't edit the data just yet,
+  but it's coming.
+- Bug fix: no longer loads old-style loaders, should they exist
+- Release A4
+
+
+Version 3.8 (Friday, 28-Feb-97 23:55:06)
+----------------------------------------
+- If the initial screen cannot be opened using the current prefs,
+  PPT will now try a 640x200x4 screen, before actually failing.  This way
+  people whose WB screen takes most of the available CHIP memory can
+  actually start PPT =).  Reported by several people.
+
+
+Version 3.9 (Monday, 03-Mar-97 01:09:24)
+----------------------------------------
+- Now also checks if the screen specified in Project/Preferences
+  could be opened.
+- If the screen opening fails, gives now a textual error messge.
+
+
+Version 3.10 (Wednesday, 05-Mar-97 00:01:14)
+--------------------------------------------
+- Added Extension editing for strings.
+- Release Archimedes-5
+
+
+Version 3.11 (Tuesday, 11-Mar-97 22:34:32)
+------------------------------------------
+- Bug fix: Save As window can now be closed with the close gadget.
+  Reported by Arto Huusko.
+- UI change: The screen title bar is now rendered (in default mode)
+  with black on white.  You're right, Arto, it does look better =)
+- Bug fix: Zoom In did strange stuff if no area was selected.  Reported
+  by Arto Huusko.
+
+
+Version 3.12 (Wednesday, 12-Mar-97 22:16:00)
+--------------------------------------------
+- Bug fix: Removed some visual artifacts from the frame display
+  window.  Now looks a lot better.
+
+
+Version 3.13 (Thursday, 13-Mar-97 00:14:09)
+-------------------------------------------
+- Bug fix: the startup directory is now saved along with other
+  prefs.  You no longer have to start in the data:gfx/Pics directory!
+
+
+Version 3.14 (Saturday, 15-Mar-97 23:12:44)
+-------------------------------------------
+- Fixed big bug in gadget handling: I was calling DoGadgetMethod()
+  with NULL window pointer.  To those of you who understood something
+  about this:  yes I know, RTFM.
+- Release a6
+
+
+Version 3.15 (Sunday, 16-Mar-97 13:44:24)
+-----------------------------------------
+- Extensions/Remove now asks for confirmation
+- Minor GUI Changes in the Preferences window
+- Added interface to the Executive package
+- Bug fix: Preferences/Save would crash if you had a frame open.
+  Reported by Gary Taylor
+- Release Archimedes-7
+
+
+Version 3.16 (Thursday, 01-May-97 20:32:04)
+-------------------------------------------
+- Added new REXX commands: RENDER,RENDER_TO_FRONT,PPT_TO_FRONT
+  and PPT_TO_BACK and fixed rendering from AREXX so that it
+  actually works.
+- Fixed some bugs concerning list-handling (thanks to Ian for
+  explaining them for me)
+- Results from AREXX were sometimes discarded, causing problems
+  with scripts.  I wonder why nobody else noticed this...
+
+
+Version 3.17 (Thursday, 01-May-97 23:07:58)
+-------------------------------------------
+- No longer brings the rendered image to the front, if the AREXX RENDER
+  command was used.  Use RENDER_TO_FRONT if you want to see the image.
+- Parameters for modules are now passed correctly when SAVEFRAMEAS is
+  used.  It was horribly broken before this.
+- Save and rendering REXX commands now return proper error messages.
+- Possibly fixed a drag&drop problem reported by Patrik Nydensten.  It
+  should not be possible to D&D effect modules at all now...
+
+
+Version 3.18 (Friday, 02-May-97 14:00:55)
+-----------------------------------------
+- Bug fix: it was impossible to open Preferences twice if you changed the main
+  screen.  Reported by Patrick Nydensten
+
+
+Version 3.19 (Friday, 02-May-97 15:39:28)
+-----------------------------------------
+- CyberGFX support is here!
+- A couple of miscallaneous bug fixes
+
+
+Version 3.20 (Friday, 02-May-97 17:11:28)
+-----------------------------------------
+- Bug fix: internal frame lists should no longer get out of sync.
+  I suspect this was the cause of many crashes experienced by testers. I
+  just hope this works...
+
+
+Version 3.21 (Tuesday, 06-May-97 00:13:07)
+------------------------------------------
+- Bug fix: the select box is now clipped properly (though it is now
+  a bit slower)
+- Bug fix: external processes didn't always pass error messages to
+  REXX correctly
+- Several bug fixes concerning the cleanup phase when PPT exits
+- Several small bug fixes
+- Progress windows are no longer activated when they open, as this
+  proved to be quite disturbing when there's a REXX script working
+  in the background
+
+
+Version 3.22 (Sunday, 11-May-97 16:36:10)
+-----------------------------------------
+- Bug fix: When a file cannot be opened, the error message is now sent to rexx also.
+- Added ASKFILE Rexx command
+- Fixed Installer script a bit
+
+
+Version 3.23 (Tuesday, 13-May-97 00:44:02)
+------------------------------------------
+- Reworked ASKFILE Rexx command
+- Improved internal file requesters (you might see some improvement, but it
+  really helps my work =)
+- You are now asked to close foreign windows on the PPT screen on exit
+
+
+Version 3.24 (Thursday, 15-May-97 00:20:29)
+-------------------------------------------
+- Added new AREXX commands: ASKREQ and SHOWERROR
+- Miscallaneous bug fixes.
+
+
+Version 3.25 (Friday, 16-May-97 00:20:52)
+-----------------------------------------
+- Minor bug fixes
+- Extract.effect fixed - didn't work before
+- Release Archimedes-8
+
+
+Version 3.26 (Tuesday, 27-May-97 22:26:46)
+------------------------------------------
+- File requester reported a soft error when no file was specified.
+  Fixed.  (reported by Peter Bornhall)
+- Startup file was not parsed correctly when PPT was started, 
+  resulting in a wrong Drawer of the file requester.  Reported
+  by Peter Bornhall
+
+
+Version 3.27 (Tuesday, 03-Jun-97 00:27:43)
+------------------------------------------
+- Scale.effect now at v1.4: GUI updates are more accurate now,
+  fixes some small bugs (reported by Gary Nelson), added some presets
+  to menu.
+- Contrast effect is now less rude and actually allows you to execute
+  it more than once.  Thanks to Patrik Nydensten for reporting this.
+
+
+Version 3.28 (Saturday, 07-Jun-97 21:24:18)
+-------------------------------------------
+- PPT now heeds image aspect ratios.  Several iomodules were fixed
+  to read and write the correct figures.
+- Bug fix: Composite forgot to release the frame to be composited.
+- Bug fix: When externals were expecting mouse input from the frame
+  window, only the first one got through
+
+
+Version 3.29 (Saturday, 12-Jul-97 00:55:04)
+-------------------------------------------
+- Changed colormap handling completely.  Now they support Alpha channels
+  as well.
+- Added Palette editing to the main UI.
+- Some REXX bug fixes
+
+
+Version 4.0 (Saturday, 12-Jul-97 21:53:54)
+------------------------------------------
+- Bumped version to 4.0 due to additions in the support library
+- Added preview capability.  This wasn't actually too easy.  Some bugs
+  still remain, which is why it was not enabled in the release version.
+  I will need to rewrite a big portion of the code to make this work
+  the way I want it to work.  Maybe in next release?
+- Bugfixed the colormap editing.
+- Release Archimedes-9
+
+
+Version 4.1 (Saturday, 30-Aug-97 21:38:19)
+------------------------------------------
+- Reworked previews a lot.  They still don't work, but there may
+  yet be hope...
+- Added resizing handles to the selection area.  
+- Added new prefs option: External priority.
+
+
+Version 4.2 (Saturday, 30-Aug-97 22:46:54)
+------------------------------------------
+- Added Copy and Paste to the Edit menu.  Unfortunately, they
+  do not use the system clipboard yet, but they work quite nicely.
+
+
+Version 4.3 (Sunday, 31-Aug-97 20:58:19)
+----------------------------------------
+- Changed completely the way alpha channels are handled - the old way was not very
+  useful.
+- New display preferences option: Draw Alpha.  If set, will draw also the alpha
+  channel, blending the imagery with the background.
+- Fixed some internal interfaces so that now it is actually possible to move
+  the compositing box around in the target image.  It is now also easier
+  to separate from the selection area.
+- Forgot to release the clipboard, in case a new Copy command is done... Ooops.
+- CyberGraphX preview windows display the alpha channel, if there is one.
+  Unfortunately, this is quite slow, since I cannot use CGX routines to do
+  the blending.
+
+
+Version 4.4 (Saturday, 06-Sep-97 18:03:19)
+------------------------------------------
+- Preferences/Color Preview now understands about display limitations and does
+  not allow color previews when they're not possible.  Also, it recognises
+  CyberGFX (since only color previews are available on CGX)
+- Bug fix: ARGB images didn't draw properly on the native Amiga screenmodes.
+  Sorry about that.
+
+
+Version 4.5 (Sunday, 07-Sep-97 21:11:52)
+----------------------------------------
+- Bug fix: AskReq() hanged sometimes if there were no user gadgets supplied.
+  Interestingly enough, this part of the code had been relatively unchanged
+  for months, but somehow it didn't manifest until now.
+- Release Archimedes-11.
+
+
+Version 4.6 (Monday, 15-Sep-97 10:00:42)
+----------------------------------------
+- Arexx FRAMEINFO returns now the colorspace information as a string instead of a number
+  as before.
+- Small fixes in several external modules: they didn't Wait() for the F-break signal
+  correctly.
+
+
+Version 4.7 (Thursday, 25-Sep-97 12:42:15)
+------------------------------------------
+- Bug fix: Upon loading preferences, PPT would discard information about
+  the screen depth if the selected screen was a CGX screenmode.  To be
+  more precise, PPT ignored all screen depths > 8.  This resulted in the
+  calculation of a colormap even when it is not necessary.  Reported by
+  Patrik Nydensten.
+- Generic preferences-related fixes.
+
+
+Version 4.8 (Sunday, 28-Sep-97 18:31:40)
+----------------------------------------
+- Bug fix: Window-menu could get out of sync sometimes.  Reported by Patrik Nydensten.
+- If you are using a 64-256 color screen, then the startup just got a lot faster.
+
+
+Version 4.9 (Tuesday, 30-Sep-97 19:47:42)
+-----------------------------------------
+- Bug fix: CPU detection did not work correctly when FPUs were involved.  Thanks
+  for Gary Nelson for pointing this out.
+
+
+Version 4.10 (Tuesday, 30-Sep-97 20:49:43)
+------------------------------------------
+- Speeded up AREXX processing a LOT.  This was a highly magical task and a triumph
+  to my amazing optimization skills.  I will refuse to comment anything more
+  on this, because I do not wish to divulge this dark secret.
+  ;-)
+
+
+Version 4.11 (Sunday, 05-Oct-97 18:42:04)
+-----------------------------------------
+- Added help capabilities for the external modules
+- Bug fix: PPT was using the screen font before it actually opened it.  This could
+  cause crashes, if the font was not already in memory.
+- Bug fix: PPT is now more secure against startup failures than before.
+
+
+Version 4.12 (Monday, 06-Oct-97 21:53:49)
+-----------------------------------------
+- Speeded up CyberGFX rendering of ARGB images by about a factor of 2.
+
+
+Version 4.13 (Monday, 06-Oct-97 22:25:52)
+-----------------------------------------
+- Added the ability to move the selected area.  Just press Control and left
+  mouse button within the selected area.
+- Added selection window, from which you both can see the selected area and
+  you can choose the area exactly.  Both of these features were requested
+  by several people.
+
+
+Version 4.14 (Monday, 06-Oct-97 22:55:14)
+-----------------------------------------
+- Minor bugfixes (last additions didn't go that smoothly)
+
+
+Version 4.15 (Wednesday, 08-Oct-97 23:42:30)
+--------------------------------------------
+- Bug fix: Select window was not always correctly updated.
+- Made previews work for two effects: Brightness and Threshold.  More to come soon.
+  You know, this required more changes into the code than it seemed at the first look.
+
+
+Version 4.16 (Sunday, 19-Oct-97 17:01:34)
+-----------------------------------------
+- Rewrote AskReq() to handle the previews a bit better: finally they work
+  they way they're supposed to.
+- New prefs item: preview size.  Use it to tune to your machine's behaviour
+- Bug fix: Preferences window no longer closes and reopens the main screen
+  on CGX systems when it shouldn't do it.
+- Bug fix: Median.effect screwed up the top rows.  Fixed.  Don't remember
+  who reported this.
+
+
+Version 4.17 (Sunday, 19-Oct-97 17:49:20)
+-----------------------------------------
+- Bug fix: Setting previews off now works.
+- Release Archimedes-12
+
+
+Version 4.18 (Friday, 24-Oct-97 18:34:51)
+-----------------------------------------
+- Bug fix: Most of the external modules had their window titles garbled, thanks to 
+  some late night modifications to the internal support library.  Reported by
+  Brian Jones.
+- Bug fix: VM preferences file requester button didn't open the requester.  Reported
+  by several people.
+- Bug fix: Screen and font preferences requesters couldn't be reopened if the screen
+  was changed.
+
+
+Version 4.19 (Friday, 24-Oct-97 21:28:29)
+-----------------------------------------
+- Transparency.effect v1.3:  Now remembers values from previous use
+  infotext is aligned properly, added tolerance slider.  Reported
+  and suggested by Brian Jones.
+
+
+Version 4.20 (Friday, 24-Oct-97 23:25:21)
+-----------------------------------------
+- Select box was not correctly cleared in all cases.  Hope this fixes
+  it.  Reported by several people.
+- Added recognition of the display aspect ratio.
+
+
+Version 4.21 (Sunday, 26-Oct-97 21:09:20)
+-----------------------------------------
+- Noise.effect was ignoring the X offset.  Reported by Patrik Nydensten.
+  (noise.effect v1.4)
+- Select window now has height and width as well.  Requested by several
+  people.
+
+
+Version 4.22 (Sunday, 26-Oct-97 23:12:33)
+-----------------------------------------
+- Preferences window now fits on a 640x200 screen.  Thanks for several
+  people for pointing this one out.
+- Edit/Cut now works on multiple colorspaces
+- Edit/Cut should no longer crash the machine
+
+
+Version 4.23 (Tuesday, 28-Oct-97 23:30:51)
+------------------------------------------
+- ColorChange.effect v1.3: Now fits on a 640x200 screen.
+- HistEq.effect v1.6: Now ghosts the gadgets correctly.  Reported by
+  Brian Jones.
+
+
+Version 4.24 (Tuesday, 28-Oct-97 23:50:35)
+------------------------------------------
+- Bug fix: If a frame was busy, it was possible to hide it but not bring
+  it back to front again.
+
+
+Version 4.25 (Friday, 07-Nov-97 22:38:23)
+-----------------------------------------
+- Composite.effect 1.5: Used to be on a component basis, now
+  makes decisions more reasonably.  As a result "Transparent Black"
+  is now really black, instead of just zero as before.  Also added
+  a new option, TILE.  Check the docs.  Suggested by Brian Jones.
+- Release Bessel-1
+
+
+Version 4.26 (Saturday, 29-Nov-97 15:54:07)
+-------------------------------------------
+- Negative 0.4: Didn't work with ARGB color space.
+
+
+Version 4.27 (Tuesday, 02-Dec-97 02:04:38)
+------------------------------------------
+- Project/Save As... was not ghosted at startup
+- Editing directly the Preferences/External Priority gadget didn't work
+
+
+Version 4.28 (Friday, 05-Dec-97 01:04:27)
+-----------------------------------------
+- Added AR_FloatObject type to AskReqA().  No rexx yet, but soon.
+
+
+Version 4.29 (Saturday, 06-Dec-97 22:55:43)
+-------------------------------------------
+- In a sudden burst of enthusiasm, I localized major portions of the code.
+- Bug fix: PPT screen is now really a public screen.
+- Some minor bug fixes
+
+
+Version 4.30 (Saturday, 06-Dec-97 22:58:13)
+-------------------------------------------
+- Brightness 1.7: Now accepts floating point values.  This makes it both
+  colorspace independent and also to have enough resolution.
+- Contrast 1.4: Same here.  Contrast also sports previews, now.
+
+
+Version 4.31 (Sunday, 07-Dec-97 20:00:32)
+-----------------------------------------
+- Gamma 1.4: Uses now floating point values (finally).  Also has previews.
+
+
+Version 4.32 (Monday, 08-Dec-97 20:28:42)
+-----------------------------------------
+- Extract.effect v1.3: Accidentally started extracting at the left border always.
+  Now fixed.  Reported by Brian Jones.
+
+
+Version 4.33 (Monday, 08-Dec-97 20:55:38)
+-----------------------------------------
+- Oops, forgot to read the external stack size value from the gadget.  Fixed.
+
+
+Version 4.34 (Thursday, 18-Dec-97 22:57:00)
+-------------------------------------------
+- Improved the preview window stacking algorithm a bit.  Now it restarts at
+  the top left corner after 10 frames.
+
+
+Version 4.35 (Sunday, 04-Jan-98 16:43:16)
+-----------------------------------------
+- Bug fix: Select window displayed wrong height/width
+  (reported by Peter Bornhall)
+- New feature: Main listview now has two columns displaying the frame
+  status and if it has any renders attached. Suggested by Brian Jones.
+- A number of minor bug fixes
+- Release Bessel-2
+
+
+Version 4.36 (Friday, 06-Feb-98 19:11:12)
+-----------------------------------------
+- Fixed internal PutPixel() and GetPixel()
+- Made the ASKREQ REXX command to accept also floating point objects
+
+
+Version 4.37 (Saturday, 21-Feb-98 12:02:35)
+-------------------------------------------
+- ColorMix 1.1: Now uses floating point values instead of integer
+
+
+Version 4.38 (Saturday, 21-Feb-98 15:49:08)
+-------------------------------------------
+- Shift 1.4: Now shows a preview of the image.
+
+
+Version 4.39 (Saturday, 21-Feb-98 20:18:08)
+-------------------------------------------
+- Autocrop 1.7: has now a preview.  This was requested by someone whose name
+  I seem to have forgotten...
+
+
+Version 4.40 (Saturday, 21-Feb-98 20:40:10)
+-------------------------------------------
+- One more... AddConstant 1.1 now has a preview.  Funny how these
+  become easier to implement when you finally figure out how to do 
+  them...
+
+
+Version 4.41 (Monday, 23-Feb-98 23:16:17)
+-----------------------------------------
+- Bug fix: sometimes previews could lock the image window.
+- ColorChange 1.4: Now has a preview.
+
+
+Version 4.42 (Thursday, 26-Feb-98 19:54:21)
+-------------------------------------------
+- Roll.effect 1.1: Now has a preview
+- Ditto for colormix 1.2
+- Two new effects: EmbedFile and ExtractFile.  These hide and extract information
+  from the image (much like a digital signature)
+- Bug fix: no longer locks the main window when previews are in use
+
+
+Version 4.43 (Saturday, 28-Feb-98 18:07:12)
+-------------------------------------------
+- Changed the IOModule API a bit, meaning that a) now it's possible
+  to actually save the rendered image, if it was rendered on a cybergfx
+  screen and b) I had to rewrite portions of the almost all of the
+  IO modules.  Not fun to do when in fever.  Anyway, now it should
+  work.
+- New effect: Bitfield
+- Release Bessel-3
+
+
+Version 4.44 (Sunday, 22-Mar-98 16:49:01)
+-----------------------------------------
+- Cleaned some module routines and added stuff for PPC modules...
+
+
+Version 4.45 (Monday, 29-Jun-98 21:46:29)
+-----------------------------------------
+- Fixed problems with PROCESS AREXX command and it's arguments.  It should
+  now be a lot more tolerant for quotes.
+- Autocrop 1.8: Didn't initialize some memory, causing attempts to free
+  memory that was never allocated.
+- Reworked the docs a lot, added tutorial.guide.
+- Added bgui.library to the distribution.
+
+
+Version 4.46 (Tuesday, 30-Jun-98 20:09:25)
+------------------------------------------
+- Added new option to Preferences window: Confirm Requesters (requested by several people)
+- Bug fix: If the window was hidden, undo didn't work properly
+- Added two new AREXX commands: HIDE & SHOW
+
+
+Version 4.47 (Wednesday, 01-Jul-98 21:40:48)
+--------------------------------------------
+- Bug fix: Palette windows did not retain their position if you 
+  chose Remap.
+- Bug fix: Palette windows did not set the correct color values
+  after opening.
+- Bug fix: Changing screen prefs would cause crashes when a new
+  effect was applied.
+
