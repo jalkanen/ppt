@@ -1,9 +1,10 @@
 Short: A Modular Image Processing Package
 Author: Janne.Jalkanen@iki.fi
 Uploader: Janne.Jalkanen@iki.fi
+Type: gfx/conv
+Version: 5.20
 
-
-    PPT is a new, powerful image processing package, that boasts with the
+    PPT is a powerful, free image processing package, that boasts with the
     following properties:
 
     - Handles both 24 bit truecolor and 8 bit grayscale images with optional
@@ -37,9 +38,11 @@ Uploader: Janne.Jalkanen@iki.fi
         o JPEG/JFIF (both grayscale and 24 bit.  Also progressive!)
         o PPM/PGM types P2, P3, P5 and P6.
         o PNG (all standard types)
-        o Compuserve GIF (both 87 and 89a formats)
         o Targa Truevision (8,15,16,24 and 32 bit formats)
         o YUVN
+        o TIFF
+        o Psion PIC format
+        o Windows & OS/2 BMP
         o Anything you have a Datatype for...
 
     - Saves following image types:
@@ -47,9 +50,10 @@ Uploader: Janne.Jalkanen@iki.fi
         o IFF ILBM (24 bit, 1-8 bitplanes)
         o PPM/PGM types P5 and P6
         o PNG (grayscale and 24 bit)
-        o Compuserve GIF (both 87 and 89a formats)
         o Targa Truevision (24 bit)
+        o Psion PIC format
         o C-code
+        o Windows & OS/2 BMP
 
     - Can do several effects (over 30 effects):
         o AutoCrop & Crop
@@ -67,7 +71,111 @@ Uploader: Janne.Jalkanen@iki.fi
         o Color manipulation (ColorMix, ColorChange, Extract)
         o and many others...
 
-    This is the first public release of PPT, code-named "Cauchy".
+    This release of PPT is called "Descartes" to honor the great
+    French mathematician and philosopher.
+
+    Changes from the C-6 release include:
+
+---snip---
+
+
+Version 5.21 (Thursday, 25-Feb-99 20:22:07)
+-------------------------------------------
+- ColorChange 1.9: Fixed a buffer overflow, causing Mungwall hits
+  occasionally.  Really BGUIs fault.
+
+
+Version 5.22 (Saturday, 27-Feb-99 22:07:55)
+-------------------------------------------
+- Added a new iomodule: Psion PIC.
+
+
+Version 5.23 (Saturday, 13-Mar-99 17:35:24)
+-------------------------------------------
+- Preview windows now look at font height when deciding where to open.
+- Allowed patterns in all file requesters.  Both reported by J-P LeBel.
+
+
+Version 5.24 (Saturday, 13-Mar-99 18:03:27)
+-------------------------------------------
+- Bug fix: If a file had a wrong suffix, it would not be recognized
+  correctly.  (Reported by J-P LeBel)
+
+
+Version 5.25 (Sunday, 14-Mar-99 21:04:02)
+-----------------------------------------
+- Some cosmetical changes
+- ASL file requesters now remember their position (a bug in BGUI,
+  but could be worked around)
+- Speeded up select box handling (still not as fast as I'd like,
+  most of the time is consumed in updating the select window
+  gadgets
+- It's no longer possible to edit a palette if the image has
+  not yet been rendered (a workaround to a bug in BGUI).
+- Save As now checks if the file already exists and warns you before
+  it deletes it. (Suggested by Uwe Pannecke).
+
+
+Version 5.26 (Wednesday, 17-Mar-99 23:56:35)
+--------------------------------------------
+- Updated the speed of the select box once more by cutting
+  down the selection area refresh rate.  Tell me if this is
+  a problem.
+- Scale.effect v1.8: Now contains quick doubling and halving
+  gadgets.  Also fixed a few minor bugs.  Suggested by several
+  people.
+
+
+Version 5.27 (Sunday, 28-Mar-99 23:53:59)
+-----------------------------------------
+- PsionPIC 1.1: Saving added.
+
+
+Version 5.28 (Wednesday, 31-Mar-99 13:30:44)
+--------------------------------------------
+- Preferences are now saved on exit, unless you use "Quit, lose changes."
+- Added start-up tips.
+- Render screens now have a title for screen commodities, etc.
+
+
+Version 5.29 (Sunday, 30-May-99 18:18:52)
+-----------------------------------------
+- Reworked the entire selection system to accommodate new selection modes.  Currently
+  only the former methods are supported, but now it should be easy to create new
+  ones.
+
+
+Version 5.30 (Tuesday, 15-Jun-99 12:51:18)
+------------------------------------------
+- Point selection now shows a targeting hair whenever you move the mouse.
+
+
+Version 5.31 (Friday, 18-Jun-99 23:30:46)
+-----------------------------------------
+- Some cosmetical changes
+- Worked extensively on new selection routines, trying to make
+  them faster and more reliable.  Still work to do, ho hum...
+
+
+Version 5.32 (Sunday, 11-Jul-99 23:23:50)
+-----------------------------------------
+- File open requesters are now multiselect.
+
+
+Version 5.33 (Sunday, 01-Aug-99 16:51:14)
+-----------------------------------------
+- Ellipse area selection finally works, but seems to still have some problems
+  with certain effects.
+
+
+Version 6.0 (Saturday, 04-Sep-99 19:58:21)
+------------------------------------------
+- AskReq() now handles MX objects as well.
+- Added BMP.iomod v1.0.
+- TIFF.iomod v1.1: Removed LZW support.
+
+---snip---
+
 
     Support information can always be found at
 
