@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.6 1995/11/25 00:06:57 jj Exp $
+    $Id: colormap.c,v 1.7 1996/05/13 00:20:22 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -19,10 +19,10 @@
 /*--------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype __D0 UWORD GetColor_Normal( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
-Prototype __D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *, __D0 UBYTE, __D1 UBYTE, __D2 UBYTE ) ;
-Prototype __D0 UWORD GetColor_HAM( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
-Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE  );
+Prototype REG(d0) UWORD GetColor_Normal( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE );
+Prototype REG(d0) UWORD GetColor_NormalGray( REG(a0) struct RenderObject *, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE ) ;
+Prototype REG(d0) UWORD GetColor_HAM( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE );
+Prototype REG(d0) UWORD GetColor_HAM8( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE  );
 
 /*--------------------------------------------------------------------*/
 /* Defines */
@@ -42,7 +42,7 @@ Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D
     Uses HAM8 but in 16 colors to create an approximation, then
     converts into HAM6 form.
 */
-__D0 UWORD GetColor_HAM( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
+REG(d0) UWORD GetColor_HAM( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
 {
     UWORD pen;
 
@@ -63,7 +63,7 @@ __D0 UWORD GetColor_HAM( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE
     11 = Change Green
 
 */
-__D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
+REG(d0) UWORD GetColor_HAM8( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
 {
     UWORD oldr,oldg,oldb;
     UWORD penr,peng,penb;
@@ -226,7 +226,7 @@ __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYT
     Returns the new color index & the new color values.
 */
 
-__D0 UWORD GetColor_Normal( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
+REG(d0) UWORD GetColor_Normal( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
 {
     HGRAM *hgrams = rdo->histograms;
     ULONG haddr;
@@ -256,7 +256,7 @@ __D0 UWORD GetColor_Normal( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UB
     return color;
 }
 
-__D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
+REG(d0) UWORD GetColor_NormalGray( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d1) UBYTE g, REG(d2) UBYTE b )
 {
     UBYTE *colormap   = rdo->colortable;
     HGRAM *histograms = rdo->histograms;
