@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.1 1997/10/24 22:59:33 jj Exp $
+    $Id: frame.c,v 4.2 1997/12/06 22:50:26 jj Exp $
 
     This contains frame handling routines
 
@@ -42,8 +42,6 @@ Prototype ASM FRAME *   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase 
 Prototype void          ResetSharedFrameVars(FRAME *);
 Prototype PERROR        MakeUndoFrame( FRAME * );
 Prototype FRAME         *UndoFrame( FRAME * );
-Prototype BOOL          ObtainFrame( FRAME *, ULONG );
-Prototype BOOL          ReleaseFrame( FRAME * );
 Prototype ASM FRAME *   FindFrame( REG(d0) ULONG );
 Prototype BOOL          ChangeBusyStatus( FRAME *, ULONG );
 Prototype VOID          UpdateFrameInfo( FRAME * );
@@ -58,24 +56,59 @@ Prototype ASM VOID      RemoveSimpleAttachments(REG(a0) FRAME * );
 /* Code */
 
 
-/*
-    The new, improved frame locking routines. Returns TRUE
-    if it succeeds.
-    BUG: Uses goto...
+/****i* pptsupport/ObtainFrame ******************************************
+*
+*   NAME
+*
+*   SYNOPSIS
+*       result = ObtainFrame( frame, method );
+*       D0                    A0     D0
+*
+*       BOOL ObtainFrame( FRAME *, ULONG );
+*
+*   FUNCTION
+*       TBA
+*
+*   INPUTS
+*
+*   RESULT
+*       TRUE, if the frame could be obtained.
+*
+*   EXAMPLE
+*
+*   NOTES
+*       DO NOT FORGET to call ReleaseFrame() after you are done with this
+*       frame.
+*
+*   BUGS
+*       This entry very incomplete.
+*
+*   SEE ALSO
+*       ReleaseFrame()
+*
+*****************************************************************************
+*
+*
+*    The new, improved frame locking routines. Returns TRUE
+*    if it succeeds.
+*    BUG: Uses goto...
 */
 
-SAVEDS BOOL ObtainFrame( FRAME *frame, ULONG method )
+Prototype ASM BOOL ObtainFrame( REG(a0) FRAME *, REG(d0) ULONG );
+
+SAVEDS ASM
+BOOL ObtainFrame( REG(a0) FRAME *frame, REG(d0) ULONG method )
 {
     APTR SysBase = SYSBASE();
     FRAME *cur;
     BOOL res = FALSE;
 
-    D(bug("ObtainFrame( %08X, %lu )...",frame,method));
+    D(bug("ObtainFrame( %08X [%s], %lu )...",frame, frame->name, method));
 
     if(!CheckPtr( frame, "ObtainFrame()" ))
         return FALSE;
 
-    LOCK(frame);
+    QLOCK(frame);
 
     /*
      *  If the lock is non-exclusive, then we can allow contact.
@@ -120,7 +153,7 @@ gotcha:
     res = TRUE;
 
 errorexit:
-    UNLOCK(frame);
+    QUNLOCK(frame);
 
     if( res ) {
         D(bug("done\n"));
@@ -131,28 +164,60 @@ errorexit:
     return res;
 }
 
-/*
-    Release a lock on a frame. Returns FALSE, if unlocking
-    could not be made. This routine also clears the currext
-    fields.
+/****i* pptsupport/ReleaseFrame ******************************************
+*
+*   NAME
+*
+*   SYNOPSIS
+*       ReleaseFrame( frame );
+*                     A0
+*
+*       VOID ReleaseFrame( FRAME * );
+*
+*   FUNCTION
+*       TBA
+*
+*   INPUTS
+*
+*   RESULT
+*
+*   EXAMPLE
+*
+*   NOTES
+*
+*   BUGS
+*       This entry very incomplete.
+*
+*   SEE ALSO
+*       ObtainFrame()
+*
+*****************************************************************************
+*
+*
+*    Release a lock on a frame. Returns FALSE, if unlocking
+*    could not be made. This routine also clears the currext
+*    fields.
 */
 
-SAVEDS BOOL ReleaseFrame( FRAME *frame )
+Prototype ASM BOOL ReleaseFrame( REG(a0) FRAME * );
+
+SAVEDS ASM
+BOOL ReleaseFrame( REG(a0) FRAME *frame )
 {
     APTR SysBase = SYSBASE();
     FRAME *cur;
 
-    D(bug("ReleaseFrame( %08X )...",frame ));
+    D(bug("ReleaseFrame( %08X [%s] )...",frame, frame->name ));
 
     if(frame == NULL) return FALSE;
 
     if(!CheckPtr(frame,"ReleaseFrame()"))
         return FALSE;
 
-    LOCK(frame);
+    QLOCK(frame);
 
     if( frame->busy == BUSY_NOT || frame->busycount <= 0 ) {
-        UNLOCK(frame);
+        QUNLOCK(frame);
         InternalError( "Unmatched ReleaseFrame()" );
         return FALSE;
     }
@@ -183,7 +248,7 @@ SAVEDS BOOL ReleaseFrame( FRAME *frame )
 
     D(bug("(%d)", frame->busycount ));
 
-    UNLOCK(frame);
+    QUNLOCK(frame);
 
     D(bug(" done\n"));
 
@@ -411,8 +476,7 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
 
     if( oldalpha ) {
         a = Req(GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
-                "\nReplace current alpha channel\n"
-                "'%s' with '%s'?\n",
+                GetStr(MSG_FRAME_REPLACE_CURRENT_ALPHA_OLD),
                 oldalpha->name, alpha->name );
     } else {
         a = 1;
@@ -436,15 +500,14 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
     char buffer[100];
 
     if( cspace != CS_RGB && cspace != CS_ARGB ) {
-        Req(GetFrameWin(frame), NULL, "\nAlpha channels on others than\n"
-                                      "RGB images are not allowed (yet)\n" );
+        Req(GetFrameWin(frame), NULL, GetStr( MSG_FRAME_ALPHA_CHANNELS_NOT ) );
         return PERR_FAILED;
     }
 
     if( cspace == CS_ARGB ) {
         if(Req(GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
-               "\nReplace current alpha channel\n"
-                "with '%s'?\n", alpha->name ) )
+               GetStr( MSG_FRAME_REPLACE_CURRENT_ALPHA ),
+               alpha->name ) )
         {
             return PERR_CANCELED;
         }
@@ -453,7 +516,7 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
     if( AttachFrame( frame, alpha, ATTACH_SIMPLE, globxd ) ) {
         sprintf(buffer, "NAME=ADDALPHA ARGS=\"ALPHA %ld\"", alpha->ID );
         if( RunFilter( frame, buffer ) != PERR_OK ) {
-            Req( GetFrameWin(frame), NULL, "\nCouldn't start a new process!\n");
+            Req( GetFrameWin(frame), NULL, GetStr(MSG_PERR_NO_NEW_PROCESS));
             return PERR_FAILED;
         }
     }
@@ -701,7 +764,7 @@ FRAME *UndoFrame( FRAME *currentframe )
     undoframe = currentframe->lastframe;
 
     if(!undoframe) {
-        Req(GetFrameWin(currentframe), NULL, "\nThere are no more Undo levels!\n");
+        Req(GetFrameWin(currentframe), NULL, GetStr(MSG_NO_MORE_UNDO_LEVELS) );
         return NULL;
     }
 
@@ -992,7 +1055,7 @@ PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
 
     if( svmh->vm_fh ) {
         if(flags & CFDF_SHOWPROGRESS)
-            InitProgress(frame,"Building new frame...",
+            InitProgress(frame,XGetStr(MSG_BUILDING_NEW_FRAME),
                          0, PICSIZE(frame->pix)>>10, ExtBase);
 
         buf = pmalloc( COPYBUFSIZE );
@@ -1813,7 +1876,7 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
     D(bug("AttachFrame( %08X to %08X )\n", src, dst ));
 
     if( (dst == src) || (dst->ID == src->ID ) ) {
-        Req(NEGNUL,NULL,"\nYou cannot attach a frame to itself!\n");
+        Req(NEGNUL,NULL,XGetStr(MSG_CANNOT_ATTACH_TO_ITSELF));
         return FALSE;
     }
 
@@ -1871,8 +1934,30 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
     return TRUE;
 }
 
+#if 0
 /*
-    Removes the simple attachments from a frame.
+    BUG: Untested and unused.
+ */
+Prototype VOID RemoveAttachment( FRAME *frame, FRAME *attached );
+
+VOID RemoveAttachment( FRAME *frame, FRAME *attached )
+{
+    FRAME *cur, *next;
+
+    D(bug("\tRemoveAttachment( f=%08X, %08X )\n", frame, attached ));
+
+    if( IsAttached( frame, attached->ID ) ) {
+        cur = frame;
+        while( (next = FindFrame( cur->attached )) != attached && next) cur = next;
+        LOCK(cur);
+        cur->attached = next->attached;
+        UNLOCK(cur);
+    }
+}
+#endif
+
+/*
+    Removes all simple attachments from a frame.
 */
 
 SAVEDS ASM
