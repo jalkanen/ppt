@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: select.c,v 1.4 1999/08/01 16:49:19 jj Exp $
+    $Id: select.c,v 6.0 1999/09/05 02:23:57 jj Exp $
 
  */
 
@@ -98,7 +98,6 @@ void UpdateIWSelbox( FRAME *f, BOOL final )
                     STRINGA_LongVal, abs(br-tr)+1,
                     TAG_DONE );
 
-#ifdef DEBUG_MODE
     if( f ) {
         cx = f->selection.circlex;
         cy = f->selection.circley;
@@ -118,7 +117,6 @@ void UpdateIWSelbox( FRAME *f, BOOL final )
     SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
                     STRINGA_LongVal, cy,
                     TAG_DONE );
-#endif
 }
 ///
 
