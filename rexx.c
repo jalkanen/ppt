@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.25 1998/06/28 23:24:18 jj Exp $
+    $Id: rexx.c,v 1.26 1998/06/29 22:32:50 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1322,27 +1322,24 @@ void rx_process( REXXARGS *ra, struct RexxMsg *rm )
 
     frame = ra->frame;
 
-    if( ra->args[2] ) {
-        if( rxargs = pmalloc( strlen( STR(ra->args[2]) ) + 1 ) ) {
-            strcpy( rxargs, STR(ra->args[2]) );
-        } else {
-            ra->rc = 10; ra->rc2 = PERR_OUTOFMEMORY;
-            ra->proc = NULL;
-            return;
-        }
+    /*
+     *  Allocate room for the argument string, or if it does not exist,
+     *  for the NULL string.
+     */
+
+    if( rxargs = smalloc( (ra->args[2] ? strlen(STR(ra->args[2])) : 0) + 1 ) ) {
+        strcpy( rxargs, ra->args[2] ? STR(ra->args[2]) : (STRPTR)"" );
+    } else {
+        ra->rc = 10; ra->rc2 = PERR_OUTOFMEMORY;
+        ra->proc = NULL;
+        return;
     }
 
     LOCK(frame);
 
     D(bug("Calling frame %08X, effect %s with ", frame, ra->args[1]));
-
-    if(rxargs) {
-        D(bug("args '%s'\n",rxargs));
-        sprintf(argstr,"NAME=\"%s\" REXX ARGS=%lu",ra->args[1],rxargs);
-    } else {
-        D(bug("NULL args\n"));
-        sprintf(argstr,"NAME=\"%s\" REXX ARGS=0",ra->args[1]);
-    }
+    D(bug("args '%s'\n",rxargs));
+    sprintf(argstr,"NAME=\"%s\" REXX ARGS=%lu",ra->args[1],rxargs);
 
     if( RunFilter( frame, argstr ) != PERR_OK) {
         ra->rc = -10; ra->rc2 = (long)"Cannot spawn subtask";
@@ -1728,7 +1725,7 @@ void ReplyRexxWaitItem( REXXARGS *ra )
      *  Release the structure and allocated args
      */
 
-    if( ra->process_args ) pfree( ra->process_args );
+    if( ra->process_args ) sfree( ra->process_args );
     pfree(ra);
 }
 
