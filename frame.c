@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.8 1998/09/02 22:41:24 nobody Exp $
+    $Id: frame.c,v 4.9 1998/10/14 20:35:32 jj Exp $
 
     This contains frame handling routines
 
@@ -948,7 +948,16 @@ struct Window *GetFrameWin( const FRAME *frame  )
         - window title
         - screen title
     The file name on the screen is cut to a maximum of MAXSCRTITLENAMELEN
-    characters.
+    characters.  The title looks something like this:
+
+    PPT: '<40 chars>' ?????x?????x?? <name> image (????????? bytes)
+
+    So the total length of the message is (at maximum)
+    6+40+17+40+8+9+7 = 127 bytes
+
+    The max length reserved for the message itself is 50 bytes, out of
+    which english default uses 42 bytes.  So the max length should be
+    127 bytes + (50-42) = 135 bytes.
 */
 VOID UpdateFrameInfo( FRAME *f )
 {
