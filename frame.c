@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.14 1997/09/07 21:08:29 jj Exp $
+    $Id: frame.c,v 2.15 1997/10/08 23:33:50 jj Exp $
 
     This contains frame handling routines
 
@@ -921,6 +921,7 @@ VOID SelectWholeImage( FRAME *frame )
 
 /*
     This routine unselects the entire image
+    Note: must not have LOCK.
 */
 
 VOID UnselectImage( FRAME *frame )
@@ -948,55 +949,62 @@ BOOL IsAttached( FRAME *frame, ID srcid )
     This makes a full duplicate of the frame data.
  */
 
+Prototype PERROR CopyFrameData( FRAME *, FRAME *, BOOL, EXTBASE * );
+
 PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE *ExtBase )
 {
     UBYTE *buf;
     PERROR res = PERR_OK;
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     LONG count, nread;
+    VMHANDLE *svmh = frame->pix->vmh;
 
-    if(showprogress)
-        InitProgress(frame,"Building new frame...",
-                     0, PICSIZE(frame->pix)>>10, ExtBase);
+    if( svmh->vm_fh ) {
+        if(showprogress)
+            InitProgress(frame,"Building new frame...",
+                         0, PICSIZE(frame->pix)>>10, ExtBase);
 
-    buf = pmalloc( COPYBUFSIZE );
-    if(buf) {
-        BPTR src, dst;
+        buf = pmalloc( COPYBUFSIZE );
+        if(buf) {
+            BPTR src, dst;
 
-        src = frame->pix->vmh->vm_fh;
-        dst = newframe->pix->vmh->vm_fh;
+            src = svmh->vm_fh;
+            dst = newframe->pix->vmh->vm_fh;
 
-        FlushVMData( frame->pix->vmh, ExtBase ); /* Make sure disk data is valid */
-        Seek(src,0,OFFSET_BEGINNING);
-        Seek(dst,0,OFFSET_BEGINNING);
-        count = 0;
-        do {
-            if(showprogress) Progress(frame,count>>10,ExtBase);
-            nread = Read(src, buf, COPYBUFSIZE);
-            Write(dst,buf,nread);
-            count += nread;
-        } while(nread == COPYBUFSIZE);
-        Flush(dst);
-        pfree(buf);
-        D(bug("Wrote %lu bytes\n",count));
+            FlushVMData( svmh, ExtBase ); /* Make sure disk data is valid */
+            Seek(src,0,OFFSET_BEGINNING);
+            Seek(dst,0,OFFSET_BEGINNING);
+            count = 0;
+            do {
+                if(showprogress) Progress(frame,count>>10,ExtBase);
+                nread = Read(src, buf, COPYBUFSIZE);
+                Write(dst,buf,nread);
+                count += nread;
+            } while(nread == COPYBUFSIZE);
+            Flush(dst);
+            pfree(buf);
+            D(bug("Wrote %lu bytes\n",count));
 
-        /*
-         *  Make sure the buffers are correct
-         */
+            /*
+             *  Make sure the buffers are correct
+             */
 
-        SanitizeVMData( frame->pix->vmh, ExtBase );
-        SanitizeVMData( newframe->pix->vmh, ExtBase );
-        LoadVMData( newframe->pix->vmh, 0L, ExtBase );
+            SanitizeVMData( svmh, ExtBase );
+            SanitizeVMData( newframe->pix->vmh, ExtBase );
+            LoadVMData( newframe->pix->vmh, 0L, ExtBase );
+        } else {
+            D(bug("Dupframe(): Out of memory allocating copybuf\n"));
+            SetErrorCode( frame, PERR_OUTOFMEMORY );
+            res = PERR_OUTOFMEMORY;
+        }
+
+        if(showprogress) {
+            FinishProgress( frame, ExtBase );
+            CloseInfoWindow( frame->mywin, ExtBase );
+            ClearProgress( frame, ExtBase );
+        }
     } else {
-        D(bug("Dupframe(): Out of memory allocating copybuf\n"));
-        SetErrorCode( frame, PERR_OUTOFMEMORY );
-        res = PERR_OUTOFMEMORY;
-    }
-
-    if(showprogress) {
-        FinishProgress( frame, ExtBase );
-        CloseInfoWindow( frame->mywin, ExtBase );
-        ClearProgress( frame, ExtBase );
+        memcpy(newframe->pix->vmh->data, svmh->data, svmh->end - svmh->begin );
     }
 
     return res;
@@ -1172,6 +1180,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         p->private1           = 0;
         p->bytes_per_row      = 0;  /* Will be filled in by InitFrame() */
         p->origmodeid         = INVALID_ID;
+        p->vm_mode            = VMEM_ALWAYS;
     } else {
         bcopy( old->pix, p, sizeof(PIXINFO) );
         p->vmh = NULL;
@@ -1860,70 +1869,87 @@ VOID RemoveSimpleAttachments(REG(a0) FRAME *frame)
     This sets the VM and real memory buffers. If there are any
     buffers existing, will not allocate them.
     Re-entrant.
-
-    BUG: Not extremely clear at the moment.
-    BUG: Not very error-tolerant
 */
 
-PERROR SetBuffers( FRAME *frame, EXTBASE *xd )
+PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 {
-    APTR m;
-    ULONG bufsiz, realsiz;
-    VMHANDLE *vmh;
-    APTR SysBase = xd->lb_Sys;
+    ULONG realsize, bufsize;
+    PIXINFO *p = frame->pix;
 
-    vmh = frame->pix->vmh;
+    D(bug("SetBuffers(%08X)\n",frame));
 
-    LOCK(frame);
+    realsize = p->height * p->width * p->components;
+
+    if( realsize > globals->userprefs->vmbufsiz * 1024L && (p->vm_mode == VMEM_ALWAYS))
+        bufsize = globals->userprefs->vmbufsiz*1024L;
+    else
+        bufsize = realsize;
 
     /*
-     *  Create memory buffers. If the picture is smaller than the currently
-     *  user specified VM buffer size, then don't allocate too much room.
+     *  Make sure a vm handle exists
      */
 
-    bufsiz = frame->pix->height * frame->pix->width * frame->pix->components;
-    realsiz = bufsiz;
-
-    if(bufsiz > globals->userprefs->vmbufsiz * 1024L )
-        bufsiz = globals->userprefs->vmbufsiz * 1024L;
-
-    if( vmh == NULL || (vmh != NULL && vmh->data == NULL) ) {
-        D(bug("\tAllocating new VM page\n"));
-        m = pmalloc( bufsiz );
-        if(!m) {
-            XReq( GetFrameWin(frame), NULL, "Can't allocate VM page\nOut of memory");
+    if( !p->vmh ) {
+        D(bug("\tAllocating VM handle\n"));
+        if( !(p->vmh = AllocVMHandle( ExtBase ))) {
             SetErrorCode( frame, PERR_OUTOFMEMORY );
-            UNLOCK(frame);
             return PERR_OUTOFMEMORY;
         }
-    } else {
-        m = vmh->data;
     }
 
     /*
-     *  Create disk swap file
+     *  Create memory page
      */
 
-    if(!vmh) {
-        D(bug("\tAllocating disk swap file...\n"));
-        if( (vmh = CreateVMData( realsiz, xd )) == NULL) {
-            D(bug("VMH allocation failed\n"));
-            pfree(m);
+    if( p->vmh->data == NULL ) {
+        D(bug("\tAllocating new VM page (%lu bytes)\n", bufsize));
+        if( NULL == (p->vmh->data = pmalloc( bufsize ))) {
             SetErrorCode( frame, PERR_OUTOFMEMORY );
-            UNLOCK(frame);
-            return PERR_OUTOFMEMORY; /* Virtual memory, in this case. */
+            FreeVMHandle( p->vmh, ExtBase );
+            p->vmh = NULL;
+            return PERR_OUTOFMEMORY;
         }
     }
 
-    vmh->data = m;
-    frame->pix->vmh = vmh;
-    frame->pix->bytes_per_row = frame->pix->width * frame->pix->components;
+    /*
+     *  Create disk page, if needed
+     */
 
-    UNLOCK(frame);
+    if( p->vm_mode == VMEM_ALWAYS ) {
+        if( !p->vmh->vm_fh ) {
+            if(CreateVMData( p->vmh, realsize, ExtBase ) != PERR_OK ) {
+                D(bug("\tCreateVMData() failed\n"));
+                SetErrorCode(frame,PERR_OUTOFMEMORY);
+                if( p->vmh->data ) pfree( p->vmh->data );
+                FreeVMHandle( p->vmh, ExtBase );
+                p->vmh = NULL;
+                return PERR_OUTOFMEMORY;
+            }
+        }
+    } else {
+        p->vmh->end = p->vmh->last = realsize;
+    }
 
     return PERR_OK;
 }
 
+
+Prototype PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase );
+
+PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase )
+{
+    VMHANDLE *vmh = frame->pix->vmh;
+    PERROR res = PERR_OK;
+
+    frame->pix->vm_mode = mode;
+
+    if( mode == VMEM_NEVER && vmh && vmh->vm_fh ) {
+        res = CloseVMFile( vmh, ExtBase );
+    } else if( mode == VMEM_ALWAYS && vmh && !vmh->vm_fh ) {
+        res = SetBuffers( frame, ExtBase );
+    }
+    return res;
+}
 
 /*-------------------------------------------------------------------*/
 /*                           END OF CODE                             */
