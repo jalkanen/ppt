@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.0 1998/12/15 21:26:29 jj Exp $
+    $Id: support.c,v 5.1 1998/12/15 23:19:39 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -13,7 +13,7 @@
 *
 *                 PPT support library documentation
 *
-*                 $VER: pptsupport.doc 3.0 (7-Feb-97)
+*                 $VER: pptsupport.doc 5.0 (15-Dec-98)
 *
 *   Please note that all functions expect to have a valid ExtBase * in
 *   A6 upon entering the function. Otherwise, these are just like
@@ -54,8 +54,6 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Prototype ASM VOID       UpdateProgress( REG(a0) FRAME *, REG(a1) UBYTE *, REG(d0) ULONG, REG(a6) EXTBASE * );
-Prototype ASM VOID       InitProgress( REG(a0) FRAME *, REG(a1) char *, REG(d0) ULONG, REG(d1) ULONG,REG(a6) EXTBASE * );
 Prototype ASM BOOL       Progress( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype ASM VOID       ClearProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM VOID       FinishProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
@@ -136,7 +134,7 @@ APTR ExtLibData[] = {
     /* Start of V5 additions */
 
     CloseProgress,
-    NULL, // SetRexxVariable,
+    SetRexxVariable,
 
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
@@ -1084,12 +1082,14 @@ SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *   If a parent exists, we'll use its infowindow instead of our own.
 */
 
+Prototype VOID ASM InitProgress( REGDECL(a0,FRAME *), REGDECL(a1,char *), REGDECL(d0,ULONG), REGDECL(d1,ULONG),REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID InitProgress( REG(a0) FRAME *f,
-                              REG(a1) char *txt,
-                              REG(d0) ULONG min,
-                              REG(d1) ULONG max,
-                              REG(a6) EXTBASE *ExtBase )
+
+SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
+                              REGPARAM(a1,char *,txt),
+                              REGPARAM(d0,ULONG, min),
+                              REGPARAM(d1,ULONG, max),
+                              REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 #ifdef USE_TIMER_PROCESS
@@ -1347,10 +1347,12 @@ SAVEDS ASM VOID CloseProgress( REG(a0) FRAME *frame, REG(a6) struct PPTBase *PPT
     Try NOT to call directly!
 */
 
-SAVEDS ASM  VOID UpdateProgress( REG(a0) FRAME *f,
-                                 REG(a1) UBYTE *txt,
-                                 REG(d0) ULONG done,
-                                 REG(a6) EXTBASE *ExtBase )
+Prototype VOID ASM UpdateProgress( REGDECL(a0,FRAME *), REGDECL(a1,UBYTE *), REGDECL(d0,ULONG), REGDECL(a6,struct PPTBase *) );
+
+SAVEDS VOID ASM UpdateProgress( REGPARAM(a0,FRAME *,f),
+                                REGPARAM(a1,UBYTE *,txt),
+                                REGPARAM(d0,ULONG, done),
+                                REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     INFOWIN *iw;
     struct Window *win;
@@ -1448,10 +1450,10 @@ SAVEDS VOID DeleteNameCount( UBYTE *str )
     is modified in place.  Of course, newname must always be != NULL
 */
 
-SAVEDS ASM UBYTE *MakeFrameName( REG(a0) UBYTE *oldname,
-                                 REG(a1) UBYTE *newname,
-                                 REG(d0) ULONG length,
-                                 REG(a6) EXTBASE *xd )
+SAVEDS UBYTE * ASM MakeFrameName( REGPARAM(a0,UBYTE *,oldname),
+                                  REGPARAM(a1,UBYTE *,newname),
+                                  REGPARAM(d0,ULONG, length),
+                                  REGPARAM(a6,EXTBASE *,xd) )
 {
     struct Node *nd;
     UBYTE *s, tmp[40];
