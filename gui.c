@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.55 1998/12/05 00:02:44 jj Exp $
+    $Id: gui.c,v 1.56 1998/12/07 13:46:27 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1669,6 +1669,8 @@ PERROR GimmeToolBarWindow( VOID )
         return PERR_WINDOWOPEN;
     }
 
+    toolw.GO_ToolBar = CreateToolbar();
+
     /*
      *  The window itself. The area is attached onto it.
      */
@@ -1688,7 +1690,7 @@ PERROR GimmeToolBarWindow( VOID )
             // WINDOW_HelpHook,            &HelpHook,
             // WINDOW_HelpNode,            "Toolbar",
             WINDOW_MasterGroup,
-                HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset, EqualWidth, EqualHeight,
+                HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
                     StartMember,
                         HGroupObject, Spacing(0), HOffset(0), VOffset(0),
                             StartMember,
@@ -1697,10 +1699,7 @@ PERROR GimmeToolBarWindow( VOID )
                         EndObject, FixMinWidth,
                     EndMember,
                     StartMember,
-                        GenericButton( GetStr(MSG_LOAD_GAD), GID_TOOL_LOAD),
-                    EndMember,
-                    StartMember,
-                        GenericButton( GetStr(MSG_PROCESS_GAD),GID_TOOL_PROCESS),
+                        toolw.GO_ToolBar,
                     EndMember,
                 EndObject, FixMinHeight,
             EndObject;
