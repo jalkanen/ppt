@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.84 1997/10/26 23:11:09 jj Exp $
+    $Id: main.c,v 1.85 1998/01/04 16:35:24 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -220,6 +220,76 @@ Local int HowManyFrames(void)
     return c;
 }
 
+Prototype STRPTR ConstructListName( FRAME *);
+
+STRPTR ConstructListName( FRAME *frame )
+{
+    static char entry[NAMELEN+20];
+
+    sprintf( entry, "%c%c\t%s", IsFrameBusy(frame) ? 'B' : ' ',
+                                frame->renderobject ? 'R' : ' ',
+                                frame->name );
+
+    return entry;
+}
+
+Prototype STRPTR ParseListEntry( APTR entry );
+
+STRPTR ParseListEntry( APTR entry )
+{
+    static char name[NAMELEN+20], *t;
+
+    strncpy( name, entry, NAMELEN+19 );
+    if(t = strrchr( name, '\t' ))
+        return (t+1);
+    else
+        return name;
+}
+
+SAVEDS ASM
+LONG CompareListEntryHook( REG(a0) struct Hook *hook,
+                           REG(a2) Object *object,
+                           REG(a1) struct lvCompare *lvc )
+{
+    return( stricmp( ParseListEntry( lvc->lvc_EntryA ),
+                     ParseListEntry( lvc->lvc_EntryB ) ) );
+}
+
+/*
+    Sets the display status on the main window.  Currently only does the
+    busy thing.
+ */
+
+Prototype VOID SetFrameStatus( FRAME *, ULONG );
+
+VOID SetFrameStatus( FRAME *frame, ULONG status )
+{
+#if 0
+    APTR entry;
+    char name[NAMELEN+1];
+
+    LockList( framew.Frames );
+
+    if( entry = FirstEntry( framew.Frames ) ) {
+        do {
+            STRPTR s;
+
+            s = ParseListEntry( entry );
+            strncpy( name, s, NAMELEN );
+            if( strcmp(name, frame->name) == 0 ) {
+
+            }
+
+            entry = NextEntry( framew.Frames, entry );
+        } while(entry);
+    }
+
+    UnlockList( framew.Frames );
+#else
+    DoMainList( frame );
+#endif
+}
+
 /*
     Update main window display list
     frame = currently active frame.
@@ -239,7 +309,8 @@ VOID DoMainList( const FRAME *frame )
             selentry = entrynum;
 
         if( ((FRAME *)cn)->busy != BUSY_LOADING ) {
-            DoMethod( framew.Frames, LVM_ADDSINGLE, NULL, ((FRAME *)cn)->name, LVAP_TAIL );
+            DoMethod( framew.Frames, LVM_ADDSINGLE, NULL,
+                      ConstructListName( (FRAME *)cn ), LVAP_TAIL );
         }
 
         entrynum++;
@@ -438,25 +509,28 @@ VOID AreaDrop( FRAME *frame, FRAME *drop )
 {
     ULONG ans;
 
-    ans = Req(GetFrameWin(frame), "Alpha|Composite|Cancel",
-              "\nWhat should I do with the item you dropped?\n"
-              "     a) Add As Alpha Channel\n"
-              "     b) Composite it to the image\n" );
+    if( FrameFree( frame ) && FrameFree( drop ) ) {
 
-    switch(ans) {
-        case 1: /* Alpha */
-            if( AddAlpha( frame, drop ) == PERR_OK )
-                UpdateMainWindow(frame);
+        ans = Req(GetFrameWin(frame), "Alpha|Composite|Cancel",
+                  "\nWhat should I do with the item you dropped?\n"
+                  "     a) Add As Alpha Channel\n"
+                  "     b) Composite it to the image\n" );
 
-            break;
+        switch(ans) {
+            case 1: /* Alpha */
+                if( AddAlpha( frame, drop ) == PERR_OK )
+                    UpdateMainWindow(frame);
 
-        case 2: /* Composite */
-            Composite( frame, drop );
-            break;
+                break;
 
-        case 0: /* Cancelled */
-            D(bug("Ignored drop\n"));
-            break;
+            case 2: /* Composite */
+                Composite( frame, drop );
+                break;
+
+            case 0: /* Cancelled */
+                D(bug("Ignored drop\n"));
+                break;
+        }
     }
 }
 
@@ -496,7 +570,7 @@ Local
 int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 {
     ULONG res;
-    UBYTE *path, tmpbuf[MAXPATHLEN+1];
+    UBYTE *path, tmpbuf[MAXPATHLEN+1], tmpbuf2[MAXPATHLEN+1];
     struct Window *win;
     APTR entry;
     FRAME *newframe;
@@ -509,7 +583,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
     if(!frame) {
         if( entry = (APTR)FirstSelected( framew.Frames ) ) {
             SHLOCKGLOB();
-            frame = (FRAME *) FindName( &globals->frames, entry );
+            frame = (FRAME *) FindName( &globals->frames, ParseListEntry(entry) );
             UNLOCKGLOB();
         }
     }
@@ -580,13 +654,21 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                         D(bug("\tProject renamed: '%s' -> '%s'\n",entry, tmpbuf ));
                         MakeFrameName( tmpbuf, tmpbuf, NAMELEN, globxd );
 
+                        /*
+                         *  We'll make a backup copy, since ConstructListName will require
+                         *  the frame pointer.
+                         *  BUG: Should we just use DoMainList()?
+                         */
+
                         LockList( framew.Frames );
-                        if(DoMethod( framew.Frames, LVM_REPLACE, NULL, entry, tmpbuf )) {
-                            strcpy( frame->name, tmpbuf );
+                        strcpy( tmpbuf2, frame->name );
+                        strcpy( frame->name, tmpbuf );
+                        if(DoMethod( framew.Frames, LVM_REPLACE, NULL, entry, ConstructListName(frame) )) {
                             UpdateFrameInfo( frame );
                             RefreshFrameInfo( frame, globxd );
                         } else {
                             D(bug("\tReplaceEntry failed! Not updating...\n"));
+                            strcpy( frame->name, tmpbuf2 );
                         }
                         DoMethod( framew.Frames, LVM_UNLOCKLIST, NULL );
                         if( framew.win ) RefreshList( framew.win, framew.Frames );
@@ -670,7 +752,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 return HANDLER_DELETED; /* Signal: No longer exists */
             } else {
                 frame->keephidden = FALSE;
-                DisplayFrame( frame );
+                if( MakeDisplayFrame( frame ) == PERR_OK )
+                    DisplayFrame( frame );
             }
             break;
 
@@ -1195,7 +1278,7 @@ int HandleMainIDCMP( ULONG rc )
         case GID_MW_LIST: /* Someone is messing with our listview. */
 
             if( entry = (APTR)FirstSelected( framew.Frames ) ) {
-                frame = (FRAME *) FindName( &globals->frames, entry );
+                frame = (FRAME *) FindName( &globals->frames, ParseListEntry(entry) );
             }
 
             UpdateMainWindow( frame );
@@ -1209,6 +1292,7 @@ int HandleMainIDCMP( ULONG rc )
                 CurrentTime( &secs1, &ms1 );
                 if( DoubleClick( secs0, ms0, secs1, ms1 ) && frame ) {
                     frame->keephidden = FALSE;
+                    MakeDisplayFrame( frame ); /* Make sure it exists */
                     DisplayFrame( frame );
                 }
             }
@@ -1293,14 +1377,14 @@ void UpdateIWSelbox( FRAME *f )
         if( f->selbox.MinX == ~0 ) {
             disable = FALSE;
             tl = tr = 0;
-            bl = f->pix->width;
-            br = f->pix->height;
+            bl = f->pix->width-1;
+            br = f->pix->height-1;
         } else {
             disable = FALSE;
             tl = f->selbox.MinX;
             tr = f->selbox.MinY;
-            bl = f->selbox.MaxX;
-            br = f->selbox.MaxY;
+            bl = f->selbox.MaxX-1;
+            br = f->selbox.MaxY-1;
         }
     }
 
@@ -1318,10 +1402,10 @@ void UpdateIWSelbox( FRAME *f )
                     GA_Disabled, disable, TAG_DONE );
 
     SetGadgetAttrs( GAD(selectw.Width), selectw.win, NULL,
-                    STRINGA_LongVal, abs(bl-tl),
+                    STRINGA_LongVal, abs(bl-tl)+1,
                     GA_Disabled, disable, TAG_DONE );
     SetGadgetAttrs( GAD(selectw.Height), selectw.win, NULL,
-                    STRINGA_LongVal, abs(br-tr),
+                    STRINGA_LongVal, abs(br-tr)+1,
                     GA_Disabled, disable, TAG_DONE );
 
 }
@@ -1337,7 +1421,7 @@ int HandleSelectIDCMP( ULONG rc )
 
     if( entry = (APTR)FirstSelected( framew.Frames ) ) {
         SHLOCKGLOB();
-        frame = (FRAME *) FindName( &globals->frames, entry );
+        frame = (FRAME *) FindName( &globals->frames, ParseListEntry(entry) );
         UNLOCKGLOB();
     }
 
@@ -1379,6 +1463,7 @@ int HandleSelectIDCMP( ULONG rc )
         case GID_SELECT_BOTTOMLEFT:
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.BottomLeft, &t );
+                ++t;
                 if( t > frame->pix->width ) {
                     t = frame->pix->width;
                 }
@@ -1393,6 +1478,7 @@ int HandleSelectIDCMP( ULONG rc )
         case GID_SELECT_BOTTOMRIGHT:
             if( frame ) {
                 GetAttr( STRINGA_LongVal, selectw.BottomRight, &t );
+                ++t;
                 if( t > frame->pix->height ) {
                     t = frame->pix->height;
                 }
@@ -1482,6 +1568,11 @@ int HandlePrefsIDCMP( ULONG rc )
         case GID_PW_EXTNICEVAL:
             GetAttr(SLIDER_Level, prefsw.ExtNiceVal, &tmp);
             tmpprefs.extniceval = tmp;
+            break;
+
+        case GID_PW_EXTSTACKSIZE:
+            GetAttr(STRINGA_LongVal, prefsw.ExtStackSize, &tmp);
+            tmpprefs.extstacksize = tmp;
             break;
 
         case GID_PW_GETFONT:
@@ -1761,7 +1852,7 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
 
             if( entry = (APTR)FirstSelected( framew.Frames ) ) {
                 SHLOCKGLOB();
-                frame = (FRAME *) FindName( &globals->frames, entry );
+                frame = (FRAME *) FindName( &globals->frames, ParseListEntry(entry) );
                 UNLOCKGLOB();
             }
 
@@ -1914,15 +2005,15 @@ BOOL CalcMouseCoords( FRAME *frame, WORD mousex, WORD mousey, WORD *x, WORD *y )
 
     GetAttr( AREA_AreaBox, frame->disp->RenderArea, (ULONG *)&ibox );
 
-    xloc = frame->zoombox.Left + ((mousex - ibox->Left) * (LONG)frame->zoombox.Width ) / ibox->Width;
-    yloc = frame->zoombox.Top + ((mousey - ibox->Top) * (LONG)frame->zoombox.Height ) / ibox->Height;
+    xloc = frame->zoombox.Left + ((mousex - ibox->Left) * (LONG)(frame->zoombox.Width)) / (ibox->Width);
+    yloc = frame->zoombox.Top + ((mousey - ibox->Top) * (LONG)(frame->zoombox.Height)) / (ibox->Height);
 
     wt = frame->zoombox.Left+frame->zoombox.Width;
     ht = frame->zoombox.Top+frame->zoombox.Height;
 
     if(xloc < frame->zoombox.Left )  { xloc = frame->zoombox.Left; isin = FALSE; }
     if(yloc < frame->zoombox.Top  )  { yloc = frame->zoombox.Top; isin = FALSE; }
-    if(xloc > wt)  { xloc = wt; isin = FALSE; }
+    if(xloc > wt) { xloc = wt; isin = FALSE; }
     if(yloc > ht) { yloc = ht; isin = FALSE; }
 
     *x = xloc; *y = yloc;
@@ -2337,7 +2428,7 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
             if( dropentry ) {
                 FRAME *drop;
 
-                drop = (FRAME *)FindName( &(globals->frames), dropentry );
+                drop = (FRAME *)FindName( &(globals->frames), ParseListEntry(dropentry) );
 
                 SetAttrs( d->RenderArea, AREA_DropEntry, NULL, TAG_END );
 
@@ -2978,6 +3069,7 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
             }
             ReleaseFrame( currframe );
             ClearProgress( currframe, globxd );
+            SetFrameStatus( currframe, 0 );
             break;
 
         /*
@@ -3042,6 +3134,7 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
 
             if(CheckPtr( currframe, "main(): currframe" )) {
                 ReleaseFrame( currframe );
+                SetFrameStatus( currframe, 0 );
                 RemoveSimpleAttachments( currframe );
                 CloseRender( currframe,globxd ); /* BUG: Maybe not here? */
             }
@@ -3085,6 +3178,7 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
 
                 UpdateFrameInfo( currframe );
                 RefreshFrameInfo( currframe, globxd );
+                SetFrameStatus( currframe, 0 );
             }
             break;
 
@@ -3215,8 +3309,9 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
      *  be used so this is the last thing to do.
      */
 
-    if( currframe )
+    if( currframe ) {
         ClearError( currframe );
+    }
 
     return currframe;
 }
@@ -3526,8 +3621,10 @@ int main(int argc, char **argv)
     }
 
     /*
-     *  Open windows and enter the handler loop.
+     *  Open windows, release the main window and enter the handler loop.
      */
+
+    WindowReady(globals->WO_main);
 
     if( toolw.initialopen )
         HandleMenuIDCMP( MID_TOOLWINDOW, NULL, FROM_MAINWINDOW );
@@ -3624,10 +3721,12 @@ restart_window:
          */
 
         if(sig & (1 << globals->mport->mp_SigBit) ) {
-            D(bug("\nSpecialmsg\n"));
             while(mymsg = (struct PPTMessage *)GetMsg( globals->mport )) {
                 FRAME *currframe;
-                D(bug( "Handling message %08X\n",mymsg));
+                D(bug( "\nSpecialMessage %08X (code %08X%s)\n",
+                        mymsg,mymsg->code,
+                        mymsg->msg.mn_Node.ln_Type == NT_REPLYMSG ? " IS_REPLY" : ""));
+
                 currframe = HandleSpecialIDCMP( mymsg );
 
                 if( mymsg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
@@ -3642,7 +3741,6 @@ restart_window:
 
                 D(bug("Done with handling %08X\n",mymsg));
             }
-            D(bug("Done handling specialmsg\n\n"));
         }
 
         /*
