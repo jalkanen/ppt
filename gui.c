@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.46 1997/10/26 23:07:43 jj Exp $
+    $Id: gui.c,v 1.47 1997/12/02 02:03:22 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -109,7 +109,7 @@ struct NewMenu PPTMenus[] = {
         Item( "Open...",        "O", MID_LOADNEW ),
         Item("Open As...",      NULL, MID_LOADAS ),
         DItem("Save",           "W", MID_SAVE ),
-        Item( "Save As...",     NULL, MID_SAVEAS ),
+        DItem( "Save As...",     NULL, MID_SAVEAS ),
         DItem( "Close",         "D", MID_DELETE ),
         ItemBar,
         DItem( "Rename...",     NULL, MID_RENAME ),
@@ -1153,6 +1153,7 @@ Object *GimmePrefsWindow( VOID )
                                                                 STRINGA_IntegerMin, -127,
                                                                 STRINGA_IntegerMax, 1,
                                                                 STRINGA_MinCharsVisible, 4,
+                                                                STRINGA_MaxChars, 4,
                                                                 BT_HelpHook,  &HelpHook,
                                                                 BT_HelpNode,  "PPT.guide/VMSettings",
                                                             EndObject,  Weight(1),
