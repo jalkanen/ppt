@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.26 1998/02/21 15:50:21 jj Exp $
+    $Id: askreq.c,v 1.27 1998/02/26 19:52:12 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -985,6 +985,8 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                 aum.aum_Frame   = arm.arm_Frame     = tempframe;
                 aum.aum_ExtBase = arm.arm_ExtBase   = ExtBase;
                 aum.aum_RPort   = arm.arm_RPort     = win->RPort;
+                GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
+                aum.aum_Area    = arm.arm_Area      = *ibox;
 
                 /*
                  *  If this is a preview, we will now redraw this once.  This also serves
@@ -1065,8 +1067,6 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
                                                           &aum );
 
                                         if( res == ARR_REDRAW ) {
-                                            GetAttr(AREA_AreaBox, ar.renderArea, (ULONG *)&ibox );
-                                            D(bug("\tRenderArea: (h=%d,w=%d)\n",ibox->Height, ibox->Width));
                                             RenderFrame( tempframe, win->RPort,
                                                          ibox, 0, ExtBase );
                                         }
