@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 3.4 1997/05/06 00:09:27 jj Exp $
+    $Id: support.c,v 4.5 1998/02/06 19:08:20 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -63,6 +63,7 @@ Prototype ASM ROWPTR     GetPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a6) EXT
 Prototype ASM UWORD      GetNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
 Prototype ASM VOID       PutNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
 Prototype ASM APTR       GetPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a6) EXTBASE * );
+Prototype ASM VOID       PutPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a1) APTR, REG(a6) EXTBASE * );
 Prototype ASM UBYTE *    MakeFrameName( REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) ULONG,REG(a6) EXTBASE * );
 Prototype ASM VOID       PutPixelRow( REG(a0) FRAME *, REG(d0) WORD, REG(a1) ROWPTR, REG(a6) EXTBASE * );
 Prototype ASM ULONG      TagData( REG(d0) Tag, REG(a0) struct TagItem *, REG(a6) EXTBASE * );
@@ -87,10 +88,10 @@ APTR ExtLibData[] = {
     RemFrame,
     DupFrame,
 
-    FindFrame,
+    FindFrame, /* 10 */
 
     GetPixel,
-    NULL, /* BUG: PutPixel */
+    PutPixel,
     GetPixelRow,
     PutPixelRow,
     GetNPixelRows,
@@ -99,7 +100,7 @@ APTR ExtLibData[] = {
 
     UpdateProgress,
     InitProgress,
-    Progress,
+    Progress,          /* 20 */
     FinishProgress,
     ClearProgress,
 
@@ -114,7 +115,7 @@ APTR ExtLibData[] = {
     GetStr_External,
     TagData,
 
-    StartInput,
+    StartInput,        /* 30 */
     StopInput,
 
     GetBackgroundColor,
@@ -125,6 +126,14 @@ APTR ExtLibData[] = {
     AddExtension,
     FindExtension,
     RemoveExtension,
+
+    /* Start of V4 additions */
+
+    ObtainPreviewFrameA,
+    ReleasePreviewFrame,
+    RenderFrame,       /* 40 */
+    CopyFrameData,
+
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
 
@@ -351,7 +360,7 @@ SAVEDS ASM ULONG TagData( REG(d0) Tag value,
 *       success = GetBackgroundColor( frame, pixel )
 *       D0                            A0     A1
 *
-*       PERROR GetPixelRow( FRAME *, ROWPTR );
+*       PERROR GetBackgroundColor( FRAME *, ROWPTR );
 *
 *   FUNCTION
 *       Returns the background color of the given frame.  If no background
@@ -463,6 +472,8 @@ PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
 *
 *****************************************************************************
 *
+*   NB: if the index is out of bounds, just return null, because externals
+*   are counting on it.  Do not use SetError*()!
 */
 
 SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBASE *xd )
@@ -489,14 +500,14 @@ SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBA
 
     /* If the beginning is before the area currently in memory OR
        the end of the pixelline is outside the area as well, then
-       load to memory. */
+       load to memory, unless there is no vm_fh. */
 
     /*
      *  if (first byte is not in memory ||
      *      last byte is not in memory) reload();
      */
 
-    if( (offset < vmh->begin) || (offset + ROWLEN(p) > vmh->end) )
+    if( vmh->vm_fh && ((offset < vmh->begin) || (offset + ROWLEN(p) > vmh->end)) )
     {
         // D(bug("\tLoading new data from %lu\n",offset));
         FlushVMData( vmh, xd ); /* Will save only if there have been changes. */
@@ -577,6 +588,7 @@ SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
     VMHANDLE *vmh = p->vmh;
     ULONG offset;
 
+
 #ifdef TMPBUF_SUPPORTED
     if( !data ) return;
 
@@ -598,7 +610,7 @@ SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
     // D(bug("\tmemcpy( dest = %08X, data = %08X, length = %lu )\n",dest,data,ROWLEN(p) ));
     vmh->chflag = 1;
 #else
-#if 1
+#ifdef USE_OLD_ALPHA
     /*
      *  This is the future alpha channel version.
      *  BUG: Should check if parent is the same size than the new one.
@@ -647,6 +659,12 @@ SAVEDS ASM VOID PutPixelRow( REG(a0) FRAME *frame,
 #else
     vmh->chflag = 1;
 #endif
+#endif
+
+#if 0
+    if( IsPreview(frame) ) {
+        RedrawPreviewRow( frame, row, xd );
+    }
 #endif
 }
 
@@ -773,15 +791,18 @@ SAVEDS ASM UWORD GetNPixelRows( REG(a0) FRAME *frame,  REG(a1) ROWPTR buffer[],
         return 0; /* Error */
     }
 
-    offset = startrow * linelen; /* Beginning of line */
+    if( startrow >= 0 )
+        offset = startrow * linelen; /* Beginning of line */
+    else
+        offset = 0;
 
     /*
      *  if (first byte is not in memory ||
      *      last byte is not in memory) reload();
      */
 
-    if( (offset < vmh->begin /* + VM_SAFEBOUNDARY */) ||
-        (offset + chunklen >= vmh->end /* - VM_SAFEBOUNDARY */) )
+    if( vmh->vm_fh && ((offset < vmh->begin) ||
+                      (offset + chunklen >= vmh->end)) )
     {
         // D(bug("\tLoading new data from %lu\n",offset));
         FlushVMData( vmh, xd ); /* Will save only if there have been changes. */
@@ -836,23 +857,20 @@ SAVEDS ASM UWORD GetNPixelRows( REG(a0) FRAME *frame,  REG(a1) ROWPTR buffer[],
 ******************************************************************************
 *
 *    Give a pixel at wanted location. (0,0) is at upper left hand corner.
+*    BUG: Does not take different size pixels into account.
 */
 
 SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
                           REG(d1) WORD column, REG(a6) EXTBASE *xd )
 {
-    ULONG addr;
-    VMHANDLE *vmh = f->pix->vmh;
+    ROWPTR cp;
 
-    addr = row * ROWLEN(f->pix) + column;
-
-    if(addr < vmh->begin + VM_SAFEBOUNDARY)
-        LoadVMData( vmh, addr, xd );
-    else if(addr > vmh->end - VM_SAFEBOUNDARY)
-        LoadVMData( vmh, addr, xd );
-
-    return( (APTR) ((addr- vmh->begin) + (ULONG)vmh->data) );
+    if(cp = GetPixelRow( f, row, xd )) {
+        return cp + column*f->pix->components;
+    }
+    return NULL;
 }
+
 /****i* pptsupport/PutPixel ******************************************
 *
 *   NAME
@@ -860,6 +878,7 @@ SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
 *
 *   SYNOPSIS
 *       PutPixel( frame, row, column, item );
+*                 A0     D0   D1      A1
 *
 *   FUNCTION
 *
@@ -879,31 +898,21 @@ SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
 *
 ******************************************************************************
 *
+*   Note: data is copied.
 */
 
 
 SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD column,
-                          REG(d2) ULONG r, REG(d3) ULONG g,  REG(d4) ULONG b,
+                          REG(a1) APTR data,
                           REG(a6) EXTBASE *xd )
 {
-    ULONG addr;
-    UBYTE *t;
-    VMHANDLE *vmh = f->pix->vmh;
+    ROWPTR cp;
 
-    addr = row * ROWLEN(f->pix) + column;
-
-    if(addr < vmh->begin + VM_SAFEBOUNDARY)
-        LoadVMData( vmh, addr, xd );
-    else if(addr > vmh->end - VM_SAFEBOUNDARY)
-        LoadVMData( vmh, addr, xd );
-
-    t = (UBYTE *) ((addr - vmh->begin) + (ULONG)vmh->data);
-    *t = (UBYTE)r;
-    t++;
-    *t = (UBYTE)g;
-    t++;
-    *t = (UBYTE)b;
-    t++;
+    if(cp = GetPixelRow( f, row, xd )) {
+        cp += column*f->pix->components;
+        memmove( cp, data, f->pix->components );
+        PutPixelRow( f, row, cp, xd );
+    }
 }
 
 
@@ -1085,6 +1094,8 @@ SAVEDS ASM VOID InitProgress( REG(a0) FRAME *f,
     D(bug("InitProgress('%s',%lu,%lu)\n",txt,min,max));
 
     if(!CheckPtr(f,"InitProgress: frame")) return;
+
+    if( IsPreview(f) ) return;
 
     LOCK(f);
     f->progress_min = min;
@@ -1290,6 +1301,8 @@ SAVEDS ASM  VOID UpdateProgress( REG(a0) FRAME *f,
     if(f) {
 
         // D(bug("Updateprogress(%s,%lu)\n",txt,done));
+
+        if( IsPreview( f ) ) return; /* No preview frames are updated */
 
         SHLOCK(f);
 
