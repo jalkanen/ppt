@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.9 $
-        $Date: 1997/05/02 15:07:14 $
+    $Revision: 3.10 $
+        $Date: 1997/05/02 16:59:55 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.9 1997/05/02 15:07:14 jj Exp $
+    $Id: ppt_real.h,v 3.10 1997/05/02 16:59:55 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -549,7 +549,6 @@ typedef struct {
     /* PRIVATE data beyond this point*/
     /*!!PRIVATE*/
     Object          *WO_main;       /* Main window object */
-    struct List     tempframes;
     struct Process  *maintask;
     struct List     scripts;
     /*!!PUBLIC*/
