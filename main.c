@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.4 1999/11/02 21:39:13 jj Exp $
+    $Id: main.c,v 6.5 1999/11/28 18:20:43 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -265,44 +265,24 @@ LONG CompareListEntryHook( REG(a0) struct Hook *hook,
 /// SetFrameStatus()
 /*
     Sets the display status on the main window.  Currently only does the
-    busy thing.
+    busy thing, if the frame is not temporary.
  */
 
 Prototype VOID SetFrameStatus( FRAME *, ULONG );
 
 VOID SetFrameStatus( FRAME *frame, ULONG status )
 {
-#if 0
-    APTR entry;
-    char name[NAMELEN+1];
-
-    LockList( framew.Frames );
-
-    if( entry = FirstEntry( framew.Frames ) ) {
-        do {
-            STRPTR s;
-
-            s = ParseListEntry( entry );
-            strncpy( name, s, NAMELEN );
-            if( strcmp(name, frame->name) == 0 ) {
-
-            }
-
-            entry = NextEntry( framew.Frames, entry );
-        } while(entry);
+    if( !frame->istemporary ) {
+        DoMainList( frame );
     }
-
-    UnlockList( framew.Frames );
-#else
-    DoMainList( frame );
-#endif
 }
 ///
 
 /// DoMainList()
 /*
     Update main window display list
-    frame = currently active frame.
+    frame = currently active frame.  This must be one of the frames
+    in the main list - otherwise an error occurs.
 */
 
 VOID DoMainList( const FRAME *frame )
@@ -2072,7 +2052,7 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
                 switch( ei->type ) {
                     case NT_LOADER:
 
-                        if(IOModuleBase = OpenModule(ext,globxd)) {
+                        if(IOModuleBase = OpenModule(ext,0L,globxd)) {
                             BOOL nofile;
                             STRPTR pat;
 
@@ -3042,6 +3022,51 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
 
             break;
 
+        case PPTMSG_GETARGSDONE:
+            if( !mymsg->frame ) break;
+
+            D(bug("\tFrame %08X reports args done\n",mymsg->frame));
+
+            ra = FindRexxWaitItem( mymsg );
+
+            switch( ((struct GetArgsMessage *)mymsg)->gam_Error ) {
+                case PERR_OK:
+                    if( ra ) {
+                        /*
+                         *  We can do this, because the rexx message is replied to
+                         *  *before* the PPT message is released.
+                         */
+
+                        ra->result = ((struct GetArgsMessage *)mymsg)->gam_Result;
+                        ra->rc = ra->rc2 = 0;
+                        D(bug("\t\tOK, result='%s'\n",ra->result));
+                    }
+                    break;
+
+                default:
+                    D(bug("\t\tFailed\n"));
+                    if( ra ) {
+                        ra->rc = -10;
+                        ra->rc2 = (LONG)GetErrorMsg( mymsg->frame, globxd );
+                    }
+                    break;
+            }
+
+            /*
+             *  Cleanup, the dummy frame is not needed anymore.
+             */
+
+            if( mymsg->frame->istemporary ) {
+                RemFrame( mymsg->frame, globxd );
+                currframe = NULL;
+            } else {
+                ReleaseFrame( mymsg->frame );
+                SetFrameStatus( mymsg->frame, 0 );
+                currframe = mymsg->frame;
+            }
+
+            break;
+
         /*
          *  A frame has been saved. Not much to do.
          */
@@ -3070,7 +3095,6 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
                         ra->rc2 = (LONG) ErrorMsg((PERROR)mymsg->data,globxd);
                     }
                 }
-
 
                 /*
                  *  If the user changed the name, we need to refresh the
