@@ -4,14 +4,14 @@
 
     Version info for PPT.  This file is modified by IncVer.
 
-    $Id: version.h,v 1.11 1998/09/20 22:26:13 jj Exp $
+    $Id: version.h,v 1.12 1998/10/14 20:32:36 jj Exp $
 */
 
 /*------------------------------------------------------------------*/
 
-#define VERSION         "4.58"
+#define VERSION         "4.60"
 #define VERNUM          4
-#define RELEASE         "\"Cauchy-2\""
+#define RELEASE         "\"Cauchy-3\""
 
 #define COPYRIGHT       "(C) Janne Jalkanen 1996-1998"
 
