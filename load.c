@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.7 1996/11/17 22:08:30 jj Exp $
+    $Id: load.c,v 1.8 1996/11/23 00:44:29 jj Exp $
 
     Code for loaders...
 */
@@ -529,130 +529,6 @@ errexit:
 
     return res;
 }
-
-
-/****i* pptsupport/BeginLoad ******************************************
-*
-*   NAME
-*       BeginLoad -- Initialize frame for loading.
-*
-*   SYNOPSIS
-*       error = BeginLoad( frame );
-*       D0                 A0
-*
-*       PERROR BeginLoad( FRAME * );
-*
-*   FUNCTION
-*       When your loader code is called, PPT will allocate an empty FRAME
-*       structure for you. However, it does not know how large the picture
-*       is going to be, so it expects you to fill in the necessary data
-*       and then call BeginLoad() so that PPT can initialize all necessary
-*       internal data structures like virtual memory.
-*
-*       Even if you're not handling image data yet, note that the
-*       machine will die if you try to call any other frame handling
-*       function except for SetErrorCode() / SetErrorMsg() before
-*       calling this function.
-*
-*   INPUTS
-*       frame - a FILLED FRAME structure for which the loading is about
-*           to commence.
-*
-*   RESULT
-*       error - a standard PPT error code. PERR_OK for A-OK.
-*
-*   EXAMPLE
-*
-*   NOTES
-*       THIS ROUTINE IS OBSOLETE!  Use plain InitFrame() instead!
-*       MAY BE REMOVED IN V2!
-*
-*   BUGS
-*
-*   SEE ALSO
-*       EndLoad().
-*
-******************************************************************************
-*
-*/
-
-SAVEDS ASM PERROR BeginLoad( REG(a0) FRAME *frame, REG(a6) EXTBASE *xd )
-{
-    APTR SysBase = xd->lb_Sys;
-    int res;
-
-    D(bug("BeginLoad( %08X )\n",frame));
-
-    /*
-     *  Initialize the frame
-     */
-
-    if( (res = InitFrame( frame, xd )) != PERR_OK) {
-        D(bug("\tInitFrame() failed, returning %lu\n",res));
-        return res;
-    }
-
-    /*
-     *  Update Info window
-     */
-
-    LOCK(frame);
-    frame->disp->depth = frame->pix->origdepth;
-    if(frame->disp->depth > 8) frame->disp->depth = 8;
-    frame->disp->ncolors = 1 << frame->disp->depth;
-    UNLOCK(frame);
-
-    UpdateInfoWindow( frame->mywin, xd );
-
-    return PERR_OK;
-}
-
-/****i* pptsupport/EndLoad ******************************************
-*
-*   NAME
-*       EndLoad -- Finish up loading a frame.
-*
-*   SYNOPSIS
-*       EndLoad( frame )
-*                A0
-*
-*       VOID EndLoad( FRAME * );
-*
-*   FUNCTION
-*       After you have finished your loading, you should call this
-*       routine. It does not matter whether your loading failed or
-*       not, just call it so that PPT knows about it.
-*
-*       Note that you shall not call any PPT routines except
-*       for SetErrorCode() / SetErrorMsg() after calling this
-*       function!
-*
-*   INPUTS
-*       frame - obvious?
-*
-*   RESULT
-*
-*   EXAMPLE
-*
-*   NOTES
-*       THIS ROUTINE IS OBSOLETE!  DO NOT USE, IT WILL BE REMOVED
-*       IN V2.
-*
-*   BUGS
-*
-*   SEE ALSO
-*       BeginLoad().
-*
-******************************************************************************
-*
-*/
-
-SAVEDS ASM VOID EndLoad( REG(a0) FRAME *frame, REG(a6) EXTBASE *xd )
-{
-    D(bug("EndLoad(%08X)\n",frame));
-}
-
-
 
 /*
     This routine loads external modules to the system. You should give it
