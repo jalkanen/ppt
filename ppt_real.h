@@ -2,19 +2,19 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.12 $
-        $Date: 1997/05/27 22:21:40 $
+    $Revision: 3.13 $
+        $Date: 1997/06/07 21:17:13 $
       $Author: jj $
 
     Main definitions for PPT.
 
-    This file is (C) Janne Jalkanen 1994-1996.
+    This file is (C) Janne Jalkanen 1994-1997.
 
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.12 1997/05/27 22:21:40 jj Exp $
+    $Id: ppt_real.h,v 3.13 1997/06/07 21:17:13 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -243,13 +243,21 @@ typedef struct {
                     width;
 
     UBYTE           colorspace; /* See below.  */
-    UBYTE           components; /* Amount of components: 3 for fullcolor, 1 for grayscale */
-    UBYTE           origdepth;  /* Original depth information */
+    UBYTE           components; /* Amount of components: 4 for ARGB,
+                                   3 for fullcolor, 1 for grayscale */
+    UBYTE           origdepth;  /* Original depth information. */
+
     UBYTE           bits_per_component; /* Currently 8 */
 
-    UWORD           DPIX, DPIY; /* Dots per inch. Not used currently. */
-    UWORD           XAspect,    /* Pixel X and Y aspect ratio */
-                    YAspect;
+    UWORD           DPIX, DPIY; /* Dots per inch.  Use these to signify the
+                                   aspect ratio of the image.  If you do not
+                                   know the DPI values, use 72 as the base value,
+                                   as this is a common guess for an image to
+                                   be shown on a computer screen.  It is safe
+                                   to put zero in either of the locations (which
+                                   signifies 1:1 aspect ratio.) */
+
+    ULONG           private1;   /* Private data. */
 
     ULONG           bytes_per_row; /* Amount of bytes / pixel row. */
 
@@ -272,6 +280,7 @@ typedef struct {
 #define CS_UNKNOWN          0   /* Not known at this time */
 #define CS_GRAYLEVEL        1   /* 8bit graylevel data */
 #define CS_RGB              2   /* 24 bit RGB data */
+#define CS_LUT              3   /* Color lookup table.  DO NOT USE! */
 #define CS_ARGB             4   /* 32 bit ARGB data */
 
 /* Flag definitions for PPTX_ColorSpaces.  Please note that CSF_LUT
@@ -279,15 +288,19 @@ typedef struct {
    reduced image can be saved. */
 
 #define CSF_NONE            0x00   /* Use this to signify nothing is understood*/
-#define CSF_UNKNOWN         0x01   /* Dummy. Not used. */
-#define CSF_GRAYLEVEL       0x02
-#define CSF_RGB             0x04
-#define CSF_LUT             0x08
-#define CSF_ARGB            0x10
+#define CSF_UNKNOWN         (1<<CS_UNKNOWN)   /* Dummy. Not used. */
+#define CSF_GRAYLEVEL       (1<<CS_GRAYLEVEL)
+#define CSF_RGB             (1<<CS_RGB)
+#define CSF_LUT             (1<<CS_LUT)
+#define CSF_ARGB            (1<<CS_ARGB)
 
 /*
     The display structure contains necessary info to open a given
     screen/display.
+
+    This structure is READ ONLY!  And most of the time, nothing very
+    useful is in it, anyway...  Use only, if you really need the information,
+    for example in a saver module.
 
     !!PRIVATE
     NOTE: Do not keep here anything that is not shared between
@@ -305,7 +318,7 @@ typedef struct {
     UWORD           height,width;  /* Sizes. */
     ULONG           dispid;     /* Standard display ID */
     ULONG           ncolors;    /* Number of colors. May be somewhere between 2...depth */
-    UWORD           type;       /* See below. */
+    UWORD           type;       /* PRIVATE */
     UWORD           depth;      /* The depth the screen should use */
 
     /* All fields below this point are PRIVATE */
@@ -391,9 +404,9 @@ typedef struct Frame_t {
     struct Node     nd;             /* PRIVATE! */
     char            path[MAXPATHLEN];/* Just the path-part.*/
     char            name[NAMELEN];  /* The name of the frame, as seen in main display */
-    struct Process  *currproc;      /* Points to current owning process */
-    PIXINFO         *pix;           /* Picture data */
-    DISPLAY         *disp;          /* This is the display window */
+    struct Process  *currproc;      /* Points to current owning process. */
+    PIXINFO         *pix;           /* Picture data.  See above. */
+    DISPLAY         *disp;          /* This is the display window. See above. */
     struct Rectangle selbox;        /* This contains the area currently selected. */
 
     /* All data beyond this point is PRIVATE! */
@@ -483,6 +496,12 @@ typedef struct Frame_t {
  */
 
 typedef struct {
+    /*
+     *  NB:  The TextAttr pointers below may very well be NULL, in which
+     *       case the user has not set a preference and you should use the
+     *       default screen font.
+     */
+
     struct TextAttr *mainfont;
     struct TextAttr *listfont;
 
@@ -542,13 +561,15 @@ typedef struct {
     struct SignalSemaphore phore;   /* Must be locked if you read the struct! */
     DISPLAY         *maindisp;      /* Main display data. */
     PREFS           *userprefs;     /* Currently applicable preferences */
-    struct MsgPort  *mport;         /* Main message port for programs to call in. */
+    struct MsgPort  *mport;         /* Main message port for externals to call in. */
+
+    /* PRIVATE data beyond this point*/
+    /*!!PRIVATE*/
+
     struct List     frames,
                     loaders,
                     effects;
 
-    /* PRIVATE data beyond this point*/
-    /*!!PRIVATE*/
     Object          *WO_main;       /* Main window object */
     struct Process  *maintask;
     struct List     scripts;
@@ -611,7 +632,9 @@ typedef struct ExtBase {
 
     /*!!PUBLIC*/
 
-/* PPT hyper-private experimental fields start here. Don't even think about reading. */
+/* PPT hyper-private experimental fields start here. Don't even think about reading.
+   See?  Now the system is in a completely unstable state and may crash any time.
+   Your fault! */
 
     /*!!PRIVATE*/
     struct Device   *lb_Timer;
@@ -652,13 +675,16 @@ struct LocaleString {
 #define GTAGBASE                ( TAG_USER + 10000 )
 
 /*
-    External info tags. These tags can be found in the external's tagarray
-    that describes the external. These are common for both loaders and
-    filters.
-*/
+ *  External info tags. These tags can be found in the external's tagarray
+ *  that describes the external. These are common for both loaders and
+ *  filters.
+ *
+ *  More information about the different tags can be found in the
+ *  file 'tags.doc'
+ */
 
-#define PPTX_Version            ( GTAGBASE + 1 ) /* UWORD */
-#define PPTX_Revision           ( GTAGBASE + 2 ) /* UWORD */
+#define PPTX_Version            ( GTAGBASE + 1 ) /* UWORD. OBSOLETE */
+#define PPTX_Revision           ( GTAGBASE + 2 ) /* UWORD. OBSOLETE */
 #define PPTX_Name               ( GTAGBASE + 4 ) /* UBYTE * */
 #define PPTX_CPU                ( GTAGBASE + 5 ) /* UWORD, see execbase.h */
 #define PPTX_InfoTxt            ( GTAGBASE + 7 ) /* STRPTR */
@@ -671,7 +697,7 @@ struct LocaleString {
 
 
 /*
-    Loader specifig tags
+ *  Loader specifig tags
  */
 
 #define PPTX_Load               ( GTAGBASE + 101 ) /* BOOL */
@@ -680,7 +706,7 @@ struct LocaleString {
 #define PPTX_PostFixPattern     ( GTAGBASE + 107 ) /* STRPTR */
 
 /*
-    Effect specific tags
+ *  Effect specific tags
  */
 
 #define PPTX_EasyExec           ( GTAGBASE + 201 ) /* FPTR. OBSOLETE */
@@ -689,7 +715,7 @@ struct LocaleString {
 
 
 /*
-    These tags can be passed to externals upon execution.
+ *  These tags can be passed to externals upon execution.
  */
 
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
