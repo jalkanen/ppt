@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 6.4 1999/11/28 18:18:22 jj Exp $
+#       $Id: dmakefile,v 6.5 1999/12/27 21:57:23 jj Exp $
 #
 #####################################################################
 #
@@ -177,10 +177,11 @@ SRCS = initexit.c \
        render.c preview.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c ppt_cat.c \
        askreq.c gui.c extensions.c dropareaclass.c renderareaclass.c colors.c \
-       getargs.c
+       getargs.c \
+       rectangleselect.c pointselect.c ellipseselect.c freeselect.c
 
 # These are compiled with profiling on
-PROFSRCS = dummy.c rectangleselect.c ellipseselect.c pointselect.c freeselect.c
+PROFSRCS = dummy.c
 
 # These are not compiled with optimization on.
 
