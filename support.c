@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.5 1999/08/01 16:50:04 jj Exp $
+    $Id: support.c,v 6.0 1999/09/05 16:17:56 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -121,6 +121,10 @@ APTR ExtLibData[] = {
     CloseProgress,
     SetRexxVariable,
 
+    /* Start of V6 additions */
+
+    SPrintFA,
+
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
 ///
@@ -207,7 +211,7 @@ VOID OpenExtCatalog( EXTERNAL *ext, STRPTR builtin,
     CloseExtCatalog( ext, ExtBase ); /* Does no harm */
 
     if( LocaleBase && ExtBase->extcatalog == NULL ) {
-        sprintf( buf, "externals/%s.catalog", ext->nd.ln_Name );
+        sprintf( buf, "modules/%s.catalog", ext->nd.ln_Name );
         ExtBase->extcatalog = OpenCatalogA( NULL, (STRPTR) buf, tags );
     }
 
@@ -349,6 +353,67 @@ ULONG SAVEDS ASM TagData( REGPARAM(d0,Tag,value),
     APTR UtilityBase = ExtBase->lb_Utility;
 
     return(GetTagData(value,0L,list));
+}
+///
+/// SPrintF()
+/****u* pptsupport/SPrintF ******************************************
+*
+*   NAME
+*       SPrintF -- Print characters into a buffer. (V6)
+*
+*   SYNOPSIS
+*       n = SPrintF( buffer, format, ... )
+*       D0           A0      A1
+*
+*       n = SPrintFA( buffer, format, args )
+*       D0            A0      A1      A2
+*
+*       ULONG SPrintF( STRPTR, STRPTR, ... );
+*
+*       ULONG SPrintFA( STRPTR, STRPTR, APTR );
+*
+*   FUNCTION
+*       Works like sprintf().  This uses ANSI functions, NOT
+*       exec.library/RawDoFmt().  Floating point is also supported.
+*
+*   INPUTS
+*       buffer - buffer to which characters are written.  Make sure
+*           it is big enough.
+*
+*       format - string of formatting characters.
+*
+*       args - arguments for the format string.
+*
+*   RESULT
+*       n - number of characters written.
+*
+*   EXAMPLE
+*
+*   NOTES
+*
+*   BUGS
+*
+*   SEE ALSO
+*       sprintf()
+*
+*****************************************************************************
+*
+*/
+
+Prototype ULONG ASM SPrintFA( REGDECL(a0,STRPTR), REGDECL(a1,STRPTR), REGDECL(a2,APTR), REGDECL(a6,EXTBASE *) );
+
+ULONG SAVEDS ASM SPrintFA( REGPARAM(a0,STRPTR,buffer),
+                           REGPARAM(a1,STRPTR,format),
+                           REGPARAM(a2,APTR,args),
+                           REGPARAM(a6,EXTBASE *,ExtBase) )
+{
+    ULONG res;
+
+    D(bug("SprintFA( fmt='%s', args=0x%X )\n",format, args));
+    res = vsprintf( buffer, format, args );
+    D(bug("  buffer = '%s'\n",buffer));
+
+    return res;
 }
 ///
 
