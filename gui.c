@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.61 1999/01/13 22:56:23 jj Exp $
+    $Id: gui.c,v 1.62 1999/02/14 19:39:28 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1153,11 +1153,13 @@ VOID CheckColorPreview( DISPLAY *disp )
 {
     ULONG disable, check, depth = disp->depth;
 
+#if 0
     if( CyberGfxBase ) {
         if( IsCyberModeID( disp->dispid ) ) {
             depth = GetCyberIDAttr( CYBRIDATTR_DEPTH, disp->dispid );
         }
     }
+#endif
 
     if( depth < 5 ) {
         disable = TRUE;
@@ -1444,11 +1446,20 @@ Object *GimmePrefsWindow( VOID )
                                                 EndObject, FixMinHeight,
                                             EndMember,
                                             StartMember,
-                                                HGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                                                HGroupObject, WideSpacing, NormalHOffset, NormalVOffset,
                                                     StartMember,
                                                         prefsw.ColorPreview = CheckBoxObject, GA_ID, GID_PW_COLORPREVIEW,
                                                             ULabel("_Color preview?"),
                                                             GA_Selected, globals->userprefs->colorpreview,
+                                                            ButtonFrame,
+                                                            BT_HelpHook, &HelpHook,
+                                                            BT_HelpNode, "PPT.guide/MainScreen",
+                                                        EndObject, FixMinSize,
+                                                    EndMember,
+                                                    StartMember,
+                                                        prefsw.DitherPreview = CheckBoxObject, GA_ID, GID_PW_DITHERPREVIEW,
+                                                            ULabel("Dither preview?"),
+                                                            GA_Selected, globals->userprefs->ditherpreview,
                                                             ButtonFrame,
                                                             BT_HelpHook, &HelpHook,
                                                             BT_HelpNode, "PPT.guide/MainScreen",
