@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.6 1998/06/30 20:00:23 jj Exp $
+    $Id: frame.c,v 4.7 1998/08/23 23:14:55 jj Exp $
 
     This contains frame handling routines
 
@@ -104,8 +104,13 @@ BOOL ObtainFrame( REG(a0) FRAME *frame, REG(d0) ULONG method )
     APTR SysBase = SYSBASE();
     FRAME *cur;
     BOOL res = FALSE;
+    D(int dbg_i)
+    D(static int dbg_cnt = 0)
 
-    D(bug("ObtainFrame( %08X [%s], %lu )...",frame, frame->name, method));
+    D(for(dbg_i=0;dbg_i<dbg_cnt;dbg_i++) { bug("\t"); });
+    D(bug("ObtainFrame(%08X [%s], method=%lu)\n",
+           frame, frame->name, method));
+    D(dbg_cnt++);
 
     if(!CheckPtr( frame, "ObtainFrame()" ))
         return FALSE;
@@ -151,14 +156,15 @@ gotcha:
 
     frame->busy = method;
     frame->busycount++;
-    D(bug("(%d)",frame->busycount));
     res = TRUE;
 
 errorexit:
     QUNLOCK(frame);
 
+    D(dbg_cnt--);
+    D(for(dbg_i=0;dbg_i<dbg_cnt;dbg_i++) { bug("\t"); })
     if( res ) {
-        D(bug("done\n"));
+        D(bug("done (count = %ld)\n",frame->busycount));
     } else {
         D(bug("failed\n"));
     }
@@ -208,8 +214,12 @@ BOOL ReleaseFrame( REG(a0) FRAME *frame )
 {
     APTR SysBase = SYSBASE();
     FRAME *cur;
+    D(int dbg_i)
+    D(static int dbg_cnt = 0)
 
-    D(bug("ReleaseFrame( %08X [%s] )...",frame, frame->name ));
+    D(for(dbg_i=0;dbg_i<dbg_cnt;dbg_i++) { bug("\t"); });
+    D(bug("ReleaseFrame( %08X [%s] )\n",frame, frame->name ));
+    D(dbg_cnt++);
 
     if(frame == NULL) return FALSE;
 
@@ -248,11 +258,11 @@ BOOL ReleaseFrame( REG(a0) FRAME *frame )
         frame->currproc = NULL;
     }
 
-    D(bug("(%d)", frame->busycount ));
-
     QUNLOCK(frame);
 
-    D(bug(" done\n"));
+    D(dbg_cnt--);
+    D(for(dbg_i=0;dbg_i<dbg_cnt;dbg_i++) { bug("\t"); });
+    D(bug("done (count = %ld)\n", frame->busycount));
 
     return TRUE;
 }
@@ -292,6 +302,17 @@ BOOL ChangeBusyStatus( FRAME *frame, ULONG mode )
     return TRUE;
 }
 
+VOID CopyBusyStatus( FRAME *source, FRAME *dest )
+{
+    SHLOCK(source);
+    LOCK(dest);
+
+    dest->busy      = source->busy;
+    dest->busycount = source->busycount;
+
+    UNLOCK(dest);
+    UNLOCK(source);
+}
 
 /*
     A stupid routine to reset any shared variables a frame may
@@ -623,6 +644,17 @@ PERROR DoReplaceFrame( FRAME *old, FRAME *new )
         new->zoombox.Width  = new->pix->width;
         new->zoombox.Top    = new->zoombox.Left = 0;
     }
+
+    /*
+     *  Busy status must be initialized, too, since it may have
+     *  changed after DupFrame(), and we'll be using it anyway.
+     */
+
+    CopyBusyStatus( old, new );
+
+    /*
+     *  Windows
+     */
 
     iw = new->mywin = old->mywin;
     if(iw) {
