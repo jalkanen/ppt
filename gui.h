@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.33 1998/12/15 23:17:11 jj Exp $
+    $Id: gui.h,v 1.34 1998/12/20 19:10:35 jj Exp $
 */
 
 #ifndef GUI_H
@@ -32,8 +32,14 @@
 #include "dropareaclass.h"
 #endif
 
+#include "toolbar.h"
+
 #ifndef FLOATGADGET_H
 #include "floatgadget/floatgadget.h"
+#endif
+
+#ifndef INTUITION_ICCLASS_H
+#include <intuition/icclass.h>
 #endif
 
 /*------------------------------------------------------------------*/
@@ -169,6 +175,10 @@ struct PrefsWindow {
                     *MainFont, *ListFont, *DispName, *ColorPreview,
                     *MaxUndo, *FlushLibs, *ExtNiceVal, *ExtNiceValI,
                     *ExtPriority, *ExtPriorityI, *PreviewMode, *Confirm;
+
+    Object          *AvailButtons, *ToToolbar, *FromToolbar,
+                    *ToolbarList, *ToolItemType, *ToolItemFile,
+                    *ToolItemFileGroup;
 
     Object          *Save, *Use, *Cancel;
 };
@@ -379,6 +389,13 @@ extern const ULONG dpcol_fl2sl[];
 #define GID_PW_EXTPRIORITY  (PGIDB + 21)
 #define GID_PW_PREVIEWMODE  (PGIDB + 22)
 #define GID_PW_CONFIRM      (PGIDB + 23)
+#define GID_PW_AVAILBUTTONS (PGIDB + 24)
+#define GID_PW_TOTOOLBAR    (PGIDB + 25)
+#define GID_PW_FROMTOOLBAR  (PGIDB + 26)
+#define GID_PW_TOOLBARLIST  (PGIDB + 27)
+#define GID_PW_TOOLITEMTYPE (PGIDB + 28)
+#define GID_PW_TOOLITEMFILE (PGIDB + 29)
+#define GID_PW_GETTOOLITEMFILE (PGIDB + 30)
 
 /* Filter window */
 #define FGIDB               (4000)
