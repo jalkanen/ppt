@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.55 1998/10/14 20:33:20 jj Exp $
+    $Id: display.c,v 1.56 1998/11/08 00:43:02 jj Exp $
 
     Contains display routines.
 
@@ -1595,9 +1595,9 @@ PERROR OpenDisplay( VOID )
 
     /* Set main screens for requesters */
 
-    if( globals->LoadFileReq ) SetAttrs( globals->LoadFileReq, ASLFR_Screen, MAINSCR, TAG_DONE );
-    if( globals->PaletteLoadReq ) SetAttrs( globals->PaletteLoadReq, ASLFR_Screen, MAINSCR, TAG_DONE );
-    if( globals->PaletteSaveReq ) SetAttrs( globals->PaletteSaveReq, ASLFR_Screen, MAINSCR, TAG_DONE );
+    if( gvLoadFileReq.Req )    SetAttrs( gvLoadFileReq.Req, ASLFR_Screen, MAINSCR, TAG_DONE );
+    if( gvPaletteOpenReq.Req ) SetAttrs( gvPaletteOpenReq.Req, ASLFR_Screen, MAINSCR, TAG_DONE );
+    if( gvPaletteSaveReq.Req ) SetAttrs( gvPaletteSaveReq.Req, ASLFR_Screen, MAINSCR, TAG_DONE );
 
     return PERR_OK;
 }
@@ -1677,55 +1677,7 @@ PERROR CloseDisplay()
     return PERR_OK;
 }
 
-/*
-    Updates the mouse location in the tool window.
-
-    BUG: Is now quite slow due to the TextExtent().
-*/
-
-Prototype VOID UpdateMouseLocation( WORD xloc, WORD yloc );
-
-VOID UpdateMouseLocation( WORD xloc, WORD yloc )
-{
-    struct IBox *ibox;
-    struct RastPort *rport;
-    char buffer[40];
-    struct TextExtent te;
-
-    if( !toolw.win ) return;
-
-    rport = toolw.win->RPort;
-
-    GetAttr(AREA_AreaBox, toolw.GO_ToolInfo, (ULONG *)&ibox );
-
-    if( xloc != -1 )
-        sprintf(buffer,"(%3d,%3d)",xloc,yloc);
-    else
-        strcpy(buffer,"(---,---)");
-
-    TextExtent(rport, buffer, strlen(buffer), &te);
-
-    /* Clear the areabox and center the text. */
-
-    EraseRect( rport, ibox->Left, ibox->Top,
-                      ibox->Left+ibox->Width-1, ibox->Top+ibox->Height-1 );
-
-    Move( rport, ibox->Left + ((ibox->Width-te.te_Width)>>1),
-                 ibox->Top - te.te_Extent.MinY + 3 );
-    SetAPen( rport, textpen );
-    Text( rport, buffer, strlen(buffer) );
-    WaitBlit(); /* Has to be done to ensure the buffer
-                   is valid through the entire blit */
-}
-
-Prototype VOID ClearMouseLocation(VOID);
-
-VOID ClearMouseLocation(VOID)
-{
-    UpdateMouseLocation(-1,-1);
-}
-
-
+/// StripIntuiMessages&CloseWindowSafely
 /*
     These two have been robbed straight from the RKM's and
     are included here because we use a GadTools interface
@@ -1766,6 +1718,7 @@ VOID CloseWindowSafely( struct Window *win )
         CloseLibrary(IntuitionBase);
     }
 }
+///
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
