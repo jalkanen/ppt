@@ -1,7 +1,7 @@
 ;
 ;  This is a base for the locale file for PPT
 ;
-;  $Id: ppt.cd,v 1.3 1998/07/02 22:31:00 jj Exp $
+;  $Id: ppt.cd,v 6.0 2000/01/04 21:41:22 jj Exp $
 ;
 ;
 ;
@@ -89,15 +89,6 @@ mEXTENSION_UNEDITABLE (//)
 mSELECT_SCREEN_MODE (//)
 Select screen mode
 ;
-mLOADING_IO_MODULES (//)
-Loading I/O modules...
-;
-mLOADING_EFFECTS (//)
-Loading effects...
-;
-mLOADING_SCRIPTS (//)
-Loading scripts...
-;
 mCOULD_NOT_LOCATE_ANY_LOADERS (//)
 \n033c\033b\033d8WARNING!\n\n\033n\033d2\
 I could not locate any I/O modules.  It may be\n\
@@ -109,6 +100,18 @@ mCOULD_NOT_LOCATE_ANY_EFFECTS (//)
 I could not locate any effects.  It may be\n\
 that the module directory is lost or\n\
 the internal paths are set wrong.\n
+;
+mCSPACE_GREY (//)
+Greyscale
+;
+mCSPACE_RGB (//)
+RGB
+;
+mCSPACE_COLORMAPPED (//)
+Colormapped
+;
+mCSPACE_ARGB (//)
+ARGB
 ;
 ;----------------------------------------------------------------------
 ;
@@ -157,6 +160,10 @@ Remove|Cancel
 mWHOOPS (//)
 Whoops
 ;
+mUNDERSTOOD (//)
+Understood
+;
+;
 ;-------------------------------------------------
 ; save.c
 ;
@@ -165,6 +172,46 @@ Pick format
 ;
 MSG_PICK_SAVE_MODE_LAB (//)
 Save Mode
+;
+mSAVE_MODE_LABEL_TRUECOLOR (//)
+Truecolor
+;
+mSAVE_MODE_LABEL_COLORMAP (//)
+Colormapped
+;
+mSAVE_CANCEL_GAD (//)
+Save|Cancel
+;
+mSURE_ABOUT_SAVE (//)
+\033c\nThere is already a file by this name:\n\n\
+\033i%s\033n\n\n\
+Are you sure you wish to save over it?\n
+;
+mSAVE_NO_RENDERED_IMAGE (//)
+\nYou do not have a rendered image.\n\
+Set the correct format in Render Options Menu.\n
+;
+mSAVER_CANNOT_HANDLE_CSPACE (//)
+Saver module %s does not know how \
+to handle a %s colorspace!
+;
+mIGNORE_REMOVE_SAVED_FILE (//)
+Ignore|Remove Saved File
+;
+mWARNING_FROM_SAVER (//)
+\033c\nWARNING!\n\
+While I was attempting to save '%s',\n\
+I got this warning message:\n\n\
+\033i%s\n
+;
+mERROR_FROM_SAVER (//)
+\033c\nERROR!\n\
+While I was attempting to save '%s',\n\
+I got this error message:\n\n\
+\033i%s\n
+;
+mCANNOT_REMOVE_FILE (//)
+\033cWarning:\n\nUnable to remove file\n'%s'\n
 ;
 ;---------------------------------------------------
 ;
@@ -187,6 +234,33 @@ Force B/W?
 ;
 MSG_PALETTE_LAB (//)
 Palette
+;
+mRENDER_DITHER_OFF (//)
+Off
+;
+mRENDER_PALETTE_MEDIAN_CUT (//)
+Median Cut
+;
+mRENDER_PALETTE_POPULARITY (//)
+Popularity
+;
+mRENDER_PALETTE_FORCE (//)
+Force Palette -->
+;
+mRENDER_COLOR_NORMAL (//)
+Normal Color
+;
+mRENDER_COLOR_EHB (//)
+Extra Half-Brite
+;
+mRENDER_COLOR_HAM (//)
+HAM
+;
+mRENDER_COLOR_HAM8 (//)
+HAM8
+;
+mRENDER_DITHER_ORDERED (//)
+Ordered
 ;
 ;----------------------------------------------------
 ;
@@ -345,6 +419,9 @@ Soft Error: Everything was really OK?!?\n\
 (If you see this message, there's a bug in PPT\n\
 which needs to be reported!\n
 ;
+MSG_PERR_UNKNOWNCSPACE (//)
+Unknown colorspace!
+;
 ;---------------------------------------------------------------------------
 ;
 ; Miscallaneous
@@ -450,6 +527,9 @@ Saving palette...
 mCANNOT_OPEN_IFF_FILE (//)
 \nCannot open IFF file!\n
 ;
+mPALETTE_REMAP_GAD (//)
+Remap
+;
 ;---------------------------------------------------------------------------
 ;
 ;  rendermod.c
@@ -471,7 +551,7 @@ mPPT_SOFT_ERROR (1800//)
 \033c\033bPPT Soft Error:   \n\n\033n\
 File '%s', line %ld.\n\n\
 %s\n\n\
-\033c\033iThere is really no way of telling how badly\n\
+\033k\033c\033iThere is really no way of telling how badly\n\
 the system is damaged.  If the software still\n\
 works after this, you should quit as soon as\n\
 you can and restart.  If you can duplicate this\n\
@@ -493,7 +573,8 @@ error, then please submit a bug report!\n
 ;  external.c 2100->
 ;
 mEXTERNAL_INFO_FORMAT (2100//)
-\033c\033b%s v%ld.%ld\n\n\
+\033c\033b%s v%ld.%ld\n\
+\033n\033i(%s)\n\n\
 \033n%s\n\n\
 \033c\033iAuthor: %s\n
 ;
@@ -578,6 +659,39 @@ in your preferences file.  Unfortunately, that might\n\
 prevent PPT modules to work correctly, so I have set it\n\
 back to the minimum.\n
 ;
+mPREFS_PAGE_LABEL_SYSTEM (//)
+System
+;
+mPREFS_PAGE_LABEL_GUI (//)
+GUI
+;
+mPREFS_PAGE_LABEL_MISC (//)
+Misc
+;
+mPREFS_PAGE_LABEL_TOOLBAR (//)
+Toolbar
+;
+mPREFS_PREVIEW_SIZE_OFF (//)
+Off
+;
+mPREFS_PREVIEW_SIZE_SMALL (//)
+Small
+;
+mPREFS_PREVIEW_SIZE_MEDIUM (//)
+Medium
+;
+mPREFS_PREVIEW_SIZE_LARGE (//)
+Large
+;
+mPREFS_PREVIEW_SIZE_HUGE (//)
+Huge
+;
+mPREFS_TOOLBAR_TYPE_TEXT (//)
+Text
+;
+mPREFS_TOOLBAR_TYPE_IMAGE (//)
+Image
+;
 ;--------------------------------------------------------------------------
 ;
 ;   initexit.c  2600->
@@ -585,12 +699,12 @@ back to the minimum.\n
 mRETRY_IGNORE (2600//)
 Retry|Ignore
 ;
-mEXTERNAL_DIDNT_DIE (//)
+mEXIT_EXTERNAL_DIDNT_DIE (//)
 \033c\033bWARNING\n\
 \n\
 \033nExternal '%s' refused to die...\n\
 \n\
-\033iThis either means that the thread has hanged\n\
+\033i\033kThis either means that the thread has hanged\n\
 and you should reboot the machine, OR the external module\n\
 simply hasn't gotten around to checking the break signal\n\
 yet.\n
@@ -605,4 +719,376 @@ mINITBLURB2 (//)
 ;
 mINITBLURB3 (//)
 Initializing...
+;
+mINIT_PPT_ALREADY_RUNNING (//)
+\033c\033k\033b\nAttention!\n\n\
+\033nA copy of PPT is already running.\n\
+"At the moment you can only run one copy of PPT\n\n
+;
+mINIT_LOADING_PREFERENCES (//)
+Loading preferences...
+;
+mINIT_OPENING_DISPLAY (//)
+Opening display...
+;
+mINIT_ALLOCING_RESOURCES (//)
+Allocating resources...
+;
+mINIT_CLEANING_UP (//)
+Cleaning up...
+;
+mINIT_LOADING_IOMODULES (//)
+Loading I/O modules:
+;
+mINIT_LOADING_EFFECTS (//)
+Loading effects:
+;
+mINIT_LOADING_SCRIPTS (//)
+Loading scripts:
+;
+mINIT_CANNOT_OPEN_FONT (//)
+\nWarning: Unable to open %s, size %d\n"
+;
+mINIT_NO_PREFERRED_SCREEN (//)
+\033c\nI wasn't able to open the preferred screen\n\
+so I am falling back on defaults.  It may be\n\
+that you are running really low on CHIP ram\n\
+or something may be wrong with the preferences\n\
+settings.  Please check the PPT screen prefs!\n\
+;
+mINIT_NO_ASL_REQUESTER (//)
+\nUnable to allocate ASL requesters...\n
+;
+;---------------------------------------------------------------------
+;
+;  Menus (2700 ->)
+;  'no' means no shortcut
+;
+mMENU_PROJECT (2700//)
+Project
+;
+mMENU_PROJECT_NEW (//)
+New...
+;
+mMENU_PROJECT_NEW_KEY (//)
+N
+;
+mMENU_PROJECT_OPEN (//)
+Open...
+;
+mMENU_PROJECT_OPEN_KEY (//)
+O
+;
+mMENU_PROJECT_OPENAS (//)
+Open As...
+;
+mMENU_PROJECT_OPENAS_KEY (//)
+
+;
+mMENU_PROJECT_SAVEAS (//)
+Save As...
+;
+mMENU_PROJECT_SAVEAS_KEY (//)
+U
+;
+mMENU_PROJECT_CLOSE (//)
+Close
+;
+mMENU_PROJECT_CLOSE_KEY (//)
+D
+;
+mMENU_PROJECT_RENAME (//)
+Rename...
+;
+mMENU_PROJECT_RENAME_KEY (//)
+
+;
+mMENU_PROJECT_HIDESHOW (//)
+Hide/Show
+;
+mMENU_PROJECT_HIDESHOW_KEY (//)
+H
+;
+mMENU_PROJECT_PREFERENCES (//)
+Preferences...
+;
+mMENU_PROJECT_PREFERENCES_KEY (//)
+
+;
+mMENU_PROJECT_ABOUT (//)
+About PPT...
+;
+mMENU_PROJECT_ABOUT_KEY (//)
+
+;
+mMENU_PROJECT_QUIT (//)
+Quit
+;
+mMENU_PROJECT_QUIT_KEY (//)
+Q
+;
+mMENU_EDIT (//)
+Edit
+;
+mMENU_EDIT_UNDO (//)
+Undo
+;
+mMENU_EDIT_UNDO_KEY (//)
+Z
+;
+mMENU_EDIT_CUT (//)
+Cut
+;
+mMENU_EDIT_CUT_KEY (//)
+X
+;
+mMENU_EDIT_CUTTONEW (//)
+Cut to new
+;
+mMENU_EDIT_CUTTONEW_KEY (//)
+
+;
+mMENU_EDIT_COPY (//)
+Copy
+;
+mMENU_EDIT_COPY_KEY (//)
+C
+;
+mMENU_EDIT_PASTE (//)
+Paste
+;
+mMENU_EDIT_PASTE_KEY (//)
+V
+;
+mMENU_EDIT_ZOOM_IN (//)
+Zoom In
+;
+mMENU_EDIT_ZOOM_IN_KEY (//)
++
+;
+mMENU_EDIT_ZOOM_OUT (//)
+Zoom Out
+;
+mMENU_EDIT_ZOOM_OUT_KEY (//)
+-
+;
+mMENU_EDIT_SELECT_ALL (//)
+Select All
+;
+mMENU_EDIT_SELECT_ALL_KEY (//)
+A
+;
+mMENU_EDIT_EDIT_INFO (//)
+Edit Info...
+;
+mMENU_EDIT_EDIT_INFO_KEY (//)
+Y
+;
+mMENU_DISPLAY (//)
+Display
+;
+mMENU_DISP_SETTINGS (//)
+Settings...
+;
+mMENU_DISP_SETTINGS_KEY (//)
+
+;
+mMENU_DISP_RENDER (//)
+Render
+;
+mMENU_DISP_RENDER_KEY (//)
+R
+;
+mMENU_DISP_CLOSERENDER (//)
+Close Render
+;
+mMENU_DISP_CLOSERENDER_KEY (//)
+K
+;
+mMENU_DISP_CORRECTASP (//)
+Correct Aspect
+;
+mMENU_DISP_CORRECTASP_KEY (//)
+J
+;
+mMENU_DISP_PALETTE (//)
+Palette
+;
+mMENU_DISP_PALETTE_KEY (//)
+
+;
+mMENU_DISP_PAL_EDIT (//)
+Edit...
+;
+mMENU_DISP_PAL_EDIT_KEY (//)
+G
+;
+mMENU_DISP_PAL_LOAD (//)
+Load...
+;
+mMENU_DISP_PAL_LOAD_KEY (//)
+
+;
+mMENU_DISP_PAL_SAVE (//)
+Save...
+;
+mMENU_DISP_PAL_SAVE_KEY (//)
+
+;
+mMENU_PROCESS (//)
+Process
+;
+mMENU_PROC_PROCESS (//)
+Process...
+;
+mMENU_PROC_PROCESS_KEY (//)
+P
+;
+mMENU_PROC_BREAK (//)
+Break
+;
+mMENU_PROC_BREAK_KEY (//)
+.
+;
+mMENU_WINDOW (//)
+Window
+;
+mMENU_WIN_FRAMES (//)
+Frames
+;
+mMENU_WIN_FRAMES_KEY (//)
+F
+;
+mMENU_WIN_TOOLBAR (//)
+Toolbar
+;
+mMENU_WIN_TOOLBAR_KEY (//)
+T
+;
+mMENU_WIN_SELECT (//)
+Select
+;
+mMENU_WIN_SELECT_KEY (//)
+I
+;
+mMENU_WIN_EFFECTS (//)
+Effects
+;
+mMENU_WIN_EFFECTS_KEY (//)
+E
+;
+mMENU_WIN_LOADERS (//)
+Loaders
+;
+mMENU_WIN_LOADERS_KEY (//)
+L
+;
+mMENU_WIN_SCRIPTS (//)
+Scripts
+;
+mMENU_WIN_SCRIPTS_KEY (//)
+S
+;
+mMENU_PROJECT_QUITNOSAVE (//)
+Quit, lose changes
+;
+mMENU_PROJECT_QUITNOSAVE_KEY (//)
+
+;
+;---------------------------------------------------------------------
+;
+;  load.c (2900 ->)
+;
+mLOAD_CANNOT_OPEN_FILE (2900//)
+\033c\033d8ERROR!\033d2\n\
+Failed to open file\n\
+'%s'\n\
+due to:\n\
+Error %ld %s\n"
+;
+mLOAD_NO_FILE_SPECIFIED (//)
+\033c\nYou did not specify a file!\n
+;
+mLOAD_CHECKING_FILETYPE (//)
+Checking file type...
+;
+mWARNING_FROM_LOADER (//)
+\033c\033d8WARNING!\n\n\033d2\
+A non-fatal error occurred during loading file\n\n\
+'%s'\n\n\
+and the image may be corrupted. What should I do?\n\n\
+\033i%s\n
+;
+mERROR_FROM_LOADER (//)
+\033c\033d8ERROR WHILE LOADING!\n\n\033d2\
+Loader %s reports error while reading file\n\
+'%s':\n\n\
+\033i%s\n
+;
+mLOAD_COULDNT_RECOGNIZE (//)
+\033c\nCannot recognize file\n'%s'\n
+;
+;---------------------------------------------------------------------
+;
+; Tips (3000->)
+;
+mTIP_MULTITHREAD (3000//)
+PPT is \033imultithreaded\033n, which means, that\n\
+you can apply effects to different images\n\
+at the same time.
+;
+mTIP_ANNOYINGTIPS (//)
+If you find these tips annoying, just click "Disable"\n\
+now and you won't see these again.  You can re-enable\n\
+them from the Preferences dialog.
+;
+mTIP_HOWTOSTART (//)
+Choose "Open" from "File"-menu to load an image. PPT will\n\
+automatically recognize the file and display you a quick\n\
+preview, which you can resize.
+;
+mTIP_COLORSPACES (//)
+PPT handles all images internally as full color (24 bit)\n\
+or grey scale only (8 bit).  This is why you must render\n\
+an image before you can save it in a colormapped format.
+;
+mTIP_COLORPREVIEW (//)
+If you can use a screen mode that has at least 32 colors\n\
+you can enable color previews from the Preferences dialog.\n\
+Otherwise you will see a grey scale preview only.
+;
+mTIP_DITHERING (//)
+Dithering means that we try to fake colors that are missing\n\
+by combining other colors.  If your images look blocky\n\
+after rendering or in the preview window, you should enable\n\
+dithering (see Display Preferences or Preferences-dialogs).
+;
+mTIP_DOUBLECLICK (//)
+In most places, double-clicking a list entry is the same as\n\
+doing the most obvious action.  Double-clicking an effect\n\
+for example, is the same as clicking it and then clicking\n\
+"Execute"\n
+;
+mTIP_PREFERENCES (//)
+When you quit PPT, the current preferences are saved and\n\
+window locations are snapshot.  However, if you use\n\
+\033bProject/Quit, lose changes\033n, the preferences are not saved.
+;
+mTIP_CONTROLDRAGGING (//)
+When you have selected an area with the left mouse button,\n\
+control-click on the selection in order to move it around.
+;
+mTIP_WELCOME (//)
+Thank you for trying out PPT!  PPT is an image processing program,\n\
+that has been released as freeware for the benefit\n\
+of the entire Amiga community.\n\
+\n\
+These tips will give you some advice on how to proceed,\n\
+and how to get the most out of PPT.  Start by clicking\n\
+"Next tip", below.
+;
+mTIP_COPY_PASTE (//)
+When you copy and paste, remember that only the area you have\n\
+selected is affected.  So, don't forget to Select All if you\n\
+want to paste to a frame where you have a selection done!
 ;
