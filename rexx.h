@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : rexx.h
 
-    $Id: rexx.h,v 1.4 1996/12/08 20:27:44 jj Exp $
+    $Id: rexx.h,v 1.5 1998/06/28 23:11:52 jj Exp $
 
     Definitions for AREXX port.
 */
@@ -74,6 +74,7 @@ typedef struct {
     FRAME  *frame;
     struct RexxMsg *msg;
     struct Stem *stem; /* NULL, if it was not needed. */
+    APTR   process_args; /* Holds the argument string for the process command */
 } REXXARGS;
 
 
