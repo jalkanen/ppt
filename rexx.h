@@ -2,6 +2,8 @@
     PROJECT: PPT
     MODULE : rexx.h
 
+    $Id: rexx.h,v 1.2 1996/08/28 18:37:16 jj Exp $
+
     Definitions for AREXX port.
 */
 
