@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.7 1997/05/02 17:00:54 jj Exp $
+    $Id: load.c,v 2.8 1997/05/06 00:02:45 jj Exp $
 
     Code for loaders...
 */
@@ -40,7 +40,7 @@
 /*---------------------------------------------------------------------*/
 /* Prototypes */
 
-Local     PERROR         DoTheLoad( FRAME *, EXTBASE *, char *, char *, char * );
+Local     PERROR         DoTheLoad( FRAME *, EXTBASE *, char *, char *, char *, BOOL );
 Prototype PERROR         FetchExternals(const char *path, UBYTE type);
 Prototype ASM PERROR     BeginLoad( REG(a0) FRAME *,  REG(a6) EXTBASE * );
 Prototype ASM VOID       EndLoad( REG(a0) FRAME *, REG(a6) EXTBASE * );
@@ -187,7 +187,7 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
     sprintf(argbuf,"%lu PATH=\"%s\" NAME=\"%s\"",frame,frame->path, frame->name);
 
     if(argstr) {
-        sprintf(t," ARGS=\"%s\"",argstr);
+        sprintf(t," %s",argstr);
         strcat( argbuf, t );
     }
 
@@ -409,6 +409,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
     char *path = NULL, *name = NULL, *loadername = NULL;
     int res = PERR_GENERAL;
     ULONG *optarray = NULL;
+    BOOL rexx;
 
     D(bug("LoadPicture(%s)\n",argstr));
 
@@ -421,7 +422,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K", xd ) ) {
+    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K,REXX/S", xd ) ) {
         frame = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) /* A path was given */
             path = (UBYTE *)optarray[1];
@@ -432,6 +433,8 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
         if(optarray[3]) /* The loader type was given */
             loadername = (UBYTE *)optarray[3];
 
+        rexx = (BOOL)optarray[5];
+
     } else {
         InternalError( "LoadPicture(): REXX message of incorrect format" );
         goto errorexit;
@@ -441,7 +444,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
 
     DOSBase = xd->lb_DOS;
 
-    res = DoTheLoad( frame, xd, path, name, loadername );
+    res = DoTheLoad( frame, xd, path, name, loadername, rexx );
 
 errorexit:
     if(optarray)
@@ -468,7 +471,7 @@ errorexit:
 */
 
 Local
-PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername )
+PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername, BOOL rexx )
 {
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
     BPTR fh = NULL;
@@ -631,7 +634,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                         D(bug("Loader reports error\n"));
 
                         if( frame->doerror && frame->errorcode != PERR_CANCELED
-                            && frame->errorcode != PERR_BREAK ) {
+                            && frame->errorcode != PERR_BREAK && !rexx) {
 
                                 XReq(NEGNUL,NULL,
                                     ISEQ_C ISEQ_HIGHLIGHT "ERROR WHILE LOADING!\n\n" ISEQ_TEXT
