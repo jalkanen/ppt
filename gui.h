@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.36 1999/03/14 20:54:28 jj Exp $
+    $Id: gui.h,v 1.37 1999/03/31 13:23:15 jj Exp $
 */
 
 #ifndef GUI_H
@@ -16,8 +16,8 @@
 #include <libraries/bgui_macros.h>
 #endif
 
-#ifndef PRAGMAS_BGUI_PRAGMAS_H
-#include <pragmas/bgui_pragmas.h>
+#ifndef BGUI_PROTO_H
+#include <proto/bgui.h>
 #endif
 
 #ifndef CLIB_INTUITION_PROTOS_H
@@ -176,6 +176,8 @@ struct PrefsWindow {
                     *MainFont, *ListFont, *DispName, *ColorPreview,
                     *MaxUndo, *FlushLibs, *ExtNiceVal, *ExtNiceValI,
                     *ExtPriority, *ExtPriorityI, *PreviewMode, *Confirm;
+
+    Object          *EnableTips;
 
     Object          *AvailButtons, *ToToolbar, *FromToolbar,
                     *ToolbarList, *ToolItemType, *ToolItemFile,
@@ -398,6 +400,7 @@ extern const ULONG dpcol_fl2sl[];
 #define GID_PW_TOOLITEMFILE (PGIDB + 29)
 #define GID_PW_GETTOOLITEMFILE (PGIDB + 30)
 #define GID_PW_DITHERPREVIEW (PGIDB + 31)
+#define GID_PW_ENABLETIPS   (PGIDB + 32)
 
 /* Filter window */
 #define FGIDB               (4000)
@@ -533,6 +536,7 @@ extern const ULONG dpcol_fl2sl[];
 #define MID_QUIT            (MENUB + 11)
 #define MID_RENAME          (MENUB + 12)
 #define MID_NEW             (MENUB + 13)
+#define MID_QUIT_NO_SAVE    (MENUB + 14)
 
 /* Edit Menu */
 #define MID_UNDO            (MENUB + 101)
