@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.10 1997/07/12 21:51:43 jj Exp $
+    $Id: misc.h,v 1.11 1997/08/30 21:30:57 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -21,6 +21,8 @@
 
 #define ATTACH_SIMPLE       0x01
 #define ATTACH_ALPHA        0x02
+
+#define DSBF_INTERIM        (1<<0)
 
 /*------------------------------------------------------------------*/
 /* This is for memory debugging. I really would prefer Enforcer,
