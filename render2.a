@@ -2,7 +2,7 @@
 ;   PROJECT: ppt
 ;   MODULE : render2.a
 ;
-;   $Id: render2.a,v 1.3 1996/08/25 17:05:30 jj Exp $
+;   $Id: render2.a,v 1.4 1996/09/29 02:00:02 jj Exp $
 ;
 ;   Support functions for renderer. Mainly to fasten things up a bit ;)
 ;
@@ -12,6 +12,10 @@
         XDEF    @BestMatchPen4
         XDEF    @BestMatchPen8
         XDEF    @Plane2Chunk
+        XDEF    @QuickMapRow
+        XDEF    _BestMatchPen8
+        XDEF    _Plane2Chunk
+        XDEF    _QuickMapRow
 
 ;
 ; INPUTS: d0.h = r1, d0.l = g1,
@@ -26,7 +30,7 @@
 ;
 ; This code is rather time-critical, so that is why it is written in assembler.
 
-        section ,code
+        section code,code
 
 @RGBDistance:
         move.l  D7,-(A7)        ; our scratch register
@@ -75,9 +79,10 @@
 ;       D3 is trash (holds mask value);
 ;       D5 is counter
 
+_BestMatchPen8:
 @BestMatchPen8:
 
-        movem.l  D3-D7,-(A7)
+        movem.l  D2-D7,-(A7)
         move.w  #$00FF,D3       ; mask
 
 ; adjust registers for RGBDistance
@@ -137,7 +142,7 @@ __bmp8_skip
 __bmp8_quickend
         movem.l (A7)+,D0-D1
         move.w  D5,D0
-        movem.l (A7)+,D3-D7
+        movem.l (A7)+,D2-D7
         rts
 
 
@@ -246,6 +251,7 @@ __bmp4_skip
         XREF _QuickRemapTable
 ;;        XREF _QuickColorRemapTable
 
+_QuickMapRow:
 @QuickMapRow:
         movem.l D2-D7/A2-A6,-(A7)
 
@@ -312,7 +318,7 @@ maploop:
 ;
 ;  Assumes starting at leftmost edge of plane pointers.
 
-
+_Plane2Chunk:
 @Plane2Chunk:
                 movem.l d2/d3-d6/a2-a4,-(sp)
 
