@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 6.0 1999/09/05 02:20:22 jj Exp $
+    $Id: gui.c,v 6.1 1999/09/08 22:48:39 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1807,7 +1807,7 @@ Object *GimmeMainWindow( VOID )
 
 /// GimmeSelectWindow()
 
-Local UBYTE *Selectpages[] = { "Rectangle", "Circle", NULL };
+Local UBYTE *Selectpages[] = { "Rectangle", "Circle", "Free", NULL };
 
 Prototype PERROR GimmeSelectWindow(VOID);
 
@@ -2010,6 +2010,16 @@ PERROR GimmeSelectWindow(VOID)
                                         BT_HelpNode, "PPT.guide/Select",
                                     EndObject,
                                 EndMember,
+                            EndObject,
+                        PageMember,
+                            selectw.LassoFree = VGroupObject, NormalSpacing, NormalOffset,
+                                VarSpace(50),
+                                StartMember,
+                                    InfoObject,
+                                        INFO_TextFormat,"Pick points",
+                                    EndObject,
+                                EndMember,
+                                VarSpace(50),
                             EndObject,
                     EndObject, /* Page object */
                 EndMember,
