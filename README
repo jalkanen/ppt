@@ -1,0 +1,95 @@
+Short: A Modular Image Processing Package
+Author: Janne.Jalkanen@iki.fi
+Uploader: Janne.Jalkanen@iki.fi
+
+
+    PPT is a new, powerful image processing package, that boasts with the
+    following properties:
+
+    - Handles both 24 bit truecolor and 8 bit grayscale images with optional
+      alpha channel.
+
+    - Modular design, ie. you can easily add new loaders and filters to the
+      program.
+
+    - Internal multi-tasking: You can process/load/save many images at
+      the same time! No need to wait for another project to be ready!
+
+    - Unlimited (except by available memory) buffers!
+
+    - Unlimited (except by available disk space) undo!
+
+    - User configurable virtual memory (no MMU required)
+
+    - AREXX port
+
+    - Font sensitive and scalable GUI using Jan van den Baard's and Ian
+      J. Einman's BGUI package (release 41 needed)
+
+    - Quick preview window for fast updates.
+
+    - Requires OS 2.0 (V37). Yes, this is a feature :) and uses some
+      OS 3.0 (V39) features. Takes use of AGA chips if installed.  CyberGFX
+      is also supported!
+
+    - Loads following image types:
+        o IFF ILBM (1-8 bitplanes, HAM6/8, EHB, ILBM 24 bit)
+        o JPEG/JFIF (both grayscale and 24 bit.  Also progressive!)
+        o PPM/PGM types P2, P3, P5 and P6.
+        o PNG (all standard types)
+        o Compuserve GIF (both 87 and 89a formats)
+        o Targa Truevision (8,15,16,24 and 32 bit formats)
+        o YUVN
+        o Anything you have a Datatype for...
+
+    - Saves following image types:
+        o JPEG/JFIF (both grayscale and 24 bit.  Also progressive!)
+        o IFF ILBM (24 bit, 1-8 bitplanes)
+        o PPM/PGM types P5 and P6
+        o PNG (grayscale and 24 bit)
+        o Compuserve GIF (both 87 and 89a formats)
+        o Targa Truevision (24 bit)
+        o C-code
+
+    - Can do several effects (over 30 effects):
+        o AutoCrop & Crop
+        o Flip, Shift, Roll
+        o Colorspace manipulations
+        o Convolute (User-definable masks up to 7x7 size supported! Many
+          example masks included. Saving and loading custom masks.)
+        o Remove Isolated Pixels
+        o Histogram Equalization (local & global)
+        o Brightness, contrast & gamma correction
+        o Threshold
+        o Scale & Resize
+        o Image compositing
+        o Noise (many variations)
+        o Color manipulation (ColorMix, ColorChange, Extract)
+        o and many others...
+
+    This is the first public release of PPT, code-named "Cauchy".
+
+    Support information can always be found at
+
+    http://www.iki.fi/~jalkanen/PPT.html
+
+
+
+    My public PGP signature is available below.  If you use it for personal
+    communication, expect a delay of several days.  You should use this
+    to check that the PPT main program has not been tampered with.
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: PGPfreeware 5.0i for non-commercial use
+Comment: PGP 5 - Generated on an Amiga computer!
+
+mQCNAzPT6P4AAAEEAMjEbGpKD5sUnO5HWLgVdZo9V0BFnc+erGZRG2kHuieRq+2t
+KJTVS38UewQ0Y+MIcVV9I39O5Xb1D1W/b0nuHoWxXZbqn4HvX9JtajJMXG/B+ha0
+HUile71gBZaf3X8yjX8KLMwyoaXffXuDPztPcIf9KIUOGNuq/C+Hz6bVE9MRAAUT
+tCZKYW5uZSBKYWxrYW5lbiA8SmFubmUuSmFsa2FuZW5AaWtpLmZpPokAlQMFEDPT
+6P8vh8+m1RPTEQEBJ58D/2NKmvcMnLVJxSXxS9s3VEQXfZQlmCKh9pURULByWV4z
+nCaBYStwAR6mldIOWuhWxNAVDwI4IS/PDMsIdu6lUmj5T7Qd2rr0QsVo3VoT3fR0
+CnaPL5Tpv86w/1LhYt7De39w8FML6d/6ec/tk+Dz8yYD0RKSzL6wgrY7uO+Unz/2
+=phqw
+-----END PGP PUBLIC KEY BLOCK-----
+
