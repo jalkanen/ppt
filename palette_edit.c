@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : palette.c
 
-    $Id: palette_edit.c,v 1.7 1997/12/06 22:49:58 jj Exp $
+    $Id: palette_edit.c,v 1.8 1998/07/01 21:37:23 jj Exp $
 
     Palette selector and editor.
 */
@@ -99,7 +99,11 @@ PERROR OpenPaletteWindow( FRAME *frame )
 
         if( frame->pw->win == NULL ) {
 
-            SetAttrs( frame->pw->Win, WINDOW_Screen, scr, TAG_END );
+            SetAttrs( frame->pw->Win,
+                      WINDOW_Screen, scr,
+                      WINDOW_Bounds, &frame->pw->windowpos,
+                      TAG_END );
+
             frame->pw->scr        = scr;
             frame->pw->colortable = pmalloc( sizeof(COLORMAP) * 256 );
             /* BUG: should check */
@@ -125,9 +129,13 @@ VOID ClosePaletteWindow( FRAME *frame )
 {
     if(frame) {
         if( frame->pw ) {
-            DisposeObject( frame->pw->Win );
-            frame->pw->win = NULL;
-            frame->pw->Win = NULL;
+            if( frame->pw->Win ) {
+                GetAttr( WINDOW_Bounds, frame->pw->Win, (ULONG *)&frame->pw->windowpos );
+                DisposeObject( frame->pw->Win );
+                frame->pw->win = NULL;
+                frame->pw->Win = NULL;
+            }
+
             if( frame->pw->colortable ) {
                 pfree( frame->pw->colortable );
             }
