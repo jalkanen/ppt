@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.21 1997/10/26 23:08:27 jj Exp $
+    $Id: filter.c,v 1.22 1997/12/06 22:48:27 jj Exp $
 
     Code containing effects stuff.
 
@@ -187,26 +187,26 @@ PERROR ExecEasyFilter( FRAME *frame, FPTR code, EXTBASE *ExtBase )
 */
 
 Local
-FRAME *EasyFilter( FRAME *frame, EFFECT *effect, EXTBASE *xd )
+FRAME *EasyFilter( FRAME *frame, EFFECT *effect, EXTBASE *ExtBase )
 {
     FPTR X_EasyExec;
     char *X_EasyTitle, buf[80];
-    APTR UtilityBase = xd->lb_Utility;
+    APTR UtilityBase = ExtBase->lb_Utility;
 
     D(bug("EasyFilter()\n"));
 
     /* Init variables */
-    sprintf(buf,"Executing %s...",effect->info.nd.ln_Name);
+    sprintf(buf,XGetStr(mEXECUTING_EASYEXEC),effect->info.nd.ln_Name);
     X_EasyExec  = (FPTR)GetTagData( PPTX_EasyExec, NULL, effect->info.tags );
     X_EasyTitle = (char *)GetTagData( PPTX_EasyTitle, (ULONG)buf,effect->info.tags);
 
     /* Execute */
 
-    InitProgress( frame, X_EasyTitle, frame->selbox.MinY, frame->selbox.MaxY, xd );
+    InitProgress( frame, X_EasyTitle, frame->selbox.MinY, frame->selbox.MaxY, ExtBase );
 
-    ExecEasyFilter( frame, X_EasyExec, xd );
+    ExecEasyFilter( frame, X_EasyExec, ExtBase );
 
-    FinishProgress( frame, xd );
+    FinishProgress( frame, ExtBase );
 
     if( frame->errorcode != PERR_OK )
         return NULL;
@@ -220,14 +220,14 @@ FRAME *EasyFilter( FRAME *frame, EFFECT *effect, EXTBASE *xd )
     happened. -1 if the user just wanted to quit...
 */
 
-EFFECT *HandleFilterIDCMP( EXTBASE *xd, struct EffectWindow *fw, ULONG rc )
+EFFECT *HandleFilterIDCMP( EXTBASE *ExtBase, struct EffectWindow *fw, ULONG rc )
 {
     APTR entry;
     EFFECT *f = NULL;
     APTR    func;
-    struct IntuitionBase *IntuitionBase = xd->lb_Intuition;
-    struct Library *UtilityBase = xd->lb_Utility;
-    struct ExecBase *SysBase = xd->lb_Sys;
+    struct IntuitionBase *IntuitionBase = ExtBase->lb_Intuition;
+    struct Library *UtilityBase = ExtBase->lb_Utility;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
     ULONG clicked, secs, ms;
 
     switch(rc) {
@@ -242,7 +242,7 @@ EFFECT *HandleFilterIDCMP( EXTBASE *xd, struct EffectWindow *fw, ULONG rc )
                 SHLOCKGLOB();
                 f = (EFFECT *) FindName( &globals->effects, entry );
                 UNLOCKGLOB();
-                ShowExtInfo( xd, &(f->info), fw->win );
+                ShowExtInfo( ExtBase, &(f->info), fw->win );
                 f = NULL; /* We don't want to quit, however */
             }
             break;
@@ -281,8 +281,8 @@ EFFECT *HandleFilterIDCMP( EXTBASE *xd, struct EffectWindow *fw, ULONG rc )
                     func = (APTR) TRUE;
                 }
 
-                XSetGadgetAttrs( xd,(struct Gadget *)fw->GO_Exec, fw->win, NULL, GA_Disabled, !func, TAG_END );
-                XSetGadgetAttrs( xd,(struct Gadget *)fw->GO_Info, fw->win, NULL, GA_Disabled, FALSE, TAG_END );
+                XSetGadgetAttrs( ExtBase,(struct Gadget *)fw->GO_Exec, fw->win, NULL, GA_Disabled, !func, TAG_END );
+                XSetGadgetAttrs( ExtBase,(struct Gadget *)fw->GO_Info, fw->win, NULL, GA_Disabled, FALSE, TAG_END );
                 UNLOCKGLOB();
 
                 f = NULL;
@@ -325,7 +325,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
     struct EffectWindow fw;
     ULONG sigmask, sig, rc, *optarray = NULL;
     int quit = 0;
-    EXTBASE *xd = NULL;
+    EXTBASE *ExtBase = NULL;
     struct Library *BGUIBase;
     struct IntuitionBase *IntuitionBase;
     struct Library *SysBase = SYSBASE();
@@ -338,7 +338,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 
     D(bug("Filter()\n"));
 
-    if( (xd = NewExtBase(TRUE)) == NULL) {
+    if( (ExtBase = NewExtBase(TRUE)) == NULL) {
         D(bug("LIB BASE ALLOCATION FAILED!\n"));
         goto errorexit;
     }
@@ -347,7 +347,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
      *  Set up variables and check for REXX command
      */
 
-    if( optarray = ParseDOSArgs( argstr, "FRAME/A/N,NAME/K,ARGS/K,REXX/S", xd ) ) {
+    if( optarray = ParseDOSArgs( argstr, "FRAME/A/N,NAME/K,ARGS/K,REXX/S", ExtBase ) ) {
         f = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) { /* A name was given */
             filname = (UBYTE *)optarray[1];
@@ -358,7 +358,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
                 char erbuf[80];
 
                 D(bug("\tFindname(%s) failed\n",filname));
-                sprintf(erbuf,"Unknown effect '%s'",filname);
+                sprintf(erbuf,XGetStr(mUNKNOWN_EFFECT),filname);
                 SetErrorMsg( f, erbuf );
                 goto errorexit;
             }
@@ -366,9 +366,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
             rexx = (BOOL)optarray[3];
         }
     } else {
-        InternalError( "Filter(): Incorrect ARGS received.\n"
-                       "If you were running a REXX script, check that all\n"
-                       "your quotes are in correct places.\n" );
+        InternalError( XGetStr(mFILTER_INCORRECT_ARGS) );
 
         /*
          *  Attempt a last, desperate extraction of the frame address
@@ -383,10 +381,10 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
     D(bug("\tFRAME = %08X EFFECT = '%s' ARGS = '%s'\n",
            f,(filname) ? (char *)filname : "NULL",(args) ? (char *)args : "NULL"));
 
-    if(NewTaskProlog(f,xd) != PERR_OK) goto errorexit;
+    if(NewTaskProlog(f,ExtBase) != PERR_OK) goto errorexit;
 
-    BGUIBase = xd->lb_BGUI;
-    IntuitionBase = xd->lb_Intuition;
+    BGUIBase = ExtBase->lb_BGUI;
+    IntuitionBase = ExtBase->lb_Intuition;
 
     /*
      *  If there was no effect sent to us, then we will ask one from the user.
@@ -398,9 +396,9 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 
         bzero(&fw, sizeof(struct EffectWindow));
 
-        win = GimmeFilterWindow( xd, f, &sigmask, &fw );
+        win = GimmeFilterWindow( ExtBase, f, &sigmask, &fw );
         if(win) {
-            AddExtEntries( xd, win, fw.GO_List, NT_EFFECT, AEE_ALL ); /* Update window display */
+            AddExtEntries( ExtBase, win, fw.GO_List, NT_EFFECT, AEE_ALL ); /* Update window display */
             while(!quit) {
                 sig = Wait(sigmask | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_F );
 
@@ -419,7 +417,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 
                 if (sig & sigmask) {
                     while ((rc = HandleEvent(fw.WO_Win)) != WMHI_NOMORE) {
-                        if( (effect = HandleFilterIDCMP( xd, &fw , rc )) != NULL)
+                        if( (effect = HandleFilterIDCMP( ExtBase, &fw , rc )) != NULL)
                             quit++;
 
                     } /* while (rc) */
@@ -428,7 +426,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
             DisposeObject(fw.WO_Win);
         } else {
             D(bug("\t\tCouldn't open effect window\n"));
-            Req(NEGNUL,NULL,"Unable to open effect window!");
+            Req(NEGNUL,NULL,XGetStr(mCOULDNT_OPEN_EFFECT_WINDOW) );
         }
     }
 
@@ -436,7 +434,7 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 
     /* Make the actual execution. */
     if(effect != NEGNUL && effect != NULL) {
-        newframe = ExecFilter(xd,f,effect,args,rexx);
+        newframe = ExecFilter(ExtBase,f,effect,args,rexx);
     }
 
     D(bug("\tFilter() done, sending message\n"));
@@ -444,25 +442,25 @@ SAVEDS ASM VOID Filter( REG(a0) UBYTE *argstr, REG(d0) ULONG len )
 errorexit:
 
     if(optarray)
-        FreeDOSArgs( optarray, xd );
+        FreeDOSArgs( optarray, ExtBase );
 
     /*
      *  Prepare to send message to main program
      */
 
-    msg = AllocPPTMsg( sizeof(struct PPTMessage), xd );
+    msg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
     msg->frame = f;
     msg->code = PPTMSG_EFFECTDONE;
     msg->data = (APTR)newframe;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, xd );
+    SendPPTMsg( globals->mport, msg, ExtBase );
 
-    WaitDeathMessage( xd );
+    WaitDeathMessage( ExtBase );
 
-    EmptyMsgPort( xd->mport, xd );
+    EmptyMsgPort( ExtBase->mport, ExtBase );
 
-    if(xd) RelExtBase(xd);
+    if(ExtBase) RelExtBase(ExtBase);
 
     /* Die. */
 }
@@ -476,15 +474,15 @@ errorexit:
  */
 
 Local
-FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL rexx )
+FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, BOOL rexx )
 {
     char *template;
     ULONG colorspaces, *argitemarray = NULL;
     struct TagItem tags[8];
     BOOL nonewframe;
     FRAME *newframe = NULL, *fr, *res = NULL;
-    struct Library *UtilityBase = xd->lb_Utility, *EffectBase = NULL;
-    struct ExecBase *SysBase = xd->lb_Sys;
+    struct Library *UtilityBase = ExtBase->lb_Utility, *EffectBase = NULL;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
     FPTR easyeffect;
 
     D(bug("ExecFilter()\n"));
@@ -495,12 +493,12 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
      */
 
     if( effect->info.islibrary ) {
-        EffectBase = OpenModule( (EXTERNAL *)effect, xd );
+        EffectBase = OpenModule( (EXTERNAL *)effect, ExtBase );
         if(!EffectBase) return NULL; // BUG: No error message
-        nonewframe  = (BOOL)EffectInquire( PPTX_NoNewFrame, xd );
+        nonewframe  = (BOOL)EffectInquire( PPTX_NoNewFrame, ExtBase );
         easyeffect  = NULL;
-        colorspaces = EffectInquire( PPTX_ColorSpaces, xd );
-        template    = (STRPTR) EffectInquire( PPTX_RexxTemplate, xd );
+        colorspaces = EffectInquire( PPTX_ColorSpaces, ExtBase );
+        template    = (STRPTR) EffectInquire( PPTX_RexxTemplate, ExtBase );
     } else {
         easyeffect = (FPTR)GetTagData( PPTX_EasyExec, NULL, effect->info.tags );
         colorspaces = GetTagData( PPTX_ColorSpaces, CSF_RGB, effect->info.tags );
@@ -513,13 +511,10 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
      */
 
     if( (colorspaces & (1 << frame->pix->colorspace)) == 0) {
-        XReq( NEGNUL, NULL, ISEQ_C"\nEffect '%s' does not have support for\n"
-                            "the %s colorspace!\n"
-                            "\n"
-                            ISEQ_N ISEQ_I"(You should change the colorspace using a suitable filter)\n",
+        XReq( NEGNUL, NULL, XGetStr(mEFFECT_DOESNT_SUPPORT_CSPACE),
                             effect->info.nd.ln_Name,
                             ColorSpaceNames[frame->pix->colorspace]);
-        if(EffectBase) CloseModule(EffectBase,xd);
+        if(EffectBase) CloseModule(EffectBase,ExtBase);
         return NULL;
     }
 
@@ -529,13 +524,13 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
      */
 
     if(template && args) {
-        if( (argitemarray = ParseDOSArgs( args, template, xd )) == NULL ) {
+        if( (argitemarray = ParseDOSArgs( args, template, ExtBase )) == NULL ) {
             char buf[256];
             // XReq( NEGNUL, NULL, "\nInvalid REXX arguments!\n" );
             // SetErrorCode( frame, PERR_INVALIDARGS );
-            sprintf(buf,"Invalid args: Expected '%s'\n", template);
+            sprintf(buf,XGetStr(mINVALID_ARGS_EXPECTED_X), template);
             SetErrorMsg( frame, buf );
-            if( EffectBase ) CloseModule(EffectBase, xd);
+            if( EffectBase ) CloseModule(EffectBase, ExtBase);
             return NULL;
         }
     }
@@ -571,7 +566,7 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
 
         if(!nonewframe) {
             D(bug("Duplicating a new frame for the program\n"));
-            fr = newframe = DupFrame( frame, DFF_COPYDATA, xd );
+            fr = newframe = DupFrame( frame, DFF_COPYDATA, ExtBase );
             if( !newframe ) {
                 goto errorexit;
             }
@@ -584,9 +579,9 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
         D(b = StartBench());
 
         if( EffectBase ) {
-            res = EffectExec( fr, &tags[0], xd );
+            res = EffectExec( fr, &tags[0], ExtBase );
         } else {
-            res = EasyFilter( fr, effect, xd );
+            res = EasyFilter( fr, effect, ExtBase );
         }
 
         D(StopBench(b));
@@ -594,9 +589,9 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
         D(bug("\tExec() returns %08X\n",res));
 
         if( fr->parent )
-            CloseInfoWindow( fr->parent->mywin, xd );
+            CloseInfoWindow( fr->parent->mywin, ExtBase );
         else
-            CloseInfoWindow( fr->mywin, xd );
+            CloseInfoWindow( fr->mywin, ExtBase );
 
         if(MasterQuit) /* In case of a master quit enabled, then go down gracefully */
             goto quit;
@@ -619,8 +614,8 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
                 if( fr->doerror &&
                     (fr->errorcode != PERR_BREAK) &&
                     (fr->errorcode != PERR_CANCELED) ) {
-                        XReq(NEGNUL,NULL,"Effect %s reports error while processing frame\n"ISEQ_C"'%s'\n\n%s",
-                            effect->info.nd.ln_Name, frame->nd.ln_Name, GetErrorMsg( fr, xd) );
+                        XReq(NEGNUL,NULL,XGetStr(mEFFECT_REPORTS_ERROR),
+                            effect->info.nd.ln_Name, frame->nd.ln_Name, GetErrorMsg( fr, ExtBase) );
                     } else {
                         D(bug("\t\tError has already been reported or it is an irrelevant one\n"));
                     }
@@ -640,17 +635,17 @@ FRAME *ExecFilter( EXTBASE *xd, FRAME *frame, EFFECT *effect, char *args, BOOL r
       quit:
         if(res == NULL && newframe) {
             D(bug("Failed, so I am removing the new frame\n"));
-            RemFrame(newframe,xd);
+            RemFrame(newframe,ExtBase);
         }
 
     }
 
-    ClearProgress( frame, xd );
+    ClearProgress( frame, ExtBase );
 
 errorexit:
-    if(EffectBase) CloseModule( EffectBase, xd );
+    if(EffectBase) CloseModule( EffectBase, ExtBase );
 
-    if(argitemarray) FreeDOSArgs( argitemarray, xd );
+    if(argitemarray) FreeDOSArgs( argitemarray, ExtBase );
     return res;
 }
 
