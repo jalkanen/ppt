@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.8 1997/08/30 21:36:33 jj Exp $
+    $Id: vm.c,v 1.9 1997/09/07 21:10:26 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -51,13 +51,6 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Prototype PERROR    LoadVMData( VMHANDLE *, ULONG, EXTBASE * );
-Prototype PERROR    SaveVMData( VMHANDLE *, ULONG, EXTBASE * );
-Prototype VMHANDLE *CreateVMData( ULONG, EXTBASE * );
-Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
-Prototype PERROR    FlushVMData( VMHANDLE *, EXTBASE * );
-Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
-Prototype PERROR    CleanVMDirectory( EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -70,6 +63,8 @@ Prototype PERROR    CleanVMDirectory( EXTBASE * );
     BUG: no error checking whatsoever.
     BUG: should really use mode OFFSET_CURRENT for speed.
 */
+
+Prototype PERROR    LoadVMData( VMHANDLE *, ULONG, EXTBASE * );
 
 PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
@@ -132,6 +127,8 @@ PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
     BUG: should really use OFFSET_CURRENT for speed
 */
 
+Prototype PERROR    SaveVMData( VMHANDLE *, ULONG, EXTBASE * );
+
 PERROR SaveVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG bufsiz,seekpos;
@@ -161,6 +158,8 @@ PERROR SaveVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
     BUG: should really observe any changes.
 */
 
+Prototype PERROR    FlushVMData( VMHANDLE *, EXTBASE * );
+
 PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
 {
     ULONG offset;
@@ -181,7 +180,9 @@ PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
     Returns NULL on failure.
 */
 
-VMHANDLE *CreateVMData( ULONG size, EXTBASE *ExtBase )
+Prototype VMHANDLE *CreateVMData( const ULONG, EXTBASE * );
+
+VMHANDLE *CreateVMData( const ULONG size, EXTBASE *ExtBase )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
@@ -279,10 +280,12 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *ExtBase )
     anything after calling this, since it is freed.
 */
 
-PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
+Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
+
+PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 {
     char vmfile[MAXPATHLEN],t[30];
-    struct DosLibrary *DOSBase = xd->lb_DOS;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
 
     D(bug("DeleteVMData()\n"));
 
@@ -317,9 +320,11 @@ PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
     BUG: Does not return a proper error value.
 */
 
-PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
+Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
+
+PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *ExtBase )
 {
-    struct DosLibrary *DOSBase = xb->lb_DOS;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     ULONG size = vmh->last;
 
     V(bug("SanitizeVMData()\n"));
@@ -330,10 +335,12 @@ PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
     Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
     vmh->begin = 0;
     vmh->end   = size;
-    LoadVMData( vmh, 0L, xb );
+    LoadVMData( vmh, 0L, ExtBase );
 
     return PERR_OK;
 }
+
+Prototype PERROR    CleanVMDirectory( EXTBASE * );
 
 PERROR CleanVMDirectory( EXTBASE *ExtBase )
 {
