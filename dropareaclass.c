@@ -5,7 +5,7 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
-    $Id: dropareaclass.c,v 1.3 1996/02/08 14:05:45 jj Exp $
+    $Id: dropareaclass.c,v 1.4 1996/08/21 10:23:19 jj Exp $
 */
 
 #include <defs.h>
@@ -26,13 +26,13 @@
 /*------------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype   Class *InitAreaClass( void );
-Prototype   BOOL FreeAreaClass( Class * );
+Prototype   Class *InitDropAreaClass( void );
+Prototype   BOOL FreeDropAreaClass( Class * );
 
 /*------------------------------------------------------------------------*/
 /* Global variables. */
 
-Class *AreaClass;
+Class *DropAreaClass;
 
 //
 //      Compiler stuff.
@@ -52,13 +52,10 @@ Class *AreaClass;
  */
 
 typedef struct {
-        UWORD           MinWidth;       // Minimum width of area.
-        UWORD           MinHeight;      // Minimum height of area.
-        struct IBox     AreaBox;        // Current area bounds.
         APTR            DropEntry;
         WORD            DropX;
         WORD            DropY;
-        BOOL            AllowDrop;
+        ULONG           AllowDrop;
 } AOD;
 
 /*
@@ -89,7 +86,7 @@ ULONG Notify( Object *obj, struct GadgetInfo *gi, ULONG flags, Tag tag1, ... )
  */
 
 Local
-SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) Msg msg )
+SAVEDS ASM ULONG DropAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) Msg msg )
 {
     AOD                     *data;
     struct TagItem          *tag, *tstate;
@@ -121,29 +118,13 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
                 tstate = OPSET( msg )->ops_AttrList;
                 while ( tag = NextTagItem( &tstate )) {
                     switch ( tag->ti_Tag ) {
-                        case    AREA_MinWidth:
-                            data->MinWidth = tag->ti_Data;
-                            break;
-                        case    AREA_MinHeight:
-                            data->MinHeight = tag->ti_Data;
-                            break;
                         case    BT_DropObject:
                             data->AllowDrop = tag->ti_Data;
                             break;
                     }
                 }
 
-                /*
-                 *      Minimal width and height required!
-                 */
-                if ( data->MinWidth && data->MinHeight )
-                    return( rc );
-
-                /*
-                 *      Fail.
-                 */
-                CoerceMethod( cl, ( Object * )rc, OM_DISPOSE );
-                rc = 0L;
+                return(rc);
             }
 
             break;
@@ -159,7 +140,7 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
 
             if( tag = FindTagItem(BT_DropObject, OPSET(msg)->ops_AttrList ) ) {
                 data = ( AOD * )INST_DATA( cl, obj );
-                data->AllowDrop = (BOOL)tag->ti_Data;
+                data->AllowDrop = tag->ti_Data;
             }
 
             break;
@@ -170,16 +151,6 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
              *      attribute?
              */
             switch( OPGET( msg )->opg_AttrID ) {
-                case AREA_AreaBox:
-                    /*
-                    *      Simply return a pointer to the
-                    *      area which is computed at rendering
-                    *      time.
-                    */
-                    data = ( AOD * )INST_DATA( cl, obj );
-                    *( OPGET( msg )->opg_Storage ) = ( ULONG )&data->AreaBox;
-                    rc = 1L;
-                    break;
 
                 case AREA_DropEntry:
                     data = ( AOD * )INST_DATA( cl, obj );
@@ -198,82 +169,6 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
                     break;
             }
 
-            break;
-
-        case    GM_RENDER:
-
-            struct IBox     *hitbox;
-            Object          *frame = NULL;
-            ULONG            fwidth, fheight;
-
-            /*
-             *      See if rendering is allowed.
-             */
-            if ( rc = DoSuperMethodA( cl, obj, msg )) {
-                /*
-                 *      Get instance data.
-                 */
-                data = ( AOD * )INST_DATA( cl, obj );
-
-                /*
-                 *      Obtain the hitbox position and
-                 *      size of the object.
-                 */
-                DoSuperMethod( cl, obj, OM_GET, BT_HitBox, &hitbox );
-
-                /*
-                 *      Copy this data to our private
-                 *      buffer.
-                 */
-                *( &data->AreaBox ) = *hitbox;
-
-                /*
-                 *      Do we have a frame?
-                 */
-                DoSuperMethod( cl, obj, OM_GET, BT_FrameObject, &frame );
-                if ( frame ) {
-                    /*
-                     *      Get frame width and height and
-                     *      adjust accoordingly.
-                     */
-                    DoMethod( frame, OM_GET, FRM_FrameWidth,  &fwidth );
-                    DoMethod( frame, OM_GET, FRM_FrameHeight, &fheight );
-
-                    data->AreaBox.Left   += fwidth;
-                    data->AreaBox.Top    += fheight;
-                    data->AreaBox.Width  -= fwidth  << 1;
-                    data->AreaBox.Height -= fheight << 1;
-
-                    /*
-                     *      Notify the main program.
-                     */
-                    Notify( obj, GPRENDER( msg )->gpr_GInfo, 0L, GA_ID, GADGET( obj )->GadgetID, TAG_END );
-                }
-            }
-            break;
-
-        case    GRM_DIMENSIONS:
-            /*
-             *    First the superclass.
-             */
-            DoSuperMethodA( cl, obj, msg );
-
-            /*
-             *    We simply add the specified minimum
-             *    width and height which are passed
-             *    to us at create time.
-             */
-            data = ( AOD * )INST_DATA( cl, obj );
-            *( GDIM( msg )->grmd_MinSize.Width  ) += data->MinWidth;
-            *( GDIM( msg )->grmd_MinSize.Height ) += data->MinHeight;
-            rc = 1L;
-            break;
-
-        case    GM_HITTEST:
-            /*
-             *      I intercept this method here to prevent
-             *      gadget clicks to be reported.
-             */
             break;
 
         case    BASE_DRAGQUERY:
@@ -335,15 +230,15 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
        so we don't need to open any special libraries.
 */
 
-Class *InitAreaClass( void )
+Class *InitDropAreaClass( void )
 {
     Class *super, *cl = NULL;
 
     /*
-     *      Obtain the BaseClass pointer which
+     *      Obtain the AreaClass pointer which
      *      will be our superclass.
      */
-    if ( super = BGUI_GetClassPtr( BGUI_BASE_GADGET )) {
+    if ( super = BGUI_GetClassPtr( BGUI_AREA_GADGET )) {
 
         /*
          *      Create the class.
@@ -352,7 +247,7 @@ Class *InitAreaClass( void )
             /*
              *      Setup dispatcher.
              */
-            cl->cl_Dispatcher.h_Entry = ( HOOKFUNC )AreaDispatch;
+            cl->cl_Dispatcher.h_Entry = ( HOOKFUNC )DropAreaDispatch;
         }
     }
     return( cl );
@@ -363,7 +258,7 @@ Class *InitAreaClass( void )
        no need to open any libraries.
 */
 
-BOOL FreeAreaClass( Class *cl )
+BOOL FreeDropAreaClass( Class *cl )
 {
     return( FreeClass( cl ));
 }
