@@ -3,6 +3,8 @@
     MODULE : save.c
 
     Code for saving pictures.
+
+    $Id: save.c,v 1.2 1995/07/23 21:26:50 jj Exp $
 */
 
 #include <defs.h>
