@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.18 1999/05/30 18:17:24 jj Exp $
+#       $Id: dmakefile,v 1.19 1999/07/12 19:57:39 jj Exp $
 #
 #####################################################################
 #
@@ -170,7 +170,7 @@ SRCS = initexit.c \
        edit.c \
        frame.c \
        main.c \
-#       select.c \
+       select.c \
        input.c \
        toolbar.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
@@ -179,7 +179,7 @@ SRCS = initexit.c \
        askreq.c gui.c extensions.c dropareaclass.c renderareaclass.c colors.c
 
 # These are compiled with profiling on
-PROFSRCS = dummy.c select.c rectangleselect.c ellipseselect.c pointselect.c
+PROFSRCS = dummy.c rectangleselect.c ellipseselect.c pointselect.c freeselect.c
 
 # These are not compiled with optimization on.
 
@@ -397,6 +397,7 @@ proto : $(SRCS) $(PROFSRCS)
 
 backup :
         lha -re u $(BACKUPDIR)ppt.lha ~((pptd|ppt|ppt020|#?.(o|lnk|gst|effect|iomod|debug|library|library_e)))
+        Copy IMPORTANT_README $(BACKUPDIR)
         @beep
 
 # RCS update
