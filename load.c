@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.11 1996/12/08 20:35:17 jj Exp $
+    $Id: load.c,v 1.12 1997/01/06 22:00:19 jj Exp $
 
     Code for loaders...
 */
@@ -31,6 +31,8 @@
 #include <clib/utility_protos.h>
 #include <clib/alib_protos.h>
 
+#include "proto/iomod.h"
+
 #include "gui.h"
 
 #include <ctype.h>
@@ -58,7 +60,7 @@ Prototype UBYTE *        AskFile( EXTBASE * );
    patterns, change PPNCBUFSIZE */
 
 const char *external_patterns[] = {
-    "#?.loader","#?.effect","#?."REXX_EXTENSION
+    "#?.(loader|iomod)","#?.effect","#?."REXX_EXTENSION
 };
 
 
@@ -251,23 +253,39 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
  */
 
 Local
-LOADER *CheckFileH( EXTBASE *xd, BPTR fh )
+LOADER *CheckFileH( EXTBASE *ExtBase, BPTR fh )
 {
     static ASM int (*L_Check)( REG(d0) BPTR, REG(a6) EXTBASE * );
     struct Node *cn;
-    APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility;
+    APTR DOSBase = ExtBase->lb_DOS, UtilityBase = ExtBase->lb_Utility;
+    struct Library *IOModuleBase = NULL;
+    ULONG res;
 
     D(bug("CheckFileH( %08X )\n",fh));
 
-
     for( cn = globals->loaders.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
-        L_Check = (FPTR)GetTagData( PPTX_Check,(ULONG)NULL,((LOADER *)cn)->info.tags );
-        if(L_Check) {
+
+        if( ((EXTERNAL *)cn)->islibrary ) {
+            IOModuleBase = OpenModule( (EXTERNAL *)cn, ExtBase );
+        } else {
+            L_Check = (FPTR)GetTagData( PPTX_Check,(ULONG)NULL,((LOADER *)cn)->info.tags );
+        }
+
+        if(L_Check || IOModuleBase) {
             Seek( fh, 0L, OFFSET_BEGINNING ); /* Ensure we are at the beginning of the file */
-            if( (*L_Check)( fh, xd ) ) {
+            if( IOModuleBase ) {
+                res = IOCheck( fh, ExtBase );
+                CloseModule( IOModuleBase, ExtBase );
+                IOModuleBase = NULL;
+            } else {
+                res = (*L_Check)( fh, ExtBase );
+            }
+
+            if(res) {
                 D(bug("\tMatch found by %s\n", cn->ln_Name ));
                 return (LOADER *)cn;
             }
+
         } else {
             D(bug("Loader %s is not able to check for data\n",cn->ln_Name));
         }
@@ -351,6 +369,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
     BPTR fh = NULL;
     auto PERROR (* ASM L_Load)( REG(a0) FRAME *, REG(d0) BPTR, REG(a6) EXTBASE *, REG(a1) struct TagItem * );
+    struct Library *IOModuleBase = NULL;
     LOADER *ld = NULL;
     UBYTE ec[80];
     BOOL res = PERR_OK;
@@ -437,8 +456,12 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
         if( ld ) {
 
             D(bug("\tRecognised file type, now loading...\n"));
-            L_Load = (FPTR)GetTagData( PPTX_Load, (ULONG)NULL, ld->info.tags );
-            if(L_Load) {
+            if( ld->info.islibrary )
+                IOModuleBase = OpenModule( ld, xd );
+            else
+                L_Load = (FPTR)GetTagData( PPTX_Load, (ULONG)NULL, ld->info.tags );
+
+            if(L_Load || IOModuleBase) {
                 D(APTR foo);
 
                 ld->info.usecount++;
@@ -449,7 +472,12 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
 
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
                 D(foo=StartBench());
-                errcode = (*L_Load)( frame, fh, xd, loadertags );
+
+                if( IOModuleBase )
+                    errcode = IOLoad( fh, frame, loadertags, xd );
+                else
+                    errcode = (*L_Load)( frame, fh, xd, loadertags );
+
                 D(StopBench(foo));
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
 
@@ -523,6 +551,8 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
     }
 
 errexit:
+
+    if( IOModuleBase ) CloseModule( IOModuleBase, xd );
 
     if( fh ) {
         Close(fh);
