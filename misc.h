@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.16 1998/06/30 19:58:22 jj Exp $
+    $Id: misc.h,v 1.17 1998/09/05 11:31:12 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -28,6 +28,10 @@
 
 #include "fortify.h"
 
+/*
+ *  Standard allocation functions for large allocations
+ */
+
 #ifdef FORTIFY
 
 #define pmalloc(x) malloc(x)
@@ -48,8 +52,17 @@ extern BOOL Debug_CheckPtr( const char *, const APTR, const char *file, int );
 
 #endif
 
+/*
+ *  Pool allocation functions.  If we're really paranoid, we will use
+ *  the fortification functions as well.
+ */
+
+#if defined(PARANOID_MALLOC) && defined(FORTIFY)
+#define smalloc(x)  malloc(x)
+#define sfree(x)    free(x)
+#else
 #define smalloc(x)  SMalloc(x)
 #define sfree(x)    SFree(x)
-
+#endif
 
 #endif /* MISC_H */
