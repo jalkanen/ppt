@@ -6,16 +6,20 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: select.c,v 1.1 1999/03/14 21:00:13 jj Exp $
+    $Id: select.c,v 1.2 1999/03/17 23:09:55 jj Exp $
 
  */
 
 #include "defs.h"
 #include "misc.h"
 
+#include <proto/timer.h>
+
 #include <math.h>
 
 #define SQR(x) ((x)*(x))
+
+#define SELBOX_REFRESH_SPEED 4      /* Times per second */
 
 #ifndef GRAPHICS_GFXMACROS_H
 #include <graphics/gfxmacros.h>
@@ -366,6 +370,91 @@ VOID DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULON
 }
 ///
 
+/// UpdateIWSelbox()
+/*
+    This routine updates the select window selected area display.
+    final == TRUE, if this is a final update.
+*/
+
+Prototype void UpdateIWSelbox( FRAME *f, BOOL final );
+
+void UpdateIWSelbox( FRAME *f, BOOL final )
+{
+    LONG tl, tr, bl, br, cx, cy, cr;
+    static struct EClockVal evold = {0};
+
+    if( !selectw.win ) return;
+
+    if( !final ) {
+        ULONG etick;
+        struct EClockVal ev;
+
+        etick = ReadEClock( &ev );
+        if( (ev.ev_lo - evold.ev_lo) < etick/SELBOX_REFRESH_SPEED && (ev.ev_hi == evold.ev_hi) ) {
+            return;
+        }
+        evold = ev;
+    }
+
+    if( !f ) {
+        tl = tr = bl = br = 0;
+    } else {
+        if( f->selbox.MinX == ~0 ) {
+            tl = tr = 0;
+            bl = f->pix->width-1;
+            br = f->pix->height-1;
+        } else {
+            tl = f->selbox.MinX;
+            tr = f->selbox.MinY;
+            bl = f->selbox.MaxX-1;
+            br = f->selbox.MaxY-1;
+        }
+    }
+
+    SetGadgetAttrs( GAD(selectw.TopLeft), selectw.win, NULL,
+                    STRINGA_LongVal, tl,
+                    TAG_DONE );
+    SetGadgetAttrs( GAD(selectw.TopRight), selectw.win, NULL,
+                    STRINGA_LongVal, tr,
+                    TAG_DONE );
+    SetGadgetAttrs( GAD(selectw.BottomLeft), selectw.win, NULL,
+                    STRINGA_LongVal, bl,
+                    TAG_DONE );
+    SetGadgetAttrs( GAD(selectw.BottomRight), selectw.win, NULL,
+                    STRINGA_LongVal, br,
+                    TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.Width), selectw.win, NULL,
+                    STRINGA_LongVal, abs(bl-tl)+1,
+                    TAG_DONE );
+    SetGadgetAttrs( GAD(selectw.Height), selectw.win, NULL,
+                    STRINGA_LongVal, abs(br-tr)+1,
+                    TAG_DONE );
+
+#ifdef DEBUG_MODE
+    if( f ) {
+        cx = f->circlex = ((abs(bl-tl)+1)>>1)+tl;
+        cy = f->circley = ((abs(br-tr)+1)>>1)+tr;
+        cr = f->circleradius = (abs(bl-tl)+1)>>1;
+    } else {
+        cx = cy = cr = 0;
+    }
+
+    SetGadgetAttrs( GAD(selectw.CircleRadius), selectw.win, NULL,
+                    STRINGA_LongVal, cr,
+                    TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.CircleX), selectw.win, NULL,
+                    STRINGA_LongVal, cx,
+                    TAG_DONE );
+
+    SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
+                    STRINGA_LongVal, cy,
+                    TAG_DONE );
+#endif
+}
+///
+
 /*------------------------------------------------------------------------*/
 /* The input handlers */
 
@@ -436,7 +525,7 @@ VOID DW_ButtonDown( FRAME *frame, WORD mousex, WORD mousey, WORD xloc, WORD yloc
                 if( corner ) {
                     sb->MaxX = xloc; sb->MaxY = yloc;
                     DrawSelectBox( frame, DSBF_INTERIM );
-                    UpdateIWSelbox(frame);
+                    UpdateIWSelbox(frame,TRUE);
                     frame->selstatus |= SELF_BUTTONDOWN;
                     D(bug("Picked image handle (%d,%d)\n",xloc,yloc));
                     break;
@@ -584,7 +673,7 @@ VOID DW_ButtonUp( FRAME *frame, WORD xloc, WORD yloc )
                 sb->MaxX = sb->MinX + w;
                 sb->MaxY = sb->MinY + h;
 
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame,TRUE );
                 DrawSelectBox( frame, 0L );
                 frame->selstatus &= ~(SELF_BUTTONDOWN|SELF_CONTROLDOWN);
             } else {
@@ -594,7 +683,7 @@ VOID DW_ButtonUp( FRAME *frame, WORD xloc, WORD yloc )
                      *  Image is too small, so it will be removed.
                      */
                     UnselectImage( frame );
-                    UpdateIWSelbox( frame );
+                    UpdateIWSelbox( frame, TRUE );
                     frame->selstatus &= ~(SELF_BUTTONDOWN|SELF_RECTANGLE);
                 } else {
                     /*
@@ -610,7 +699,7 @@ VOID DW_ButtonUp( FRAME *frame, WORD xloc, WORD yloc )
                     sb->MaxX = xloc;
                     sb->MaxY = yloc;
                     ReorientSelbox( sb );
-                    UpdateIWSelbox(frame);
+                    UpdateIWSelbox( frame,TRUE );
                     DrawSelectBox( frame, 0L );
                     frame->selstatus &= ~(SELF_BUTTONDOWN);
                     D(bug("Marked select end (%d,%d)\n",xloc,yloc));
@@ -641,14 +730,14 @@ VOID DW_ButtonUp( FRAME *frame, WORD xloc, WORD yloc )
             if( xloc == frame->circlex && yloc == frame->circley ) {
                 /* Too small an image */
                 UnselectImage( frame );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
                 frame->selstatus &= ~(SELF_BUTTONDOWN|SELF_RECTANGLE);
             } else {
                 sb->MinX = frame->circlex - frame->circleradius;
                 sb->MinY = frame->circley - frame->circleradius;
                 sb->MaxX = frame->circlex + frame->circleradius;
                 sb->MaxY = frame->circley + frame->circleradius;
-                UpdateIWSelbox(frame);
+                UpdateIWSelbox( frame,TRUE );
                 frame->selstatus &= ~SELF_BUTTONDOWN;
                 D(bug("Marked circle at (%d,%d) with radius %d\n",
                        frame->circlex, frame->circley, frame->circleradius ));
@@ -708,7 +797,7 @@ VOID DW_MouseMove( FRAME *frame, WORD xloc, WORD yloc )
                     sb->MaxX = xloc; sb->MaxY = yloc;
                 }
                 DrawSelectBox( frame, DSBF_INTERIM );
-                UpdateIWSelbox(frame);
+                UpdateIWSelbox( frame, FALSE );
             }
 
             break;
