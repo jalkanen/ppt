@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.101 1999/01/02 22:34:19 jj Exp $
+    $Id: main.c,v 1.102 1999/01/13 22:57:14 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1785,7 +1785,7 @@ int HandlePrefsIDCMP( ULONG rc )
                  *  Toolbar handling.  BUG: Horrible kludge!
                  */
 
-                if( entry = DoMethod( prefsw.ToolbarList, LVM_FIRSTENTRY, NULL, 0L ) ) {
+                if( entry = (APTR)DoMethod( prefsw.ToolbarList, LVM_FIRSTENTRY, NULL, 0L ) ) {
                     int item = 0;
                     struct NewMenu *nm;
 
@@ -1799,7 +1799,7 @@ int HandlePrefsIDCMP( ULONG rc )
                             PPTToolbar[item].ti_Gadget = NULL;
                             item++;
                         }
-                        entry = DoMethod( prefsw.ToolbarList, LVM_NEXTENTRY, entry, 0L );
+                        entry = (APTR)DoMethod( prefsw.ToolbarList, LVM_NEXTENTRY, entry, 0L );
                     } while( entry );
                     PPTToolbar[item].ti_Type = TIT_END;
                 }
