@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.32 1998/12/15 21:25:57 jj Exp $
+    $Id: rexx.c,v 5.0 1998/12/15 23:24:20 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1634,11 +1634,13 @@ void HandleRexxCommands( struct RexxHost *host )
                 /*
                  *  Else move this to rexx wait list to wait for task completion
                  */
+                LOCKGLOB();
                 Forbid();
                 ra->msg = rmsg;
                 Remove( (struct Node *)rmsg );
                 AddTail( &RexxWaitList, (struct Node *)ra );
                 Permit();
+                UNLOCKGLOB();
             }
 
         } /* if !replymsg */
@@ -1667,9 +1669,9 @@ SimulateRexxCommand( FRAME *frame, char *command )
         if(ra->process_args = smalloc( strlen(command)+1 )) {
             strcpy( ra->process_args, command );
 
-            Forbid();
+            LOCKGLOB();
             AddTail( &RexxWaitList, (struct Node *) ra );
-            Permit();
+            UNLOCKGLOB();
         } else {
             FreeRA( ra );
             ra = NULL;
@@ -1789,14 +1791,18 @@ PPTREXXARGS *FindRexxWaitItemFrame( FRAME *frame )
 {
     struct Node *cn = RexxWaitList.lh_Head;
 
+    SHLOCKGLOB();
+
     while(cn->ln_Succ) {
         PPTREXXARGS *ra;
         ra = (PPTREXXARGS *)cn;
         if(ra->frame == frame) {
+            UNLOCKGLOB();
             return ra;
         }
         cn = cn->ln_Succ;
     }
+    UNLOCKGLOB();
     return NULL;
 }
 
@@ -1811,9 +1817,9 @@ void ReplyRexxWaitItem( PPTREXXARGS *ra )
     D(bug("ReplyRexxWaitItem(ra=%08X)\n",ra));
     if( ra->args ) FreeDOSArgs( ra->args, globxd );
     if( ra->msg )  RexxReply( ra->msg, ra );
-    Forbid();
+    LOCKGLOB();
     Remove( (struct Node *)ra);
-    Permit();
+    UNLOCKGLOB();
 
     /*
      *  Release the structure and allocated args
@@ -1828,6 +1834,8 @@ VOID EmptyRexxWaitItemList(VOID)
 {
     struct Node *cn = RexxWaitList.lh_Head, *nn;
 
+    SHLOCKGLOB();
+
     while(nn = cn->ln_Succ) {
         PPTREXXARGS *ra;
         ra = (PPTREXXARGS *)cn;
@@ -1839,6 +1847,65 @@ VOID EmptyRexxWaitItemList(VOID)
 
         cn = nn;
     }
+    UNLOCKGLOB();
+}
+/*-------------------------------------------------------------------------*/
+
+/****u* pptsupport/SetRexxVariable *******************************************
+*
+*   NAME
+*       SetRexxVariable -- sets a variable in the context of the frame. (V5)
+*
+*   SYNOPSIS
+*       result = SetRexxVariable( frame, variable, value );
+*
+*       LONG SetRexxVariable( FRAME *, STRPTR, STRPTR )
+*       D0                    A0       A1      A2
+*
+*   FUNCTION
+*       This function sets an AREXX variable of the currently executing
+*       script.  Use with care!  Do not meddle with variables such
+*       as 'RC', 'RC2', or 'RESULT', since PPT uses them.
+*
+*   INPUTS
+*       frame - the usual
+*       variable - the name of the variable you wish to set
+*       value - the string value
+*
+*   RESULT
+*       Returns the same return values as amiga.lib/SetRexxVar().
+*
+*   EXAMPLE
+*
+*   NOTES
+*       The SetRexxVar() parameter length is determined run-time
+*       with strlen().
+*
+*   BUGS
+*
+*   SEE ALSO
+*       amiga.lib/SetRexxVar
+*
+***********************************************************************
+*
+*
+*/
+
+Prototype LONG ASM SetRexxVariable( REGPARAM(a0,FRAME *,frame),REGPARAM(a1,STRPTR,var),REGPARAM(a2,STRPTR,value) );
+
+SAVEDS
+LONG ASM SetRexxVariable( REGPARAM(a0,FRAME *,frame),
+                          REGPARAM(a1,STRPTR,var),
+                          REGPARAM(a2,STRPTR,value ) )
+{
+    PPTREXXARGS *ra;
+    LONG res = 0;
+
+    if( ra = FindRexxWaitItemFrame( frame ) ) {
+        res = SetRexxVar( ra->msg, var, value, strlen(value) );
+    }
+
+    return res;
 }
 
 /*-------------------------------------------------------------------------*/
