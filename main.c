@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.98 1998/12/12 13:38:09 jj Exp $
+    $Id: main.c,v 1.99 1998/12/15 21:24:46 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2685,8 +2685,8 @@ int HandleDispPrefsWindowIDCMP( FRAME *frame, ULONG rc )
 Local
 FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
 {
-    REXXARGS *ra = NULL;
-    FRAME *currframe = NULL;
+    PPTREXXARGS *ra = NULL;
+    FRAME *currframe = NULL, *newframe;
     INFOWIN *iw = NULL;
     char buff[16];
 
@@ -2766,42 +2766,55 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
              *  Did we succeed?
              */
 
-            if(mymsg->data) {
-                FRAME *newframe;
-
-                newframe = (FRAME *)mymsg->data;
-                D(bug("\t\t...but it seems he spawned a child!\n"));
-                ReplaceFrame( mymsg->frame, newframe );
-                UpdateInfoWindow( newframe->mywin,globxd);
-                UpdateMainWindow( newframe );
-                currframe = newframe;
-                currframe->reqrender = 1;
-                if(ra) {
-                    ra->rc = ra->rc2 = 0;
-                }
-            } else {
-                /* Do the cleanup */
-                if(CheckPtr( mymsg->frame, "main(): Effect done, failed" )) {
-                    D(bug("\t\t...cleaning up the mess\n"));
-                    currframe = mymsg->frame;
-
-                    /*
-                     *  If this was a rexx message, pass the message down to
-                     *  the REXX program who started the whole thing. Otherwise
-                     *  we check if the error message has already been shown
-                     *  and then set up the display ourselves.
-                     */
-
+            switch( ((struct EffectMessage *)mymsg)->em_Status ) {
+                case EMSTATUS_NEWFRAME:
+                    /* A new frame was generated in response to the
+                       request */
+                    newframe = ((struct EffectMessage *)mymsg)->em_NewFrame;
+                    D(bug("\t\t...but it seems he spawned a child!\n"));
+                    ReplaceFrame( mymsg->frame, newframe );
+                    UpdateInfoWindow( newframe->mywin,globxd);
+                    UpdateMainWindow( newframe );
+                    currframe = newframe;
+                    currframe->reqrender = 1;
                     if(ra) {
-                        ra->rc  = -10;
-                        D(bug("\terror msg: %s\n",GetErrorMsg(currframe,globxd)));
-                        ra->rc2 = (LONG) GetErrorMsg( currframe, globxd );
-                    } else {
-                        if( currframe->doerror ) {
-                            ShowError( currframe,globxd );
+                        ra->rc = ra->rc2 = 0;
+                    }
+                    break;
+
+                case EMSTATUS_NOCHANGE:
+                    /* No change happened to the frame, but we were still
+                       successfull */
+                    D(bug("\t\t...and there was no change\n"));
+                    currframe = mymsg->frame;
+                    if( ra ) {
+                        ra->rc = ra->rc2 = 0;
+                    }
+                    break;
+
+                case EMSTATUS_FAILED:
+                    /* Do the cleanup */
+                    if(CheckPtr( mymsg->frame, "main(): Effect done, failed" )) {
+                        D(bug("\t\t...cleaning up the mess\n"));
+                        currframe = mymsg->frame;
+
+                        /*
+                         *  If this was a rexx message, pass the message down to
+                         *  the REXX program who started the whole thing. Otherwise
+                         *  we check if the error message has already been shown
+                         *  and then set up the display ourselves.
+                         */
+
+                        if(ra) {
+                            ra->rc  = -10;
+                            D(bug("\terror msg: %s\n",GetErrorMsg(currframe,globxd)));
+                            ra->rc2 = (LONG) GetErrorMsg( currframe, globxd );
+                        } else {
+                            if( currframe->doerror ) {
+                                ShowError( currframe,globxd );
+                            }
                         }
                     }
-                }
             }
 
             if(CheckPtr( currframe, "main(): currframe" )) {
