@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.10 1998/12/15 21:23:57 jj Exp $
+    $Id: frame.c,v 4.11 1998/12/16 22:39:30 jj Exp $
 
     This contains frame handling routines
 
@@ -966,6 +966,7 @@ VOID UpdateFrameInfo( FRAME *f )
     EDITWIN *e = f->editwin;
     UBYTE   name[SCRTITLELEN+1] = "..."; /* OK, it has some extra */
     long    len;
+    struct  IBox *bounds;
 
     LOCK(f);
 
@@ -977,7 +978,19 @@ VOID UpdateFrameInfo( FRAME *f )
     AddPart( name, f->name, SCRTITLELEN );
 
     if(d) {
-        sprintf(d->title,"%s (%ux%u)",f->nd.ln_Name, p->width, p->height );
+        ULONG picArea, zoomArea;
+
+        //GetAttr( AREA_AreaBox, d->RenderArea, (ULONG *)&bounds );
+        picArea = p->width * p->height;
+
+        /* Ensure we won't get a 0 area */
+
+        if( f->zoombox.Width && f->zoombox.Height )
+            zoomArea = f->zoombox.Width * f->zoombox.Height;
+        else
+            zoomArea = picArea;
+
+        sprintf(d->title,"%s (%ux%u) %.3g%%",f->nd.ln_Name, p->width, p->height,100.0*(float)zoomArea/(float)picArea );
         sprintf(d->scrtitle, GetStr(MSG_FRAME_SCREEN_TITLE),
             name, p->width, p->height, p->origdepth,
             f->origtype ? (STRPTR)f->origtype->info.nd.ln_Name : GetStr(MSG_UNKNOWN),
