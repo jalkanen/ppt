@@ -1,8 +1,8 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.7 $
-;      $Date: 1998/09/20 21:33:40 $
+;  $Revision: 1.8 $
+;      $Date: 1999/02/21 21:06:07 $
 ;
 
 (welcome "This is the PPT Installation utility."
@@ -140,11 +140,12 @@
 (copyfiles
     (prompt "Installing miscallaneous stuff")
     (source "")
-    (choices "README" "HISTORY" "ReleaseNotes" "ppt.asc" "ModuleInfo")
+    (choices "README" "HISTORY" "ReleaseNotes" "ppt.asc" "ModuleInfo" "GUI")
     (dest @default-dest)
     (help (cat "Choose which additional files you wish to install. "
                "Again, I recommend you to install these all, as these "
-               "contain the release notes and the ModuleInfo utility.\n\n"
+               "contain the release notes, the ModuleInfo utility, "
+               "and the icons\n\n"
                @copyfiles-help) )
     (infos)
     (confirm)
@@ -230,6 +231,14 @@
     (prompt "Copying BGUI floating point gadget")
     (confirm)
     (source "libs/bgui_float.gadget")
+    (dest   "SYS:Classes/Gadgets")
+    (help   @copylib-help)
+)
+
+(copylib
+    (prompt "Copying BGUI bitmap gadget")
+    (confirm)
+    (source "libs/bgui_bitmap.image")
     (dest   "SYS:Classes/Gadgets")
     (help   @copylib-help)
 )
