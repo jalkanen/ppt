@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.58 1998/12/15 21:24:18 jj Exp $
+    $Id: gui.c,v 1.59 1998/12/20 19:11:51 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -30,10 +30,6 @@
 #include <pragmas/intuition_pragmas.h>
 #endif
 
-#ifndef INTUITION_ICCLASS_H
-#include <intuition/icclass.h>
-#endif
-
 #include <proto/graphics.h>
 #include <proto/cybergraphics.h>
 
@@ -57,8 +53,6 @@
 
 /*----------------------------------------------------------------------*/
 /* Defines */
-
-#define DEFAULT_TOOLBAR_WIDTH   200
 
 /*----------------------------------------------------------------------*/
 /* Prototypes */
@@ -216,6 +210,10 @@ const char *scr_labels[] = {
     NULL,
 };
 
+Local UBYTE *Prefspages[] = { "System","GUI", "Misc", "Toolbar", NULL };
+Local UBYTE *preview_sizes[] = {"Off", "Small", "Medium", "Large", "Huge", NULL };
+Local UBYTE *toolbar_type_labels[] = {"Text","Image",NULL};
+
 /* This is the screentitle */
 #ifdef DEBUG_MODE
 const char *std_ppt_blurb = "PPT "RELEASE" (v"VERSION").   "COPYRIGHT" - DO NOT DISTRIBUTE!";
@@ -225,6 +223,8 @@ const char *std_ppt_blurb = "PPT "RELEASE" (v"VERSION").   "COPYRIGHT;
 
 char workbuf[MAXPATHLEN+1],undobuf[MAXPATHLEN+1];
 ///
+
+
 
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
@@ -309,6 +309,8 @@ PERROR InitGUILocale(VOID)
             PPTMenus[i].nm_CommKey = s;
         }
     }
+
+    LocalizeToolbar();
 
     return PERR_OK;
 }
@@ -1063,13 +1065,50 @@ GimmeFilterWindow( EXTBASE *xd, FRAME *frame, ULONG *sigmask, struct EffectWindo
 
 /// GimmePrefsWindow()
 
+#if 0
+ULONG SAVEDS ASM
+PrefsToolbarDisplayHook( REGPARAM(a0,struct Hook *,hook),
+                         REGPARAM(a2,Object *,obj),
+                         REGPARAM(a1,struct lvRender *,lvr) )
+{
+    return (ULONG)( ((struct ToolbarItem *)lvr->lvr_Entry)->ti_Label );
+}
+
+/*
+ *  We do not need to copy the data, because there is only
+ *  one instance, and the data is already in a static location
+ *  in memory.
+ */
+
+ULONG SAVEDS ASM
+PrefsToolbarResourceHook( REGPARAM(a0,struct Hook *,hook),
+                          REGPARAM(a2,Object *,obj),
+                          REGPARAM(a1,struct lvResource *,lvr) )
+{
+    // D(bug("AddHook(%08X=%s)\n",lvr->lvr_Entry, ((struct ToolbarItem*)lvr->lvr_Entry)->ti_Label));
+    return lvr->lvr_Entry;
+}
+struct Hook hook_PrefsToolbarDisplay = {
+    {0},
+    PrefsToolbarDisplayHook,
+    NULL,
+    NULL
+};
+
+struct Hook hook_PrefsToolbarResource = {
+    {0},
+    PrefsToolbarResourceHook,
+    NULL,
+    NULL
+};
+#endif
+
 Local ULONG Cyc2Page[] = { MX_Active, PAGE_Active, TAG_END };
-Local UBYTE *Prefspages[] = { "S_ystem","_GUI", "M_isc", NULL };
 Local UBYTE *onopen_labels[] = { "do not show the image", "show smallest",
                                  "show as 25% of screen size",
                                  "show as 50% of screen size",
                                  "show largest possible", NULL };
-Local UBYTE *preview_sizes[] = {"Off", "Small", "Medium", "Large", "Huge", NULL };
+
 
 /*
     Open the preferences window.
@@ -1149,6 +1188,7 @@ Object *GimmePrefsWindow( VOID )
                     EndMember,
                     StartMember,
                         p = PageObject,
+
                             /*
                              *  VM page.  It contains
                              *  a) VM directory
@@ -1289,6 +1329,7 @@ Object *GimmePrefsWindow( VOID )
                                         EndMember,
                                         VarSpace(50),
                                     EndObject,
+
                                 /*
                                  *  GUI page.  Contains
                                  *  a)  Main font
@@ -1410,6 +1451,7 @@ Object *GimmePrefsWindow( VOID )
                                             EndObject,
                                         EndMember,
                                     EndObject,
+
                                 /*
                                  *  Miscallaneous.  Contains
                                  *  a) Undo Levels
@@ -1466,6 +1508,84 @@ Object *GimmePrefsWindow( VOID )
                                         VarSpace(50),
                                     EndObject,
 
+                                /*
+                                 *  Toolbar configuration window.
+                                 */
+                                PageMember,
+                                    HGroupObject, NormalSpacing, NormalHOffset, NormalVOffset,
+                                        StartMember,
+                                            prefsw.AvailButtons = ListviewObject,
+                                                Label("Available buttons"), Place(PLACE_ABOVE),
+                                                GA_ID, GID_PW_AVAILBUTTONS,
+                                            EndObject,
+                                        EndMember,
+                                        StartMember,
+                                            VGroupObject,
+                                                VarSpace(50),
+                                                StartMember,
+                                                    prefsw.ToToolbar = ButtonObject,
+                                                        Label("->"),
+                                                        GA_ID, GID_PW_TOTOOLBAR,
+                                                    EndObject, Weight(25),
+                                                EndMember,
+                                                VarSpace(10),
+                                                StartMember,
+                                                    prefsw.FromToolbar = ButtonObject,
+                                                        Label("<-"),
+                                                        GA_ID, GID_PW_FROMTOOLBAR,
+                                                    EndObject, Weight(25),
+                                                EndMember,
+                                                VarSpace(50),
+                                            EndObject, Weight(5),
+                                        EndMember,
+                                        StartMember,
+                                            prefsw.ToolbarList = ListviewObject,
+                                                Label("Toolbar"),
+                                                Place(PLACE_ABOVE),
+                                                GA_ID, GID_PW_TOOLBARLIST,
+                                                BT_DragObject, TRUE,
+                                                BT_DropObject, TRUE,
+                                                LISTV_ShowDropSpot, TRUE,
+                                                // LISTV_DisplayHook, &hook_PrefsToolbarDisplay,
+                                                // LISTV_ResourceHook, &hook_PrefsToolbarResource,
+                                            EndObject,
+                                        EndMember,
+                                        StartMember,
+                                            VGroupObject, NormalSpacing, NormalOffset,
+                                                NeXTFrame,
+                                                FrameTitle("Item type"),
+                                                VarSpace(50),
+                                                StartMember,
+                                                    prefsw.ToolItemType = MxObject,
+                                                        GROUP_Style,GRSTYLE_VERTICAL,
+                                                        MX_Labels,  toolbar_type_labels,
+                                                        MX_Active,  0,
+                                                        GA_ID,      GID_PW_TOOLITEMTYPE,
+                                                    EndObject,
+                                                EndMember,
+                                                StartMember,
+                                                    prefsw.ToolItemFileGroup = HGroupObject, NarrowSpacing, NormalOffset,
+                                                        GA_Disabled, TRUE,
+                                                        StartMember,
+                                                            prefsw.ToolItemFile = StringObject,
+                                                                Label("File"),
+                                                                Place(PLACE_LEFT),
+                                                                GA_ID, GID_PW_TOOLITEMFILE,
+                                                            EndObject,
+                                                        EndMember,
+                                                        StartMember,
+                                                            ButtonObject,
+                                                                GetFile,
+                                                                GA_ID, GID_PW_GETTOOLITEMFILE,
+                                                            EndObject, FixMinWidth,
+                                                        EndMember,
+                                                    EndObject, FixMinHeight,
+                                                EndMember,
+                                                VarSpace(50),
+                                            EndObject,
+                                        EndMember,
+                                    EndObject,
+
                             EndObject, /* PAGE OBJECT*/
                     EndMember,
                     StartMember,
@@ -1494,6 +1614,9 @@ Object *GimmePrefsWindow( VOID )
             AddMap( prefsw.ExtNiceVal, prefsw.ExtNiceValI, dpcol_sl2ind );
             AddMap( prefsw.ExtPriority, prefsw.ExtPriorityI, dpcol_sl2int );
             AddMap( prefsw.ExtPriorityI, prefsw.ExtPriority, dpcol_int2sl );
+            AddCondit( prefsw.ToolItemType, prefsw.ToolItemFileGroup, MX_Active, 0, GA_Disabled, TRUE, GA_Disabled, FALSE);
+
+            SetupToolbarList();
         }
     }
 
@@ -1609,114 +1732,6 @@ Object *GimmeMainWindow( VOID )
 }
 ///
 
-/// GimmeToolBarWindow()
-/*
-    This creates and opens the tool bar window.
-*/
-PERROR GimmeToolBarWindow( VOID )
-{
-    PERROR res = PERR_OK;
-    ULONG  args[2];
-    struct IBox ibox;
-    long   minwidth, minheight;
-    struct TextExtent te;
-
-    args[0] = args[1] = 0L;
-
-    if( toolw.prefs.initialpos.Height == 0 ) {
-        ibox.Left   = 0;
-        if( MAINSCR )
-            ibox.Top    = MAINSCR->Height;
-        else
-            ibox.Top    = 320;
-    } else {
-        ibox = toolw.prefs.initialpos;
-    }
-
-    ibox.Height = 0;
-    ibox.Width  = DEFAULT_TOOLBAR_WIDTH;
-
-    D(bug("GimmeToolBarWindow()\n"));
-
-    /*
-     *  Create the area for rendering the co-ordinates in.
-     *  Allow two pixels spare on all sides.
-     */
-
-    if(MAINWIN && MAINWIN->RPort) {
-        TextExtent( MAINWIN->RPort, "(MMM,MMM)MM", 11, &te );
-        minwidth = te.te_Width+4;
-        minheight = te.te_Height+4;
-        D(bug("\tCoordBox minimum size = %ld x %ld pixels\n",minwidth, minheight ));
-    } else {
-        minwidth = 100;
-        minheight = 12;
-        InternalError("Unable to determine Main Window RastPort???");
-        return PERR_WINDOWOPEN;
-    }
-
-    toolw.GO_ToolInfo = BGUI_NewObject( BGUI_AREA_GADGET,
-                                        AREA_MinWidth,     minwidth,
-                                        AREA_MinHeight,    minheight,
-                                        BT_DropObject,     FALSE,
-                                        GA_ID,             GID_TOOL_COORDS,
-                                        ICA_TARGET,        ICTARGET_IDCMP,
-                                        ButtonFrame,
-                                        FRM_Flags,         FRF_RECESSED,
-                                        BT_HelpHook,       &HelpHook,
-                                        BT_HelpNode,       "PPT.guide/Toolbar",
-                                        TAG_END );
-    if( !toolw.GO_ToolInfo ) {
-        D(bug("Toolinfo didn't open\n"));
-        return PERR_WINDOWOPEN;
-    }
-
-    toolw.GO_ToolBar = CreateToolbar();
-
-    /*
-     *  The window itself. The area is attached onto it.
-     */
-
-    if(!toolw.Win) {
-        toolw.Win = WindowObject,
-            WINDOW_Title,           GetStr(MSG_TOOLBAR_WINDOW),
-            WINDOW_ScreenTitle,     std_ppt_blurb,
-            WINDOW_MenuStrip,       PPTMenus,
-            WINDOW_SharedPort,      MainIDCMPPort,
-            WINDOW_Font,            globals->userprefs->mainfont,
-            WINDOW_Screen,          MAINSCR,
-            WINDOW_Bounds,          &ibox,
-            WINDOW_SmartRefresh,    TRUE,
-            WINDOW_SizeGadget,      FALSE,
-            WINDOW_NoBufferRP,      TRUE,
-            // WINDOW_HelpHook,            &HelpHook,
-            // WINDOW_HelpNode,            "Toolbar",
-            WINDOW_MasterGroup,
-                HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
-                    StartMember,
-                        HGroupObject, Spacing(0), HOffset(0), VOffset(0),
-                            StartMember,
-                                toolw.GO_ToolInfo,
-                            EndMember,
-                        EndObject, FixMinWidth,
-                    EndMember,
-                    StartMember,
-                        toolw.GO_ToolBar,
-                    EndMember,
-                EndObject, FixMinHeight,
-            EndObject;
-    }
-
-    if(!toolw.Win) {
-        D(bug("Tool window couldn't be created\n"));
-        DisposeObject( toolw.GO_ToolInfo );
-        res = PERR_WINDOWOPEN;
-    }
-
-    return res;
-}
-///
-
 /// GimmeSelectWindow()
 
 Local UBYTE *Selectpages[] = { "Rectangle", "Circle", NULL };
@@ -1730,7 +1745,7 @@ PERROR GimmeSelectWindow(VOID)
     Object *c;
 
     if( selectw.prefs.initialpos.Height == 0 ) {
-        ibox.Left   = DEFAULT_TOOLBAR_WIDTH+1; // Just to the left of the ToolBox
+        ibox.Left   = 201; // BUG: Must adjust to default toolbar place.
         if( MAINSCR )
             ibox.Top    = MAINSCR->Height;
         else
