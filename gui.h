@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.30 1998/07/01 21:35:19 jj Exp $
+    $Id: gui.h,v 1.31 1998/11/08 00:28:29 jj Exp $
 */
 
 #ifndef GUI_H
@@ -46,6 +46,16 @@ struct EffectWindow {
     struct Window *win;
     ULONG  lcs, lcm; /* Last Clicked Seconds/Milliseconds */
     ULONG  lastclicked;
+};
+
+/*------------------------------------------------------------------*/
+/* Generic window object structure - contains opening information
+   and stuff.  Must be first always in a window structure, otherwise
+   autoinitialization will fail. */
+
+struct WindowPrefs {
+    struct IBox     initialpos;     /* DO NOT MOVE! */
+    BOOL            initialopen;    /* DO NOT MOVE! */
 };
 
 /*------------------------------------------------------------------*/
@@ -97,6 +107,7 @@ struct PaletteWindow {
     External info window
 */
 struct ExtInfoWin {
+    struct WindowPrefs prefs;
     Object *Win,    *List, *Exec, *Info;
     struct Window   *win;
     ULONG           secs, ms;
@@ -104,8 +115,6 @@ struct ExtInfoWin {
     ULONG           menuid;
     UBYTE           type;
     struct List     *mylist;
-    struct IBox     initialpos; /* Contains the startup position. */
-    BOOL            initialopen;
 };
 
 /*
@@ -116,9 +125,7 @@ struct ExtInfoWin {
 */
 
 struct ToolWindow {
-    struct IBox     initialpos;     /* DO NOT MOVE! */
-    BOOL            initialopen;    /* DO NOT MOVE! */
-
+    struct WindowPrefs prefs;
     Object          *Win;
     Object          *GO_ToolInfo;
     struct Window   *win;
@@ -129,8 +136,7 @@ struct ToolWindow {
  */
 
 struct SelectWindow {
-    struct IBox     initialpos;
-    BOOL            initialopen;
+    struct WindowPrefs prefs;
 
     Object          *Win;
     struct  Window  *win;
@@ -151,8 +157,7 @@ struct SelectWindow {
 */
 
 struct FramesWindow {
-    struct IBox     initialpos;     /* DO NOT MOVE! */
-    BOOL            initialopen;    /* DO NOT MOVE! */
+    struct WindowPrefs prefs;
 
     Object          *Win;
     struct Window   *win;
@@ -178,6 +183,15 @@ typedef struct EditWindow_T {
                         *ExtOk;
     UBYTE               title[WINTITLELEN+1];
 } EDITWIN;
+
+/*
+    File requesters.
+ */
+
+struct PPTFileRequester {
+    struct WindowPrefs  prefs;
+    Object              *Req;
+};
 
 /*------------------------------------------------------------------*/
 /* Useful macros */
@@ -260,6 +274,31 @@ extern const ULONG dpcol_sl2ind[];
 extern const ULONG dpcol_ind2sl[];
 extern const ULONG dpcol_sl2fl[];
 extern const ULONG dpcol_fl2sl[];
+
+/*------------------------------------------------------------------*/
+/* IDCMP handlers */
+
+#define FROM_MAINWINDOW     0
+#define FROM_EFFECTINFO     1
+#define FROM_LOADERINFO     2
+#define FROM_INFOWINDOW     3
+#define FROM_DISPLAYWINDOW  4
+#define FROM_PREFSWINDOW    5
+#define FROM_DISPPREFSWINDOW 6
+#define FROM_PALETTEWINDOW  8
+#define FROM_TOOLWINDOW     9
+#define FROM_REXXWINDOW    10
+#define FROM_FRAMESWINDOW  11
+#define FROM_EDITWINDOW    12
+
+/*
+ *  IDCMP handler return codes
+ */
+
+#define HANDLER_OK          0
+#define HANDLER_QUIT        1
+#define HANDLER_RESTART     -2
+#define HANDLER_DELETED     -1
 
 
 /*------------------------------------------------------------------*/
