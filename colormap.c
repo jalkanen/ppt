@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.8 1996/09/17 20:36:36 jj Exp $
+    $Id: colormap.c,v 1.9 1996/10/10 19:07:05 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -51,7 +51,7 @@ ASM UWORD GetColor_HAM( REG(a0) struct RenderObject *rdo, REG(d0) UBYTE r, REG(d
     if( pen <= 16 )
         return pen;
 
-    return (pen >> 2);
+    return (UWORD)(pen >> 2);
 }
 
 /*
