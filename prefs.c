@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.27 1998/12/07 20:24:25 jj Exp $
+    $Id: prefs.c,v 1.28 1999/01/02 22:35:27 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -447,7 +447,7 @@ int LoadPrefs( GLOBALS *g, char *pfile )
 
                     case PREVIEWSIZE:
                         tmp = strtol( s, &tail, 0 );
-                        if( tmp >= PWMODE_OFF && tmp <= PWMODE_LARGE ) {
+                        if( tmp >= PWMODE_OFF && tmp <= PWMODE_LAST ) {
                             p->previewmode = tmp;
                             SetPreviewSize( p );
                         }
