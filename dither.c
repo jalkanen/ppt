@@ -1,8 +1,23 @@
 /*
-    $Id: dither.c,v 1.1 1995/09/06 23:35:32 jj Exp $
+    $Id: dither.c,v 1.2 1995/09/07 23:10:16 jj Exp $
 */
 
 #include <render.h>
+
+/*-----------------------------------------------------------*/
+/* Type definitions */
+
+typedef WORD FSERROR;
+
+#define GILES 1
+
+struct FSObject {
+    int *error_limit;
+    FSERROR *fserrors;
+    FSERROR *errorptr;
+    BOOL odd_row;
+};
+
 
 /*-----------------------------------------------------------*/
 /* Prototypes */
