@@ -5,18 +5,18 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
-    $Id: dropareaclass.c,v 1.4 1996/08/21 10:23:19 jj Exp $
+    $Id: dropareaclass.c,v 1.5 1996/09/17 20:35:53 jj Exp $
 */
 
-#include <defs.h>
-#include <misc.h>
-#include <gui.h>
+#include "defs.h"
+#include "misc.h"
+#include "gui.h"
 
 #include <clib/alib_protos.h>
 
-#include <pragma/intuition_pragmas.h>
-#include <pragma/bgui_pragmas.h>
-#include <pragma/utility_pragmas.h>
+#include <pragmas/intuition_pragmas.h>
+#include <pragmas/bgui_pragmas.h>
+#include <pragmas/utility_pragmas.h>
 
 #include <stdlib.h>
 
@@ -91,6 +91,7 @@ SAVEDS ASM ULONG DropAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a
     AOD                     *data;
     struct TagItem          *tag, *tstate;
     ULONG                    rc = 0L;
+    APTR                     entry;
 
     switch ( msg->MethodID ) {
 
@@ -154,13 +155,13 @@ SAVEDS ASM ULONG DropAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a
 
                 case AREA_DropEntry:
                     data = ( AOD * )INST_DATA( cl, obj );
-                    *( OPGET( msg )->opg_Storage ) = ( ULONG )data->DropEntry;
+                    *( (ULONG *) OPGET( msg )->opg_Storage ) = ( ULONG )data->DropEntry;
                     rc = 1L;
                     break;
 
                 case BT_DropObject:
                     data = ( AOD * )INST_DATA( cl, obj );
-                    *( OPGET( msg )->opg_Storage ) = ( ULONG )data->AllowDrop;
+                    *( (ULONG *) OPGET( msg )->opg_Storage ) = ( ULONG )data->AllowDrop;
                     rc = 1L;
                     break;
 
@@ -194,8 +195,6 @@ SAVEDS ASM ULONG DropAreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a
             break;
 
         case    BASE_DROPPED:
-            APTR entry;
-
             data = (AOD *)INST_DATA( cl, obj );
 
             if( (entry = (APTR) FirstSelected( DROP(msg)->bmd_Source ))) {

@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.6 1996/03/25 22:22:05 jj Exp $
+    $Id: dither.c,v 1.7 1996/09/17 20:37:54 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -12,9 +12,9 @@
 
 */
 
-#include <defs.h>
-#include <misc.h>
-#include <render.h>
+#include "defs.h"
+#include "misc.h"
+#include "render.h"
 
 /*-----------------------------------------------------------*/
 /* Type definitions */

@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.4 1996/08/25 17:04:05 jj Exp $
+    $Id: errors.c,v 1.5 1996/09/17 20:37:54 jj Exp $
 
     Error handling routines.
 */
@@ -9,19 +9,19 @@
 /*----------------------------------------------------------------------*/
 /* Includes */
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
 /*----------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype VOID        SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error );
-Prototype VOID        SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error );
-Prototype VOID        ShowError( REG(A0) FRAME *frame, REG(A6) EXTBASE * );
+Prototype ASM VOID    SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error );
+Prototype ASM VOID    SetErrorMsg( REG(a0) FRAME *frame, REG(a1) UBYTE *error );
+Prototype ASM VOID    ShowError( REG(a0) FRAME *frame, REG(a6) EXTBASE * );
 Prototype UBYTE      *GetErrorMsg( FRAME *, EXTBASE * );
 Prototype VOID        ClearError( FRAME * );
 Prototype VOID        CopyError( FRAME *, FRAME * );
-Prototype REG(D0) UBYTE *ErrorMsg( REG(D0) ULONG, REG(A6) EXTBASE * );
+Prototype ASM UBYTE  *ErrorMsg( REG(d0) ULONG, REG(a6) EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -30,7 +30,7 @@ Prototype REG(D0) UBYTE *ErrorMsg( REG(D0) ULONG, REG(A6) EXTBASE * );
     This returns a pointer to an error message.
 */
 
-REG(D0) UBYTE *ErrorMsg( REG(D0) ULONG code, REG(A6) EXTBASE *ExtBase )
+ASM UBYTE *ErrorMsg( REG(d0) ULONG code, REG(a6) EXTBASE *ExtBase )
 {
     switch(code) {
         case PERR_UNKNOWNTYPE:
@@ -163,7 +163,7 @@ VOID CopyError( FRAME *source, FRAME *dest )
 *
 */
 
-SAVEDS ASM VOID SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error )
+SAVEDS ASM VOID SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error )
 {
     D(bug("SetErrorCode(%08X, error=%lu)\n",frame,error));
 
@@ -216,7 +216,7 @@ SAVEDS ASM VOID SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error )
 *
 */
 
-SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
+SAVEDS ASM VOID SetErrorMsg( REG(a0) FRAME *frame, REG(a1) UBYTE *error )
 {
     D(bug("SetErrorMsg(%08X, error='%s')\n",frame,error));
 
@@ -236,7 +236,7 @@ SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
 /*
     BUG: Not yet complete
 */
-SAVEDS ASM VOID ShowError( REG(A0) FRAME *frame, REG(A6) EXTBASE *ExtBase )
+SAVEDS ASM VOID ShowError( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
 {
     D(bug("ShowError()\n"));
 
