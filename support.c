@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 1.21 1996/12/08 21:09:46 jj Exp $
+    $Id: support.c,v 1.22 1997/01/06 22:02:03 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -46,6 +46,7 @@
 /*----------------------------------------------------------------------*/
 /* Defines */
 
+#undef  L
 #define L(x)            /* Remove lock-messages */
 
 #define USE_TIMER_PROCESS
@@ -943,7 +944,6 @@ SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *       the TagItem array:
 *
 *       ...
-*       errcode = (ULONG *)TagData( PPTX_ErrCode, tags );
 *
 *       InitProgress( frame, "Mongering...",
 *                     frame->selbox.MinY, frame->selbox.MaxY );
@@ -952,7 +952,6 @@ SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 *           cp = GetPixelRow( frame, row );
 *           MongerARow( cp );
 *           if(Progress( frame, row )) {
-*               *errcode = PERR_BREAK;
 *               break;
 *           }
 *       }
@@ -1029,7 +1028,7 @@ SAVEDS ASM VOID InitProgress( REG(a0) FRAME *f,
 *
 *   RESULT
 *       break - TRUE, if the user wants you to quit. You should exit as
-*           soon as possible and set PPTX_ErrCode to PERR_BREAK.
+*           soon as possible.
 *
 *   EXAMPLE
 *       See autodoc for InitProgress().
