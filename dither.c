@@ -1,7 +1,19 @@
 /*
-    $Id: dither.c,v 1.2 1995/09/07 23:10:16 jj Exp $
+    PROJECT: ppt
+    MODULE : dither.c
+
+    $Id: dither.c,v 1.3 1995/09/14 22:43:56 jj Exp $
+
+    This contains the dither initialization, destruction and
+    execution functions. The following dither modes are enabled:
+
+        * No dither
+        * Floyd-Steinberg
+
 */
 
+#include <defs.h>
+#include <misc.h>
 #include <render.h>
 
 /*-----------------------------------------------------------*/
@@ -37,6 +49,7 @@ Prototype VOID   Dither_FS( struct RenderObject * );
 */
 PERROR Dither_NoneI( struct RenderObject *rdo )
 {
+    D(bug("\tDither_NoneI()\n"));
     return PERR_OK;
 }
 
@@ -45,6 +58,7 @@ PERROR Dither_NoneI( struct RenderObject *rdo )
 */
 PERROR Dither_NoneD( struct RenderObject *rdo )
 {
+    D(bug("\tDither_NoneD()\n"));
     return PERR_OK;
 }
 
@@ -55,22 +69,87 @@ VOID Dither_None( struct RenderObject *rdo )
 {
     WORD width = rdo->frame->pix->width,col;
     ROWPTR cp = rdo->cp;
-    UBYTE *dcp = rdo->dest;
+    UBYTE *dcp = rdo->buffer;
+
+    // D(bug("\tDither_None(width=%d)\n",width));
 
     for( col = 0; col < width; col++ ) {
-        ULONG pixcode;
+        UWORD pixcode;
         UBYTE red,green,blue;
 
         red   = *cp++;
         green = *cp++;
         blue  = *cp++;
-        pixcode = ((*rdo->GetColor))( rdo, &red, &green, &blue );
-        *dcp++  = pixcode;
+        pixcode = rdo->GetColor( rdo, red, green, blue );
+        dcp[col] = (UBYTE)pixcode;
     }
 }
 
 /*-----------------------------------------------------------*/
 /* FLOYD-STEINBERG */
+
+/*
+    This routine has been stolen from the IJG V5 code. It initializes
+    the FS error limits.
+*/
+Local
+int *Init_FS_ErrorLimits( void )
+{
+    int * table;
+    int in, out;
+
+    table = (int *) pmalloc( (MAXSAMPLE*2+1) * sizeof(int) );
+    if(!table) {
+        D(bug("Outta memory allocating FS error tables!\n"));
+        return NULL;
+    }
+
+    table += MAXSAMPLE;
+
+#ifdef GILES
+#define STEPSIZE ((MAXSAMPLE+1)/32)
+    /* Map errors 1:1 up to +- MAXSAMPLE/32 */
+    out = 0;
+    for (in = 0; in < STEPSIZE; in++, out++) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Map errors 1:2 up to +- 3*MAXSAMPLE/32 */
+    for (; in < STEPSIZE*3; in++, out += (in&1) ? 0 : 1) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Map errors 1:4 up to +- 7*MAXSAMPLE/32 */
+    for (; in < STEPSIZE*7; in++, out += (in&3) ? 0 : 1) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Map errors 1:8 up to +- 15*MAXSAMPLE/32 */
+    for (; in < STEPSIZE*15; in++, out += (in&7) ? 0 : 1) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Clamp the rest to final out value (which is (MAXSAMPLE+1)/8) */
+    for (; in <= MAXSAMPLE; in++) {
+        table[in] = out; table[-in] = -out;
+    }
+#else
+#define STEPSIZE ((MAXSAMPLE+1)/16)
+    /* Map errors 1:1 up to +- MAXSAMPLE/16 */
+    out = 0;
+    for (in = 0; in < STEPSIZE; in++, out++) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Map errors 1:2 up to +- 3*MAXSAMPLE/16 */
+    for (; in < STEPSIZE*3; in++, out += (in&1) ? 0 : 1) {
+        table[in] = out; table[-in] = -out;
+    }
+    /* Clamp the rest to final out value (which is (MAXSAMPLE+1)/8) */
+    for (; in <= MAXSAMPLE; in++) {
+        table[in] = out; table[-in] = -out;
+    }
+#endif
+#undef STEPSIZE
+
+    return table;
+}
+
 
 /*
     Initialization routine
@@ -85,7 +164,7 @@ PERROR Dither_FSI( struct RenderObject *rdo )
     if(!fs) return PERR_OUTOFMEMORY;
 
     fs->odd_row = FALSE;
-    fs->error_limit = Init_FS_ErrorLimit();
+    fs->error_limit = Init_FS_ErrorLimits();
     if(fs->error_limit) {
         fs->fserrors = pzmalloc( (width + 2) * rdo->frame->pix->components * sizeof(FSERROR) );
         if( fs->fserrors ) {
@@ -135,7 +214,7 @@ VOID Dither_FS( struct RenderObject *rdo )
     WORD width = rdo->frame->pix->width;
     WORD col;
     HGRAM *hgrams = rdo->histograms;
-    UBYTE *dcp = rdo->dest;
+    UBYTE *dcp = rdo->buffer;
 
     fs = (struct FSObject *) rdo->DitherObject;
     error_limit = fs->error_limit;
@@ -157,7 +236,6 @@ VOID Dither_FS( struct RenderObject *rdo )
     bpreverr0 = bpreverr1 = bpreverr2 = 0;
 
     for( col = width; col > 0; col-- ) {
-        UBYTE color;
 
         cur0 = (cur0 + errorptr[dir3+0] + 8) >> 4;
         cur1 = (cur1 + errorptr[dir3+1] + 8) >> 4;
@@ -182,15 +260,12 @@ VOID Dither_FS( struct RenderObject *rdo )
          */
 
         {   register UWORD pixcode;
-            register UBYTE oldcur0, oldcur1, oldcur2;
 
-            oldcur0 = cur0; oldcur1 = cur1; oldcur2 = cur2;
-
-            pixcode = (*(rdo->GetColor))( rdo, &cur0, &cur1, &cur2 );
+            pixcode = (*(rdo->GetColor))( rdo, cur0, cur1, cur2 );
             *dcp = (UBYTE)(pixcode);
-            cur0 = oldcur0 - cur0;
-            cur1 = oldcur1 - cur1;
-            cur2 = oldcur2 - cur2;
+            cur0 -= rdo->newr;
+            cur1 -= rdo->newg;
+            cur2 -= rdo->newb;
         }
 
         /*
