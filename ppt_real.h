@@ -2,9 +2,9 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 1.15 $
-    $Date: 1996/11/15 21:59:24 $
-    $Author: jj $
+    $Revision: 1.16 $
+        $Date: 1996/11/17 20:09:39 $
+      $Author: jj $
 
     Main definitions for PPT.
 
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 1.15 1996/11/15 21:59:24 jj Exp $
+    $Id: ppt_real.h,v 1.16 1996/11/17 20:09:39 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -111,7 +111,9 @@ typedef ULONG       ID;             /* Identification code */
 /*------------------------------------------------------------------*/
 
 /*
-    This must be in the beginning of each external module
+    This must be in the beginning of each external module.
+
+    NB:  Does not concern you!  Just make a shared library and be happy.
  */
 
 struct ModuleInfo {
@@ -129,8 +131,12 @@ struct ModuleInfo {
 
 /*------------------------------------------------------------------*/
 
+/*!!PRIVATE*/
 /*
     A common structure to ease handling of external modules.
+
+    Note that in future this will go away, so you do not need to
+    concern yourself with this.
 */
 
 typedef struct {
@@ -138,11 +144,9 @@ typedef struct {
     BPTR            seglist;    /* Actual code */
     struct TagItem  *tags;
     ULONG           usecount;
-    /*!!PRIVATE*/
     BOOL            islibrary;  /* If != 0, this is a newstyle library */
     UBYTE           diskname[40];/* The real name on disk. */
     UBYTE           realname[40];/* The name by which this is known */
-    /*!!PUBLIC*/
 } EXTERNAL;
 
 /* External types. Also double as Node types. Type is UBYTE  */
@@ -162,8 +166,6 @@ typedef struct {
     EXTERNAL        info;
 } LOADER;
 
-
-/*!!PRIVATE*/
 
 /*------------------------------------------------------------------*/
 /*  Filters... */
@@ -350,8 +352,6 @@ typedef struct Frame_t {
     struct Node     nd;             /* PRIVATE! */
     char            path[MAXPATHLEN];/* Just the path-part.*/
     char            name[NAMELEN];  /* The name of the frame, as seen in main display */
-    LOADER          *origtype;      /* Points to the loader that originally loaded this frame */
-    EXTERNAL        *currext;       /* NULL, if not busy right now. May be ~0, if the external is not yet known */
     struct Process  *currproc;      /* Points to current owning process */
     PIXINFO         *pix;           /* Picture data */
     DISPLAY         *disp;          /* This is the display window */
@@ -359,6 +359,9 @@ typedef struct Frame_t {
 
     /* All data beyond this point is PRIVATE! */
     /*!!PRIVATE*/
+
+    LOADER          *origtype;      /* Points to the loader that originally loaded this frame */
+    EXTERNAL        *currext;       /* NULL, if not busy right now. May be ~0, if the external is not yet known */
     ULONG           busy;           /* See below for definitions */
     LONG            busycount;      /* Number of times this item is busy with non-exclusive locks */
 
@@ -434,12 +437,13 @@ typedef struct Frame_t {
 typedef struct {
     struct TextAttr *mainfont;
     struct TextAttr *listfont;
-    char            vmdir[MAXPATHLEN]; /* Where the virtual memory should reside. */
-    UWORD           vmbufsiz;       /* In kb. */
 
     /* PRIVATE data only beyond this point */
 
     /*!!PRIVATE*/
+
+    char            vmdir[MAXPATHLEN]; /* Where the virtual memory should reside. */
+    UWORD           vmbufsiz;       /* In kb. */
 
     UBYTE           *pubscrname;    /* NULL, if use default public screen or open own. Currently not used. */
     BOOL            iwonload;
@@ -485,8 +489,8 @@ typedef struct {
 
 typedef struct {
     struct SignalSemaphore phore;   /* Must be locked if you read the struct! */
-    DISPLAY         *maindisp;
-    PREFS           *userprefs;
+    DISPLAY         *maindisp;      /* Main display data. */
+    PREFS           *userprefs;     /* Currently applicable preferences */
     struct MsgPort  *mport;         /* Main message port for programs to call in. */
     struct List     frames,
                     loaders,
@@ -526,7 +530,7 @@ typedef struct {
     struct ExecBase *lb_Sys;        /* Exec.library */
     struct IntuitionBase *lb_Intuition;
     struct Library  *lb_Utility;
-    struct Library  *lb_Gfx;        /* Graphics.library */
+    struct GfxBase  *lb_Gfx;        /* Graphics.library */
     struct DosLibrary *lb_DOS;
     struct Library  *lb_BGUI;       /* bgui.library */
     struct Library  *lb_GadTools;   /* gadtools.library */
@@ -561,10 +565,6 @@ typedef struct {
     struct timerequest *TimerIO;
     /*!!PUBLIC*/
 } EXTBASE;
-
-/* For old source code compatibility (V0) */
-
-#define EXTDATA     EXTBASE
 
 /*------------------------------------------------------------------------*/
 /*
