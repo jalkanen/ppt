@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: select.c,v 1.3 1999/05/30 18:15:40 jj Exp $
+    $Id: select.c,v 1.4 1999/08/01 16:49:19 jj Exp $
 
  */
 
@@ -24,6 +24,14 @@
 #ifndef GRAPHICS_GFXMACROS_H
 #include <graphics/gfxmacros.h>
 #endif
+/*-------------------------------------------------------------------------*/
+
+/*
+ *  This is the global selection method, that should be updated
+ *  whenever the user touches the dial on the select window.
+ */
+
+UBYTE globalSelectMethod = GINP_LASSO_RECT;
 
 /*-------------------------------------------------------------------------*/
 /* Internal prototypes */
@@ -92,9 +100,9 @@ void UpdateIWSelbox( FRAME *f, BOOL final )
 
 #ifdef DEBUG_MODE
     if( f ) {
-        cx = f->circlex = ((abs(bl-tl)+1)>>1)+tl;
-        cy = f->circley = ((abs(br-tr)+1)>>1)+tr;
-        cr = f->circleradius = (abs(bl-tl)+1)>>1;
+        cx = f->selection.circlex;
+        cy = f->selection.circley;
+        cr = f->selection.circleradius;
     } else {
         cx = cy = cr = 0;
     }
@@ -117,6 +125,50 @@ void UpdateIWSelbox( FRAME *f, BOOL final )
 /*------------------------------------------------------------------------*/
 /* New style input handler interfaces */
 
+/// SelectWholeImage()
+/*
+    This routine will mark the entire image as selected.
+*/
+Prototype VOID          SelectWholeImage( FRAME * );
+
+VOID SelectWholeImage( FRAME *frame )
+{
+    ChangeSelectMethod( frame, GINP_LASSO_RECT );
+    frame->selbox.MinX = 0;
+    frame->selbox.MinY = 0;
+    frame->selbox.MaxX = frame->pix->width;
+    frame->selbox.MaxY = frame->pix->height;
+}
+///
+/// UnselectImage()
+/*
+    This routine unselects the entire image
+    Note: must not have LOCK.
+*/
+
+Prototype VOID          UnselectImage( FRAME * );
+
+VOID UnselectImage( FRAME *frame )
+{
+    ChangeSelectMethod( frame, GINP_LASSO_RECT );
+    frame->selbox.MinX = frame->selbox.MinY = ~0;
+}
+///
+/// IsAreaSelected()
+/*
+ *  This routine returns TRUE, if an area has been
+ *  selected in an image.
+ */
+
+Prototype BOOL IsAreaSelected( FRAME * );
+
+BOOL IsAreaSelected( FRAME *frame )
+{
+    return (BOOL)(frame->selbox.MinX != ~0);
+}
+///
+
+/// ClearSelectMethod()
 VOID ClearSelectMethod( FRAME *frame )
 {
     struct IBox clrrect = {0};
@@ -129,10 +181,14 @@ VOID ClearSelectMethod( FRAME *frame )
     s->DrawSelection     = NULL;
     s->EraseSelection    = NULL;
     s->IsInArea          = NULL;
+    s->Rescale           = NULL;
+    s->Copy              = NULL;
 
     s->fixrect           = clrrect;
 }
+///
 
+/// ChangeSelectMethod()
 /*
  *  Used selection modes are:
  *    GINP_LASSO_RECT
@@ -146,6 +202,7 @@ VOID ChangeSelectMethod( FRAME *frame, ULONG mode )
 {
     PERROR err;
 
+    EraseSelection( frame );
     ClearSelectMethod( frame );
 
     frame->selection.selectmethod = mode;
@@ -176,6 +233,8 @@ VOID ChangeSelectMethod( FRAME *frame, ULONG mode )
         /* BUG: missing code */
     }
 }
+///
+
 
 Prototype VOID DrawSelection( FRAME *frame, ULONG flags );
 
@@ -214,6 +273,18 @@ VOID ButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     if( selection->selstatus & SELF_BUTTONDOWN ) {
         D(bug("Discarded BUTTON_DOWN in panic...\n"));
         return;
+    }
+
+    /*
+     *  If the global selection mode is different from the current
+     *  frame selection mode, we will change the selection format
+     *  here.
+     */
+
+    if( !(selection->selstatus & SELF_LOCKED) ) {
+        if( selection->selectmethod != globalSelectMethod ) {
+            ChangeSelectMethod( frame, globalSelectMethod );
+        }
     }
 
     if( selection->ButtonDown ) {
@@ -263,17 +334,35 @@ VOID MouseMove( FRAME *frame, struct MouseLocationMsg *msg )
 
 }
 
-Prototype BOOL IsInArea( FRAME *frame, struct MouseLocationMsg *msg );
+Prototype BOOL IsInArea( FRAME *frame, WORD row, WORD col );
 
-BOOL IsInArea( FRAME *frame, struct MouseLocationMsg *msg )
+BOOL IsInArea( FRAME *frame, WORD row, WORD col )
 {
     struct Selection *selection = &frame->selection;
 
     if( selection->IsInArea ) {
-        return selection->IsInArea( frame, msg );
+        return selection->IsInArea( frame, row, col );
     }
+    return TRUE;
 }
 
+Prototype VOID RescaleSelection( FRAME *src, FRAME *dst );
 
+VOID RescaleSelection( FRAME *src, FRAME *dst )
+{
+    struct Selection *selection = &src->selection;
 
+    if( selection->Rescale ) {
+        selection->Rescale( src, dst );
+    }
 
+}
+
+Prototype VOID CopySelection( FRAME *src, FRAME *dst );
+
+VOID CopySelection( FRAME *src, FRAME *dst )
+{
+    if( src->selection.Copy ) {
+        src->selection.Copy( src, dst );
+    }
+}
