@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.47 1997/10/24 23:00:25 jj Exp $
+    $Id: display.c,v 1.48 1997/10/26 23:09:09 jj Exp $
 
     Contains display routines.
 
@@ -1454,7 +1454,7 @@ PERROR OpenDisplay( VOID )
 
     /* Open frames window */
 
-    if( framew.Win ) {
+    if( framew.win && framew.Win ) {
         SetAttrs( framew.Win, WINDOW_Screen, MAINSCR, TAG_DONE );
         framew.win = WindowOpen( framew.Win );
     }
