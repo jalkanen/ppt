@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.24 1998/09/20 00:37:11 jj Exp $
+    $Id: others.c,v 1.25 1998/12/20 19:12:57 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -496,8 +496,9 @@ SAVEDS VOID AwakenAllWindows( EXTBASE *xd )
 /*--------------------------------------------------------------------------*/
 
 struct dmi_data {
-    ULONG item;
-    BOOL  disable;
+    struct Window   *win;
+    ULONG           item;
+    BOOL            disable;
 };
 
 ASM
@@ -507,6 +508,7 @@ VOID Hook_DisableMenuItem( REG(a0) Object *Win,
 {
     struct dmi_data *d = (struct dmi_data *)foo;
 
+
     DisableMenu( Win, d->item, d->disable );
 }
 
@@ -515,9 +517,13 @@ Prototype VOID DisableMenuItem( ULONG );
 VOID DisableMenuItem( ULONG item )
 {
     struct dmi_data d = { 0L, TRUE };
+    struct ToolbarItem *tb;
 
-    d.item = item;
     DoAllWindows( Hook_DisableMenuItem, &d, 0L, globxd );
+
+    if(tb = FindInToolbar( PPTToolbar, item) ) {
+        SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, TRUE, TAG_DONE);
+    }
 }
 
 Prototype VOID EnableMenuItem( ULONG );
@@ -525,9 +531,13 @@ Prototype VOID EnableMenuItem( ULONG );
 VOID EnableMenuItem( ULONG item )
 {
     struct dmi_data d = { 0L, FALSE };
+    struct ToolbarItem *tb;
 
     d.item = item;
     DoAllWindows( Hook_DisableMenuItem, &d, 0L, globxd );
+    if(tb = FindInToolbar( PPTToolbar, item) ) {
+        SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, FALSE, TAG_DONE);
+    }
 }
 
 /*--------------------------------------------------------------------------*/
