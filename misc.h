@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.17 1998/09/05 11:31:12 jj Exp $
+    $Id: misc.h,v 5.0 1998/12/15 23:17:33 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -11,7 +11,7 @@
 #ifndef MISC_H
 #define MISC_H
 
-#define XLIB_FUNCS      41
+#define XLIB_FUNCS      43
 
 #define InternalError( txt )   Debug_InternalError( txt, __FILE__, __LINE__ )
 
