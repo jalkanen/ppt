@@ -1,20 +1,20 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.5 $
-;      $Date: 1998/01/04 17:26:25 $
+;  $Revision: 1.6 $
+;      $Date: 1998/06/28 23:26:00 $
 ;
 
-(message "\n"
-         "IMPORTANT!\n"
-         "\n"
-         "This is a pre-release version of PPT and\n"
-         "\n"
-         "NOT TO BE DISTRIBUTED\n"
-         "\n"
-         "without the written permission of the author"
-         (all)
-         )
+;(message "\n"
+;         "IMPORTANT!\n"
+;         "\n"
+;         "This is a pre-release version of PPT and\n"
+;         "\n"
+;         "NOT TO BE DISTRIBUTED\n"
+;         "\n"
+;         "without the written permission of the author"
+;         (all)
+;         )
 
 (welcome "This is the PPT Installation utility."
          "Thank you for choosing to test PPT.")
@@ -40,8 +40,8 @@
          (askbool
           (prompt "\n"
                   "Do you wish to use the 68020+ optimized\n"
-;                  "versions of the BGUI library and PPT?")
-                  "version of PPT?")
+                  "versions of the BGUI library and PPT?")
+;                  "version of PPT?")
           (help   (cat "It might be a good idea to install the version "
                        "that best suits your Amiga's processor." ))
           (default ##use020)
@@ -209,14 +209,14 @@
 
 (complete 80)
 
-;(copylib
-;    (prompt "Copying BGUI library")
-;    (confirm)
-;    (source (if (= ##cpu020 1) ("libs/bgui.library_e") ("libs/bgui.library")))
-;    (dest   "libs:")
-;    (newname "bgui.library")
-;    (help   @copylib-help)
-;)
+(copylib
+    (prompt "Copying BGUI library")
+    (confirm)
+    (source (if (= ##cpu020 1) ("libs/bgui.library_e") ("libs/bgui.library")))
+    (dest   "libs:")
+    (newname "bgui.library")
+    (help   @copylib-help)
+)
 
 (copylib
     (prompt "Copying BGUI floating point gadget")
@@ -226,18 +226,18 @@
     (help   @copylib-help)
 )
 
-;(copylib
-;    (prompt "Copying BGUI palette gadget")
-;    (confirm)
-;    (source "libs/bgui_palette.gadget")
-;    (dest   "SYS:Classes/Gadgets")
-;    (help   @copylib-help)
-;)
+(copylib
+    (prompt "Copying BGUI palette gadget")
+    (confirm)
+    (source "libs/bgui_palette.gadget")
+    (dest   "SYS:Classes/Gadgets")
+    (help   @copylib-help)
+)
 
 
-(message "\n\n\nNow make sure you have BGUI 41.8 installed.  Also, do not "
-         "forget to install the BGUI palette gadget in your SYS:Classes/Gadgets "
-         "directory!")
+;(message "\n\n\nNow make sure you have BGUI 41.8 installed.  Also, do not "
+;         "forget to install the BGUI palette gadget in your SYS:Classes/Gadgets "
+;         "directory!")
 
 ;
 ;   Make assigns
