@@ -2,12 +2,16 @@
     PROJECT: ppt
     MODULE:  toolbar.h
 
-    $Id: toolbar.h,v 1.2 1999/01/02 22:37:40 jj Exp $
+    $Id: toolbar.h,v 1.3 1999/01/13 22:54:56 jj Exp $
 */
 #ifndef TOOLBAR_H
 #define TOOLBAR_H
 
 #include <exec/types.h>
+
+#define TITBASE             (TAG_USER+0x1900500)
+#define TOOLITEM_FileName   (TITBASE + 0)
+#define TOOLITEM_Screen     (TITBASE + 1)
 
 /*
     Tool bar items
@@ -18,6 +22,7 @@ typedef enum {
     TIT_IMAGE,
     TIT_END
 } ToolbarItemType;
+
 
 struct ToolbarItem {
     ULONG               ti_GadgetID;
@@ -41,7 +46,7 @@ struct ToolbarItem {
 struct toolAddSingle {
     ULONG               MethodID;
     struct GadgetInfo   *tas_GInfo;
-    struct ToolbarItem  *tas_Item;
+    Object              *tas_Item;
     LONG                tas_Number;
     ULONG               flags;
 };
