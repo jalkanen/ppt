@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.19 1999/10/02 16:33:07 jj Exp $
+    $Id: save.c,v 6.0 1999/11/25 23:16:34 jj Exp $
 
     This code is executed in multiple threads.
 */
@@ -150,7 +150,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
      *  Open up the module
      */
 
-    IOModuleBase = OpenModule( ld, PPTBase );
+    IOModuleBase = OpenModule( ld, 0L, PPTBase );
     if(!IOModuleBase) {
         InternalError("Unable to open module for saving!");
         return PERR_ERROR;
