@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 1.18 $
-        $Date: 1996/11/28 23:14:24 $
+    $Revision: 2.0 $
+        $Date: 1996/12/08 20:27:04 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 1.18 1996/11/28 23:14:24 jj Exp $
+    $Id: ppt_real.h,v 2.0 1996/12/08 20:27:04 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -442,12 +442,12 @@ typedef struct {
 
     /*!!PRIVATE*/
 
+    LONG            extstacksize;   /* Size of stack for externals. */
+
     char            vmdir[MAXPATHLEN]; /* Where the virtual memory should reside. */
     UWORD           vmbufsiz;       /* In kb. */
 
     UBYTE           *pubscrname;    /* NULL, if use default public screen or open own. Currently not used. */
-    BOOL            iwonload;
-    BOOL            disponload;
     UWORD           maxundo;        /* Maximum amount of undo levels */
     struct TextFont *maintf;        /* These two are the same as the TextAttr - structs */
     struct TextFont *listtf;        /* above, but these contain valid pointers. */
