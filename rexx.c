@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.28 1998/08/23 23:17:07 jj Exp $
+    $Id: rexx.c,v 1.29 1998/09/05 11:32:42 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -177,6 +177,20 @@ const Tag artags[] = {
 
 /*--------------------------------------------------------------------------*/
 
+Local
+REXXARGS *AllocRA(VOID)
+{
+    REXXARGS *ra;
+    ra = smalloc( sizeof(REXXARGS) );
+    if( ra ) bzero( ra, sizeof(REXXARGS) );
+    return ra;
+}
+
+Local
+VOID FreeRA( REXXARGS *ra )
+{
+    if( ra ) sfree( ra );
+}
 
 /*
     As utility/GetTagData()
@@ -1416,9 +1430,6 @@ BOOL DoRexxCommand( struct RexxMsg *msg, char *arg0, REXXARGS *ra )
 
     D(bug("REXX Msg: %s\n",arg0));
 
-    if( !CheckPtr( ra, "REXXARGS" ))
-        return TRUE;
-
     ra->args  = NULL;
     ra->frame = NULL;
 
@@ -1549,7 +1560,7 @@ void HandleRexxCommands( struct RexxHost *host )
         } else {
             REXXARGS *ra;
 
-            if(!(ra = pzmalloc( sizeof(REXXARGS) )))
+            if(!(ra = AllocRA() ))
                 return;
 
             /*
@@ -1564,7 +1575,7 @@ void HandleRexxCommands( struct RexxHost *host )
             if( immediate ) {
                 D(bug("\tImmediate command executed\n"));
                 RexxReply( rmsg, ra );
-                pfree( ra );
+                FreeRA( ra );
             } else {
                 D(bug("\tMoving REXX to wait list\n"));
                 /*
@@ -1597,7 +1608,7 @@ SimulateRexxCommand( FRAME *frame, char *command )
 {
     REXXARGS *ra = NULL;
 
-    if( ra = pzmalloc(sizeof(REXXARGS)) ) {
+    if( ra = AllocRA() ) {
         ra->frame = frame;
 
         if(ra->process_args = smalloc( strlen(command)+1 )) {
@@ -1607,7 +1618,7 @@ SimulateRexxCommand( FRAME *frame, char *command )
             AddTail( &RexxWaitList, (struct Node *) ra );
             Permit();
         } else {
-            pfree( ra );
+            FreeRA( ra );
             ra = NULL;
         }
 
@@ -1756,7 +1767,7 @@ void ReplyRexxWaitItem( REXXARGS *ra )
      */
 
     if( ra->process_args ) sfree( ra->process_args );
-    pfree(ra);
+    FreeRA(ra);
 }
 
 Local
