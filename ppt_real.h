@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.12 $
-        $Date: 1998/11/08 00:29:42 $
+    $Revision: 4.13 $
+        $Date: 1998/12/07 13:45:44 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.12 1998/11/08 00:29:42 jj Exp $
+    $Id: ppt_real.h,v 4.13 1998/12/07 13:45:44 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -959,6 +959,12 @@ struct Extension {
 #define EDITCMD_PASTE       3
 #define EDITCMD_CUTFRAME    4
 #define EDITCMD_CROPFRAME   5
+
+/*------------------------------------------------------------------*/
+/* Return values for GetOptID() */
+
+#define GOID_COMMENT        -1
+#define GOID_UNKNOWN        -2
 
 /*!!PUBLIC*/
 
