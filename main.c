@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.92 1998/08/14 19:30:07 jj Exp $
+    $Id: main.c,v 1.93 1998/09/05 11:33:07 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2148,6 +2148,11 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
         case GID_DW_HIDE:
             return HandleMenuIDCMP( MID_HIDE, frame, FROM_DISPLAYWINDOW );
 
+        /*
+         *  This method is called whenever the window has been damaged and
+         *  needs to be redrawn or someone dropped a frame name on the window
+         */
+
         case GID_DW_AREA:
 
             GetAttr( AREA_DropEntry, d->RenderArea, (ULONG *) &dropentry );
@@ -2170,14 +2175,6 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
             break;
 
         case GID_DW_BOTTOMPROP:
-            /* Problem: This gets all of the notification events */
-#if 0
-            ULONG val;
-
-            GetAttr( PGA_Top, d->GO_BottomProp, &val );
-
-            D(bug("  NEW TOP : %ld\n",val ));
-#endif
             break;
 
         case GID_DW_RIGHTPROP:
