@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.1 $
-        $Date: 1997/02/02 00:06:25 $
+    $Revision: 3.2 $
+        $Date: 1997/02/03 00:24:48 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.1 1997/02/02 00:06:25 jj Exp $
+    $Id: ppt_real.h,v 3.2 1997/02/03 00:24:48 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -29,6 +29,10 @@
 
 #ifndef EXEC_NODES_H
 #include <exec/nodes.h>
+#endif
+
+#ifndef EXEC_EXECBASE_H
+#include <exec/execbase.h>
 #endif
 
 #ifndef EXEC_TYPES_H
@@ -641,6 +645,7 @@ struct LocaleString {
 #define PPTX_Version            ( GTAGBASE + 1 ) /* UWORD */
 #define PPTX_Revision           ( GTAGBASE + 2 ) /* UWORD */
 #define PPTX_Name               ( GTAGBASE + 4 ) /* UBYTE * */
+#define PPTX_CPU                ( GTAGBASE + 5 ) /* UWORD, see execbase.h */
 #define PPTX_InfoTxt            ( GTAGBASE + 7 ) /* STRPTR */
 #define PPTX_Author             ( GTAGBASE + 8 ) /* STRPTR */
 #define PPTX_ReqKickVersion     ( GTAGBASE + 9 ) /* UWORD */
@@ -673,7 +678,7 @@ struct LocaleString {
  */
 
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
-
+#define PPTX_FileName           ( GTAGBASE + 1006 ) /* STRPTR */
 
 
 /*------------------------------------------------------------------*/
@@ -701,8 +706,14 @@ struct LocaleString {
 
 #define PERR_WARNING       16 /* If something non-fatal happened */
 
+
 #define PERR_GENERAL       PERR_FAILED  /* Obsolete */
 #define PERR_ERROR         PERR_FAILED  /* Obsolete */
+
+/*!!PRIVATE*/
+#define PERR_UNKNOWNCPU    1000 /* This CPU is not supported */
+
+/*!!PUBLIC*/
 
 /*------------------------------------------------------------------*/
 /* Flags */
