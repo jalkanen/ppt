@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.14 1998/02/28 18:03:39 jj Exp $
+#       $Id: dmakefile,v 1.15 1998/06/28 23:25:36 jj Exp $
 #
 #####################################################################
 #
@@ -34,10 +34,13 @@ ARCHIVEDIR= RAM:
 MAINDIR   = work:source/c/ppt
 
 #   Externals source directory
-EXTSRCDIR = $(MAINDIR)/externals/src
+EXTSRCDIR = $(MAINDIR)/pluginsrc
 
 #   Float gadget include files
 FLOATGADGET=floatgadget
+
+#   PowerUP include files
+POWERUP=usr:lang/PPCRelease/include
 
 #   Object directories. OD is for the debugging version and
 #   ROD is for the release version with no debug code.
@@ -73,7 +76,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #CC     = dcc
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
-COPTS  = NOICONS IDIR=dinclude:pd IDIR=include IDIR=$(FLOATGADGET) \
+COPTS  = NOICONS IDIR=dinclude:pd IDIR=include IDIR=$(FLOATGADGET) IDIR=$(POWERUP) \
          CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT \
          IGNORE=104 MATH=S
 
@@ -156,7 +159,7 @@ LINKTO  = TO
 #   C sources and assembler source codes.
 #
 
-SRCS = initexit.c debug.c load.c edit.c frame.c main.c \
+SRCS = initexit.c debug.c load.c edit.c frame.c main.c input.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
        render.c preview.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c ppt_cat.c \
@@ -239,16 +242,16 @@ R2VOBJS  = $(VSRCS:"*.c":"$(R2OD)/*.o")
 #   End of configuration, now begins the compiler stuff
 #
 
-all : $(OD) $(GST) $(MFILE) $(MAIN) externals
+all : $(OD) $(GST) $(MFILE) $(MAIN) $(EXTSRCDIR)
         @List $(MAIN) NOHEAD
         @beep
         @Avail FLUSH >NIL:
 
-release : $(ROD) $(RMFILE) $(RMAIN) externals
+release : $(ROD) $(RMFILE) $(RMAIN) $(EXTSRCDIR)
         @List $(RMAIN) NOHEAD
         @beep
 
-release020 : $(R2OD) $(R2MFILE) $(R2MAIN) externals
+release020 : $(R2OD) $(R2MFILE) $(R2MAIN) $(EXTSRCDIR)
         @List $(R2MAIN) NOHEAD
         @beep
 
@@ -329,7 +332,7 @@ $(R2OD)/external.o :: misc.h
 
 # Externals
 
-externals : include/ppt.h
+$(EXTSRCDIR) : include/ppt.h
         cd $(EXTSRCDIR)
         @dmake install
 
@@ -387,7 +390,7 @@ dist : all release release020 $(DISTDIR) docs bguilibs modinfo
         dupdate $(MAINDIR) $(DISTDIR) FORCE
         Cd $(DISTDIR)
         Copy $(MAINDIR)/ppt_dir.info /PPT.info
-        pgp -sba ppt -u jalkanen
+        pgps -b ppt ppt020 -u jalkanen
         lha -r u $(ARCHIVEDIR)PPT_dist.lha $(DISTDIR)/#? /PPT.info
         Copy $(DISTDIR)/ReleaseNotes $(DISTDIR)/README $(DISTDIR)/HISTORY $(ARCHIVEDIR)
         Cd $(MAINDIR)
@@ -486,7 +489,7 @@ touch :
 ppt.h : ppt_real.h
         extract ppt_real.h    include/ppt.h
         extract pptmessage.h  include/pptmessage.h
-        touch externals
+        touch $(EXTSRCDIR)
 
 #
 #   PGP signatures
