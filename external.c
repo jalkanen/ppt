@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.11 1996/11/17 22:06:36 jj Exp $
+    $Id: external.c,v 1.12 1996/11/23 00:43:11 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -395,6 +395,7 @@ PERROR InitOldExternal( const char *who )
         x->nd.ln_Name = name;
         x->nd.ln_Pri  = (BYTE)GetTagData( PPTX_Priority, 0L, m->tagarray );
         strncpy( x->diskname, FilePart(who), 39 );
+        strncpy( x->realname, GetTagData( PPTX_Name, "", m->tagarray ), NAMELEN-1 );
 
         LOCKGLOB();
         if(type == NT_LOADER)
