@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.2 $
-        $Date: 1997/02/03 00:24:48 $
+    $Revision: 3.3 $
+        $Date: 1997/02/22 21:41:28 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.2 1997/02/03 00:24:48 jj Exp $
+    $Id: ppt_real.h,v 3.3 1997/02/22 21:41:28 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -447,6 +447,9 @@ typedef struct Frame_t {
 
     struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
 
+#ifdef DEBUG_MODE
+    BPTR            debug_handle;   /* The debug output of this task */
+#endif
     /*!!PUBLIC*/
 } FRAME;
 
