@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.7 1999/02/21 21:00:17 jj Exp $
+    $Id: toolbar.c,v 1.8 1999/08/01 16:50:31 jj Exp $
 
     Grumble...
 
@@ -118,6 +118,8 @@ const struct TagItem DefaultTags[] = {
     TAG_DONE, 0L
 };
 
+#define DEFAULTTAGS_LENGTH 6    /* Length of the tag list */
+
 const char *ToolbarOptions[] = {
     "END",
     "IMAGE",
@@ -219,13 +221,21 @@ ToolItemNew( REGPARAM(a0,Class *,cl),
                                            FRM_EdgesOnly,   TRUE,
                                            LAB_Label,       NULL,
                                            TAG_DONE );
+                        } else {
+                            D(bug("NewObject() failed\n"));
                         }
 
+                    } else {
+                        D(bug("GetDTAttrs() failed\n"));
                     }
 
+                } else {
+                    D(bug("DTM_PROCLAYOUT failed\n"));
                 }
 
                 DisposeObject( dto );
+            } else {
+                D(bug("NewDTObject() failed\n"));
             }
 
             /*
@@ -356,6 +366,8 @@ ToolbarNew( REGPARAM(a0,Class *,cl),
     ULONG rc;
 
     D(bug("Toolbar: OM_NEW\n"));
+
+#if 1
     /*
      *  BUG: Should really do a FilterTagItems(),
      *       then add own tags.
@@ -365,12 +377,17 @@ ToolbarNew( REGPARAM(a0,Class *,cl),
         tag->ti_Tag  = TAG_MORE;
         tag->ti_Data = DefaultTags;
     }
+    tstate = tags;
+
+#else
+    tstate = CloneTagItems( DefaultTags );
+    tstate[DEFAULTTAGS_LENGTH-1].ti_Tag = TAG_MORE;
+    tstate[DEFAULTTAGS_LENGTH-1].ti_Data = tags;
+#endif
 
     if( rc = DoSuperMethodA( cl, obj, (Msg) ops )) {
         td = (TD*)INST_DATA(cl,rc);
         bzero( td, sizeof(TD) );
-
-        tstate = tags;
 
         while( tag = NextTagItem( &tstate ) ) {
             switch( tag->ti_Tag ) {
@@ -383,6 +400,11 @@ ToolbarNew( REGPARAM(a0,Class *,cl),
             }
         }
     }
+
+#if 0
+    tstate[DEFAULTTAGS_LENGTH-1].ti_Tag = TAG_DONE;
+    FreeTagItems( &tstate );
+#endif
 
     return rc;
 }
