@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.42 1999/03/31 13:27:29 jj Exp $
+    $Id: initexit.c,v 1.43 1999/04/01 23:06:11 jj Exp $
 
     Initialization and exit code.
 */
@@ -326,6 +326,7 @@ Local struct LocaleString *tips[] = {
     mTIP_HOWTOSTART,
     mTIP_ANNOYINGTIPS,
     mTIP_PREFERENCES,
+    mTIP_CONTROLDRAGGING,
     mTIP_MULTITHREAD,
     mTIP_COLORSPACES,
     mTIP_COLORPREVIEW,
