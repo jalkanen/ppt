@@ -5,7 +5,7 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
-    $Id: dropareaclass.c,v 1.2 1995/07/23 21:52:09 jj Exp $
+    $Id: dropareaclass.c,v 1.3 1996/02/08 14:05:45 jj Exp $
 */
 
 #include <defs.h>
@@ -55,6 +55,10 @@ typedef struct {
         UWORD           MinWidth;       // Minimum width of area.
         UWORD           MinHeight;      // Minimum height of area.
         struct IBox     AreaBox;        // Current area bounds.
+        APTR            DropEntry;
+        WORD            DropX;
+        WORD            DropY;
+        BOOL            AllowDrop;
 } AOD;
 
 /*
@@ -66,6 +70,9 @@ typedef struct {
 #define GPRENDER(x)     ((struct gpRender *)x)
 #define GADGET(x)       ((struct Gadget *)x)
 #define GDIM(x)         ((struct grmDimensions *)x)
+
+#define QUERY(x)        ((struct bmDragPoint *)x)
+#define DROP(x)         ((struct bmDropped *)x)
 
 /*
  *      Send a notification.
@@ -87,17 +94,10 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
     AOD                     *data;
     struct TagItem          *tag, *tstate;
     ULONG                    rc = 0L;
-    APTR UtilityBase, SysBase = (APTR)SYSBASE();
 
     switch ( msg->MethodID ) {
 
         case    OM_NEW:
-            /*
-             *      Open utility.library
-             */
-            if ( NULL == (UtilityBase = OpenLibrary("utility.library",36))) {
-                return 0L;
-            }
 
             /*
              *  Let the superclass create the object.
@@ -127,6 +127,9 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
                         case    AREA_MinHeight:
                             data->MinHeight = tag->ti_Data;
                             break;
+                        case    BT_DropObject:
+                            data->AllowDrop = tag->ti_Data;
+                            break;
                     }
                 }
 
@@ -143,7 +146,22 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
                 rc = 0L;
             }
 
-            CloseLibrary(UtilityBase);
+            break;
+
+        case    OM_SET:
+        case    OM_UPDATE:
+            rc = DoSuperMethodA( cl, obj, msg );
+
+            if( tag = FindTagItem(AREA_DropEntry, OPSET(msg)->ops_AttrList ) ) {
+                data = ( AOD * )INST_DATA( cl, obj );
+                data->DropEntry = (APTR)tag->ti_Data;
+            }
+
+            if( tag = FindTagItem(BT_DropObject, OPSET(msg)->ops_AttrList ) ) {
+                data = ( AOD * )INST_DATA( cl, obj );
+                data->AllowDrop = (BOOL)tag->ti_Data;
+            }
+
             break;
 
         case    OM_GET:
@@ -151,17 +169,35 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
              *      Do we know the requested
              *      attribute?
              */
-            if( OPGET( msg )->opg_AttrID == AREA_AreaBox ) {
-                /*
-                 *      Simply return a pointer to the
-                 *      area which is computed at rendering
-                 *      time.
-                 */
-                data = ( AOD * )INST_DATA( cl, obj );
-                *( OPGET( msg )->opg_Storage ) = ( ULONG )&data->AreaBox;
-                rc = 1L;
-            } else
-                rc = DoSuperMethodA( cl, obj, msg );
+            switch( OPGET( msg )->opg_AttrID ) {
+                case AREA_AreaBox:
+                    /*
+                    *      Simply return a pointer to the
+                    *      area which is computed at rendering
+                    *      time.
+                    */
+                    data = ( AOD * )INST_DATA( cl, obj );
+                    *( OPGET( msg )->opg_Storage ) = ( ULONG )&data->AreaBox;
+                    rc = 1L;
+                    break;
+
+                case AREA_DropEntry:
+                    data = ( AOD * )INST_DATA( cl, obj );
+                    *( OPGET( msg )->opg_Storage ) = ( ULONG )data->DropEntry;
+                    rc = 1L;
+                    break;
+
+                case BT_DropObject:
+                    data = ( AOD * )INST_DATA( cl, obj );
+                    *( OPGET( msg )->opg_Storage ) = ( ULONG )data->AllowDrop;
+                    rc = 1L;
+                    break;
+
+                default:
+                    rc = DoSuperMethodA( cl, obj, msg );
+                    break;
+            }
+
             break;
 
         case    GM_RENDER:
@@ -240,9 +276,51 @@ SAVEDS ASM ULONG AreaDispatch( REG(a0) Class *cl, REG(a2) Object *obj, REG(a1) M
              */
             break;
 
+        case    BASE_DRAGQUERY:
+            /*
+             *  If the request came from us, let the superclass
+             *  worry about it.
+             */
+
+            if( QUERY(msg)->bmdp_Source == obj )
+                return( DoSuperMethodA( cl, obj, msg ));
+
+            data = (AOD *)INST_DATA( cl, obj );
+
+            /*
+             *  Allow drops from the main listview only and if we're droppable.
+             */
+
+            if( QUERY( msg )->bmdp_Source == globals->LV_frames && data->AllowDrop ) {
+                rc = BQR_ACCEPT;
+            } else {
+                rc = BQR_REJECT;
+            }
+            break;
+
+        case    BASE_DROPPED:
+            APTR entry;
+
+            data = (AOD *)INST_DATA( cl, obj );
+
+            if( (entry = (APTR) FirstSelected( DROP(msg)->bmd_Source ))) {
+
+                data->DropEntry = entry;
+
+                /*
+                 *  Notify main program
+                 */
+
+                Notify( obj, GPRENDER( msg )->gpr_GInfo, 0L,
+                    GA_ID, GADGET( obj )->GadgetID,
+                    TAG_END );
+            }
+            rc = 1;
+            break;
+
         default:
             /*
-             *    All the reset goes to the
+             *    All the rest goes to the
              *    superclass.
              */
             rc = DoSuperMethodA( cl, obj, msg );
