@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.23 1997/10/26 23:07:18 jj Exp $
+   $Id: render.c,v 1.24 1998/06/28 23:23:43 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -77,7 +77,7 @@ UBYTE QuickRemapTable_Color[4096];
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Prototype int QuickRender(FRAME *, struct RastPort *, UWORD, UWORD, UWORD, UWORD, EXTBASE *);
+Prototype PERROR QuickRender(FRAME *, struct RastPort *, UWORD, UWORD, UWORD, UWORD, EXTBASE *);
 Prototype VOID RemoveSelectBox(FRAME *);
 Prototype PERROR AllocColorTable(FRAME *);
 Prototype VOID ReleaseColorTable(FRAME *);
@@ -85,6 +85,8 @@ Prototype VOID ReleaseColorTable(FRAME *);
 extern ASM void QuickMapRow(REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) UWORD, REG(d1) UWORD, REG(d2) UBYTE);
 extern ASM void QuickMapARGBDeepRow(REG(a0) ARGBPixel *, REG(a1) UBYTE *, REG(d0) UWORD, REG(d1) UWORD, REG(d2) UBYTE, REG(d3) UBYTE, REG(d4) WORD);
 
+Local VOID DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULONG flags);
+Local VOID DrawSelectCircle( FRAME *, WORD, WORD, WORD );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -125,6 +127,13 @@ VOID RemoveSelectBox(FRAME * frame)
         }
         break;
 
+    case GINP_LASSO_CIRCLE:
+        if( frame->selstatus & SELF_RECTANGLE ) {
+            DrawSelectCircle( frame, frame->circlex, frame->circley, frame->circleradius );
+            frame->selstatus &= ~SELF_RECTANGLE;
+        }
+        break;
+
     default:
         break;
     }
@@ -159,7 +168,58 @@ VOID DrawSelectBox( FRAME *frame, ULONG flags )
         }
 
         break;
+
+      case GINP_LASSO_CIRCLE:
+        if( !(frame->selstatus & SELF_RECTANGLE) ) {
+            DrawSelectCircle( frame, frame->circlex, frame->circley, frame->circleradius );
+            frame->selstatus |= SELF_RECTANGLE;
+        }
+        break;
     }
+}
+
+Local
+VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
+{
+    DISPLAY *d = frame->disp;
+    struct Window *win = d->win;
+    WORD winwidth, winheight, xoffset, yoffset;
+    struct IBox *abox;
+    WORD rx,ry;
+
+    D(bug("DrawSelectCircle( x=%d, y=%d, r=%d)\n",x,y,r));
+
+    GetAttr(AREA_AreaBox, frame->disp->RenderArea, (ULONG *) & abox);
+    winwidth = abox->Width;
+    winheight = abox->Height;
+    xoffset = abox->Left;
+    yoffset = abox->Top;
+
+    /*
+     *  Scale and limit the values to be inside the window
+     */
+
+    x -= frame->zoombox.Left;
+    y -= frame->zoombox.Top;
+
+    x = (LONG) (MULS16(x, winwidth)) / (WORD) (frame->zoombox.Width);
+    y = (LONG) (MULS16(y, winheight)) / (WORD) frame->zoombox.Height;
+    rx = (LONG) (MULS16(r, winwidth)) / (WORD) frame->zoombox.Width;
+    ry = (LONG) (MULS16(r, winheight)) / (WORD) frame->zoombox.Height;
+
+    /*
+     *  Draw!
+     */
+
+    x += xoffset;
+    y += yoffset;
+
+    SetDrMd(win->RPort, COMPLEMENT);
+    SetDrPt(win->RPort, (UWORD) frame->disp->selpt);    // Uses just lower 16 bits
+
+    WaitTOF();
+
+    DrawEllipse( win->RPort, x, y, rx, ry );
 }
 
 /*
@@ -177,9 +237,9 @@ VOID DrawSelectBox( FRAME *frame, ULONG flags )
    DSBF_FIXEDRECT : Draws a fixed-size rectangle. This means that
    the image contains also connecting beams between corners.
  */
-Prototype void DrawSelectRectangle(FRAME *, WORD, WORD, WORD, WORD, ULONG);
 
-void DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULONG flags)
+Local
+VOID DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULONG flags)
 {
     DISPLAY *d = frame->disp;
     struct Window *win = d->win;
@@ -253,8 +313,8 @@ void DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULON
     /*
      *  Dice generates better code with this.
      */
-    x0 = (LONG) (MULS16(x0, winwidth)) / (WORD) frame->zoombox.Width;
-    x1 = (LONG) (MULS16(x1, winwidth)) / (WORD) frame->zoombox.Width;
+    x0 = (LONG) (MULS16(x0, winwidth)) / (WORD) (frame->zoombox.Width);
+    x1 = (LONG) (MULS16(x1, winwidth)) / (WORD) (frame->zoombox.Width);
 
     y0 = (LONG) (MULS16(y0, winheight)) / (WORD) frame->zoombox.Height;
     y1 = (LONG) (MULS16(y1, winheight)) / (WORD) frame->zoombox.Height;
