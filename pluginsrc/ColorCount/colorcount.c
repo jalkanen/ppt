@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: colorcount.c,v 3.0 1999/12/08 22:20:44 jj Exp $
+    $Id: colorcount.c,v 3.1 2000/11/17 03:04:21 jalkanen Exp $
 */
 /*----------------------------------------------------------------------*/
 

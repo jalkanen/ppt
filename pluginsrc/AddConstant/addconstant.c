@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: addconstant.c,v 3.1 1999/12/08 22:10:32 jj Exp $
+    $Id: addconstant.c,v 3.2 2000/11/17 03:00:19 jalkanen Exp $
 */
 /*----------------------------------------------------------------------*/
 

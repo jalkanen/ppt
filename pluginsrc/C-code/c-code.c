@@ -4,7 +4,7 @@
 
     A new style loader.
 
-    $Id: c-code.c,v 3.0 1999/12/07 14:10:43 jj Exp $
+    $Id: c-code.c,v 3.1 2000/11/17 03:02:28 jalkanen Exp $
 */
 
 #include <pptplugin.h>
