@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.57 1998/12/07 20:23:59 jj Exp $
+    $Id: gui.c,v 1.58 1998/12/15 21:24:18 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -712,6 +712,7 @@ GimmeDispPrefsWindow( DISPLAY *disp, struct DispPrefsWindow *dpw )
                 VGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
                     StartMember,
                         InfoObject, INFO_TextFormat, GetStr(MSG_DISPLAY_PREFERENCES_LAB),
+                        NoFrame,
                         EndObject,
                     EndMember,
                     StartMember,
@@ -790,6 +791,7 @@ GimmeDispPrefsWindow( DISPLAY *disp, struct DispPrefsWindow *dpw )
                                     INDIC_Level, ncolors,
                                     INDIC_FormatString, "%5ld",
                                     INDIC_Justification, IDJ_LEFT,
+                                    NoFrame,
                                     BT_HelpHook, &HelpHook,
                                     BT_HelpNode, "PPT.guide/RenderSettings",
                                 EndObject, FixMinWidth,
