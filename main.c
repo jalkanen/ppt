@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.96 1998/10/25 22:14:52 jj Exp $
+    $Id: main.c,v 1.97 1998/11/08 00:46:24 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -65,29 +65,7 @@
 /*------------------------------------------------------------------------*/
 /* Internal Defines */
 
-#define FROM_MAINWINDOW     0
-#define FROM_EFFECTINFO     1
-#define FROM_LOADERINFO     2
-#define FROM_INFOWINDOW     3
-#define FROM_DISPLAYWINDOW  4
-#define FROM_PREFSWINDOW    5
-#define FROM_DISPPREFSWINDOW 6
-#define FROM_PALETTEWINDOW  8
-#define FROM_TOOLWINDOW     9
-#define FROM_REXXWINDOW    10
-#define FROM_FRAMESWINDOW  11
-#define FROM_EDITWINDOW    12
-
 #define FLASHING_DISPRECT    /* Should we flash the rectangle? */
-
-/*
- *  IDCMP handler return codes
- */
-
-#define HANDLER_OK          0
-#define HANDLER_QUIT        1
-#define HANDLER_RESTART     -2
-#define HANDLER_DELETED     -1
 
 /*------------------------------------------------------------------------*/
 /* Types */
@@ -112,24 +90,15 @@ int quit = 0;
 
 struct ExtInfoWin extf = {0}, extl = {0}, exts = {0};
 
-struct FramesWindow framew = {{ 0,0,0,0 }, TRUE, NULL};
+struct FramesWindow framew = { 0,0,0,0,TRUE,0};
 
-struct ToolWindow toolw = {{0,0,0,0}, TRUE, NULL};
+struct ToolWindow toolw = {0,0,0,0,TRUE,0};
 
 struct PrefsWindow prefsw = {0};
 
 struct SelectWindow selectw = {0};
 
 struct MsgPort *MainIDCMPPort;
-
-const UBYTE *ColorSpaceNames[] = {
-    "Unknown",
-    "Greyscale",
-    "RGB",
-    "LUT",
-    "ARGB",
-    NULL
-};
 
 BOOL loader_close = TRUE; /* TRUE, if the Loader window should be closed
                              after the first selection. */
@@ -146,7 +115,6 @@ BPTR debug_fh, old_fh;
 
 extern int              main(int, char **);
 Local void              HandleAppMsg( const struct AppMessage * );
-Local int               HandleMainIDCMP( ULONG );
 Local int               HandleInfoIDCMP( INFOWIN *, ULONG );
 Local void              UpdateDispPrefsWindow( FRAME * );
 #ifdef _DCC
@@ -300,6 +268,7 @@ VOID SetFrameStatus( FRAME *frame, ULONG status )
 #endif
 }
 
+/// DoMainList()
 /*
     Update main window display list
     frame = currently active frame.
@@ -341,8 +310,8 @@ VOID DoMainList( const FRAME *frame )
         RefreshList(framew.win, framew.Frames );
 
 }
-
-
+///
+/// KludgeWindowMenus()
 Prototype VOID KludgeWindowMenus(VOID);
 
 VOID KludgeWindowMenus(VOID)
@@ -378,8 +347,9 @@ VOID KludgeWindowMenus(VOID)
         CheckMenuItem( MID_SELECTWINDOW, FALSE );
 
 }
+///
 
-
+/// UpdateMainWindow()
 /*
     Makes sure the info texts are most current. If frame == NULL,
     then removes the display data.
@@ -405,7 +375,7 @@ VOID UpdateMainWindow( FRAME *frame )
 #endif
 
         args[0] = (ULONG)frame->pix->width; args[1] = (ULONG)frame->pix->height;
-        args[2] = (ULONG)ColorSpaceNames[frame->pix->colorspace];
+        args[2] = (ULONG)ColorSpaceName(frame->pix->colorspace);
         args[3] = (ULONG)frame->pix->bits_per_component;
 #ifdef USE_OLD_ALPHA
         args[4] = (alpha) ? (ULONG) alpha->name : (ULONG)GetStr(MSG_NO_ALPHA);
@@ -495,6 +465,7 @@ VOID UpdateMainWindow( FRAME *frame )
         DisableMenuItem( MID_PALETTE );
     }
 }
+///
 
 /*
     Renders all frames attached to it, if need be
@@ -517,6 +488,7 @@ VOID DisplayFrames( FRAME *start )
 #endif
 }
 
+/// AreaDrop()
 /*
     This is executed when the user drops something into the window
 */
@@ -547,9 +519,8 @@ VOID AreaDrop( FRAME *frame, FRAME *drop )
         }
     }
 }
-
-
-
+///
+/// HandleAppMsg()
 /*
     Does exactly what the name implies. User may activate this
     function by dropping an icon in PPT main window.
@@ -571,6 +542,7 @@ void HandleAppMsg( const struct AppMessage *apm )
         }
     } /* for */
 }
+///
 
 /// HandleMenuIDCMP()
 /*
@@ -580,7 +552,8 @@ void HandleAppMsg( const struct AppMessage *apm )
     type == see above
 */
 
-Local
+Prototype int HandleMenuIDCMP( ULONG, FRAME *, UBYTE );
+
 int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 {
     ULONG res;
@@ -735,16 +708,16 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             break;
 
         case MID_LOADNEW:
-            if( DoRequest(globals->LoadFileReq) == FRQ_OK ) {
+            if( DoRequest(gvLoadFileReq.Req) == FRQ_OK ) {
                 /*
                  *  Fetch the paths and set up the defaults.
                  */
 
-                GetAttr( FRQ_Drawer, globals->LoadFileReq, (ULONG *)&path );
+                GetAttr( FRQ_Drawer, gvLoadFileReq.Req, (ULONG *)&path );
                 strncpy( globals->userprefs->startupdir, path, MAXPATHLEN );
-                GetAttr( FRQ_File, globals->LoadFileReq, (ULONG *)&path );
+                GetAttr( FRQ_File, gvLoadFileReq.Req, (ULONG *)&path );
                 strncpy( globals->userprefs->startupfile, path, NAMELEN );
-                GetAttr( FRQ_Path, globals->LoadFileReq, (ULONG *)&path );
+                GetAttr( FRQ_Path, gvLoadFileReq.Req, (ULONG *)&path );
                 RunLoad( (char *)path, NULL, NULL);
             }
 
@@ -1032,8 +1005,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
         case MID_SAVEPALETTE:
             if( FrameFree(frame)) {
 
-                if( DoRequest( globals->PaletteSaveReq ) == FRQ_OK ) {
-                    GetAttr( FRQ_Path, globals->PaletteSaveReq, (ULONG*)&path );
+                if( DoRequest( gvPaletteSaveReq.Req ) == FRQ_OK ) {
+                    GetAttr( FRQ_Path, gvPaletteSaveReq.Req, (ULONG*)&path );
                     SavePalette( frame, path, globxd );
                 }
 
@@ -1129,8 +1102,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 if( extl.Win = GimmeExtInfoWindow( GetStr(mLOADERS), GetStr(MSG_LOAD_GAD), &extl ) ) {
                     // SetAttrs( extl.Win, BT_HelpNode, "PPT.guide/LoadersWindow", TAG_DONE );
 
-                    if( extl.initialpos.Height )
-                        SetAttrs( extl.Win, WINDOW_Bounds, &extl.initialpos, TAG_DONE );
+                    if( extl.prefs.initialpos.Height )
+                        SetAttrs( extl.Win, WINDOW_Bounds, &extl.prefs.initialpos, TAG_DONE );
 
                     GetAttr( WINDOW_Window, extl.Win, (ULONG*) &(extl.win) );
                     AddExtEntries( globxd, extl.win, extl.List, NT_LOADER, AEE_ALL );
@@ -1159,8 +1132,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
         case MID_EFFECTS:
             if( !extf.Win ) {
                 if( extf.Win = GimmeExtInfoWindow( GetStr(mEFFECTS), GetStr(mGO), &extf ) ) {
-                    if( extf.initialpos.Height )
-                        SetAttrs( extf.Win, WINDOW_Bounds, &extf.initialpos, TAG_DONE );
+                    if( extf.prefs.initialpos.Height )
+                        SetAttrs( extf.Win, WINDOW_Bounds, &extf.prefs.initialpos, TAG_DONE );
 
                     GetAttr( WINDOW_Window, extf.Win, (ULONG*)&(extf.win) );
                     AddExtEntries( globxd, extf.win, extf.List, NT_EFFECT,AEE_ALL );
@@ -1188,8 +1161,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
         case MID_REXXWINDOW:
             if( !exts.Win ) {
                 if( exts.Win = GimmeExtInfoWindow( GetStr(mSCRIPTS), GetStr(MSG_EXECUTE_GAD), &exts ) ) {
-                    if( exts.initialpos.Height )
-                        SetAttrs( exts.Win, WINDOW_Bounds, &exts.initialpos, TAG_DONE );
+                    if( exts.prefs.initialpos.Height )
+                        SetAttrs( exts.Win, WINDOW_Bounds, &exts.prefs.initialpos, TAG_DONE );
 
                     GetAttr( WINDOW_Window, exts.Win, (ULONG*)&(exts.win) );
                     AddExtEntries( globxd, exts.win, exts.List, NT_SCRIPT,AEE_ALL );
@@ -1292,7 +1265,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
 /// HandleMainIDCMP()
 
-Local
+Prototype int HandleMainIDCMP( ULONG );
+
 int HandleMainIDCMP( ULONG rc )
 {
     APTR entry;
@@ -1341,46 +1315,6 @@ int HandleMainIDCMP( ULONG rc )
     return HANDLER_OK;
 }
 
-///
-
-/// HandleToolIDCMP()
-/*
-    Handle the tool window IDCMP messages.
-*/
-
-Local
-int HandleToolIDCMP( ULONG rc )
-{
-    switch(rc) {
-        case WMHI_CLOSEWINDOW:
-            WindowClose( toolw.Win );
-            toolw.win = NULL;
-            CheckMenuItem( MID_TOOLWINDOW, FALSE );
-            break;
-
-        case GID_TOOL_LOAD:
-            HandleMenuIDCMP( MID_LOADNEW, NULL, FROM_TOOLWINDOW );
-            break;
-
-        case GID_TOOL_PROCESS:
-            HandleMenuIDCMP( MID_PROCESS, NULL, FROM_TOOLWINDOW );
-            break;
-
-        case GID_TOOL_COORDS:
-            /*
-             *  BUG: Should refresh with the current co-ordinates.
-             */
-            ClearMouseLocation();
-            break;
-
-        default:
-            if(rc > MENUB && rc < 65536)
-                return( HandleMenuIDCMP( rc, NULL, FROM_TOOLWINDOW ));
-            break;
-    }
-
-    return HANDLER_OK;
-}
 ///
 
 /// HandleSelectIDCMP()
@@ -1942,15 +1876,15 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
                             nofile = (BOOL) IOInquire( PPTX_NoFile, globxd );
                             pat    = (STRPTR) IOInquire( PPTX_PostFixPattern, globxd );
                             if( nofile == FALSE ) {
-                                SetAttrs(globals->LoadFileReq,
+                                SetAttrs(gvLoadFileReq.Req,
                                          ASLFR_InitialPattern, pat,
                                          ASLFR_DoPatterns, TRUE,
                                          TAG_DONE);
-                                if(DoRequest(globals->LoadFileReq) != FRQ_OK) {
+                                if(DoRequest(gvLoadFileReq.Req) != FRQ_OK) {
                                     CloseModule( IOModuleBase, globxd );
                                     break;
                                 }
-                                GetAttr(FRQ_Path, globals->LoadFileReq, (ULONG*) &path);
+                                GetAttr(FRQ_Path, gvLoadFileReq.Req, (ULONG*) &path);
                             } else {
                                 path = NULL;
                             }
@@ -1959,7 +1893,7 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
 
                         RunLoad( (char *)path, entry, NULL);
 
-                        SetAttrs(globals->LoadFileReq,
+                        SetAttrs(gvLoadFileReq.Req,
                                  ASLFR_InitialPattern, "#?",
                                  ASLFR_DoPatterns, FALSE,
                                  TAG_DONE);
@@ -2712,8 +2646,8 @@ int HandleDispPrefsWindowIDCMP( FRAME *frame, ULONG rc )
             break;
 
         case GID_DP_GETPALETTENAME:
-            if( DoRequest( globals->PaletteLoadReq ) == FRQ_OK ) {
-                GetAttr( FRQ_Path, globals->PaletteLoadReq, (ULONG*)&path );
+            if( DoRequest( gvPaletteOpenReq.Req ) == FRQ_OK ) {
+                GetAttr( FRQ_Path, gvPaletteOpenReq.Req, (ULONG*)&path );
                 strncpy( d->palettepath, path, 256 );
                 SetGadgetAttrs( GAD(dpw->GO_PaletteName), dpw->win, NULL,
                                 STRINGA_TextVal, path, TAG_END );
@@ -2950,9 +2884,16 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
                 }
             } else {
                 D(bug("\tLoad failed, removing...\n"));
-                if(ra) { /* Load failed, signal REXX */
+                /*
+                 *  If load fails, we must signal REXX now, because
+                 *  we remove the frame at this point, and thus the
+                 *  error pointer will be invalid.
+                 */
+                if(ra) {
                     ra->rc  = -10;
                     ra->rc2 = (LONG)GetErrorMsg(mymsg->frame,globxd);
+                    ReplyRexxWaitItem( ra );
+                    ra = NULL;
                 }
                 LOCKGLOB();
                 Remove((struct Node *)mymsg->frame);
@@ -3327,13 +3268,13 @@ int main(int argc, char **argv)
 
     globsigmask = 0L;
 
-    UpdateStartupWindow( GetStr(mLOADING_IO_MODULES) );
+    UpdateStartupWindow( GetStr(mINIT_LOADING_IOMODULES) );
     FetchExternals(globals->userprefs->modulepath,NT_LOADER);
     FetchExternals("Contrib/modules/",NT_LOADER);
-    UpdateStartupWindow( GetStr(mLOADING_EFFECTS) );
+    UpdateStartupWindow( GetStr(mINIT_LOADING_EFFECTS) );
     FetchExternals(globals->userprefs->modulepath,NT_EFFECT);
     FetchExternals("Contrib/modules/",NT_EFFECT);
-    UpdateStartupWindow( GetStr(mLOADING_SCRIPTS) );
+    UpdateStartupWindow( GetStr(mINIT_LOADING_SCRIPTS) );
     FetchExternals(globals->userprefs->rexxpath,NT_SCRIPT);
     FetchExternals("Contrib/Rexx/",NT_SCRIPT);
 
@@ -3353,22 +3294,22 @@ int main(int argc, char **argv)
 
     WindowReady(globals->WO_main);
 
-    if( toolw.initialopen )
+    if( toolw.prefs.initialopen )
         HandleMenuIDCMP( MID_TOOLWINDOW, NULL, FROM_MAINWINDOW );
 
-    if( framew.initialopen )
+    if( framew.prefs.initialopen )
         HandleMenuIDCMP( MID_FRAMEWINDOW, NULL, FROM_MAINWINDOW );
 
-    if( extl.initialopen )
+    if( extl.prefs.initialopen )
         HandleMenuIDCMP( MID_LOADERS, NULL, FROM_MAINWINDOW );
 
-    if( extf.initialopen )
+    if( extf.prefs.initialopen )
         HandleMenuIDCMP( MID_EFFECTS, NULL, FROM_MAINWINDOW );
 
-    if( exts.initialopen )
+    if( exts.prefs.initialopen )
         HandleMenuIDCMP( MID_REXXWINDOW, NULL, FROM_MAINWINDOW );
 
-    if( selectw.initialopen )
+    if( selectw.prefs.initialopen )
         HandleMenuIDCMP( MID_SELECTWINDOW, NULL, FROM_MAINWINDOW );
 
     /*
