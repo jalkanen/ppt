@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.12 1997/08/31 22:27:25 jj Exp $
+    $Id: misc.h,v 1.13 1997/09/07 21:07:21 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -39,7 +39,7 @@
 
 #define CheckPtr( ptr, txt )   Debug_CheckPtr( txt, ptr, __FILE__, __LINE__ )
 
-extern BOOL Debug_CheckPtr( const char *, APTR, const char *file, int );
+extern BOOL Debug_CheckPtr( const char *, const APTR, const char *file, int );
 
 #else
 
