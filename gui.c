@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 6.2 1999/10/02 16:33:07 jj Exp $
+    $Id: gui.c,v 6.3 2000/01/04 21:37:45 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -579,7 +579,7 @@ GimmeSaveWindow( FRAME *frame, EXTBASE *PPTBase, struct SaveWin *gads )
         WINDOW_Font,        globals->userprefs->mainfont,
         WINDOW_MenuStrip,   SaveMenus,
         WINDOW_MasterGroup,
-            MyVGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
+            MyVGroupObject, NarrowSpacing, NormalHOffset, NormalVOffset,
                 StartMember,
                     MyHGroupObject, NarrowSpacing,
                         StartMember,
@@ -639,6 +639,7 @@ GimmeSaveWindow( FRAME *frame, EXTBASE *PPTBase, struct SaveWin *gads )
                     MyHGroupObject, NormalSpacing,
                         StartMember,
                             MyButtonObject, ULabel(XGetStr(MSG_SAVE_GAD) ),
+                                XenFrame,
                                 GA_ID, GID_SW_SAVE,
                                 BT_HelpHook, &HelpHook,
                                 BT_HelpNode, "PPT.guide/SaveAs",
@@ -646,6 +647,7 @@ GimmeSaveWindow( FRAME *frame, EXTBASE *PPTBase, struct SaveWin *gads )
                         EndMember,
                         StartMember,
                             MyButtonObject, ULabel(XGetStr(MSG_CANCEL_GAD) ),
+                                XenFrame,
                                 GA_ID, GID_SW_CANCEL,
                                 BT_HelpHook, &HelpHook,
                                 BT_HelpNode, "PPT.guide/SaveAs",
