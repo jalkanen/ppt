@@ -1,5 +1,5 @@
 /*
-    $Id: rendermod.c,v 1.20 1997/12/06 22:51:21 jj Exp $
+    $Id: rendermod.c,v 1.21 1998/01/04 16:34:37 jj Exp $
 */
 
 #include "defs.h"
@@ -107,6 +107,7 @@ VOID CloseRender( FRAME *frame, EXTBASE *ExtBase )
         pfree( rdo->buffer ); /* BUG: Should not be here */
         pfree( rdo );
         D(bug("\tRemoved objects\n"));
+        SetFrameStatus( frame, 0 );
     } else {
         D(bug("\tNo render object!?!?\n"));
     }
@@ -344,6 +345,7 @@ PERROR DoRender( struct RenderObject *rdo )
         res = PERR_INITFAILED;
     } else {
         frame->currproc = p;
+        SetFrameStatus( frame, 1 );
     }
 
     return res;
