@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  edit.c
 
-    $Id: edit.c,v 1.9 1997/12/06 22:49:04 jj Exp $
+    $Id: edit.c,v 1.10 1998/06/28 23:12:48 jj Exp $
 
     This module contains code for editing facilities. Basically
     they are all external modules, but they are fast enough to
@@ -44,14 +44,15 @@ VOID Composite( FRAME *dst, FRAME *src )
 {
     char buffer[100];
 
-    if(AttachFrame( dst, src, ATTACH_SIMPLE,globxd )) {
+    if(AttachFrame( dst, src, ATTACH_SIMPLE, globxd )) {
 
-        sprintf(buffer,"NAME=COMPOSITE ARGS=\"WITH %ld\"", src->ID );
+        sprintf(buffer, "WITH %ld", src->ID );
 
-        if( RunFilter( dst, buffer ) != PERR_OK ) {
+        if( RunFilterCommand( dst, "COMPOSITE", buffer ) != PERR_OK ) {
             RemoveSimpleAttachments( dst );
             Req( GetFrameWin(dst),NULL,GetStr(MSG_PERR_NO_NEW_PROCESS) );
         }
+
     }
 }
 
