@@ -2,7 +2,7 @@
 ;   PROJECT: ppt
 ;   MODULE : render2.a
 ;
-;   $Id: render2.a,v 1.5 1996/09/29 02:13:58 jj Exp $
+;   $Id: render2.a,v 1.6 1997/07/12 21:59:46 jj Exp $
 ;
 ;   Support functions for renderer. Mainly to fasten things up a bit ;)
 ;
@@ -65,7 +65,7 @@
 ;
 ; BestMatchPen8() calculates the closest pen for 8bit color values.
 ;
-; Input : A0    = pointer to colortable (UBYTE *)
+; Input : A0    = pointer to colortable (ARGBPixel_T *)
 ;         D4.w  = ncolors
 ;         D0.b  = r
 ;         D1.b  = g
@@ -102,6 +102,7 @@ _BestMatchPen8:
 ; We'll have to set D2.h to R, D1.l to G and D2.l to B
 
 __bmp8_loop:
+        add.l  #1,A0            ; Skip alpha
 
 ; Get red
         move.b  (A0)+,D2        ; D2 = ??????rr
