@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: select.c,v 6.1 1999/09/08 22:50:23 jj Exp $
+    $Id: select.c,v 6.2 1999/11/02 21:40:01 jj Exp $
 
  */
 
@@ -202,6 +202,7 @@ VOID ChangeSelectMethod( FRAME *frame, ULONG mode )
 {
     PERROR err;
 
+    D(bug("Changing select method of frame %08X to %d\n",frame, mode));
     EraseSelection( frame );
     ClearSelectMethod( frame );
 
