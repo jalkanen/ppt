@@ -1,8 +1,8 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.3 $
-;      $Date: 1997/05/11 16:35:10 $
+;  $Revision: 1.4 $
+;      $Date: 1997/10/19 22:06:53 $
 ;
 
 (message "\n"
@@ -17,7 +17,7 @@
          )
 
 (welcome "This is the PPT Installation utility."
-         "Thank you for choosing to test it.")
+         "Thank you for choosing to test PPT.")
 
 ;
 ;  Set defaults
@@ -31,17 +31,19 @@
 
 ; If user-level is expert, ask which versions to install.
 
-;(if (= @user-level 2)
-;    (set ##use020
-;         (askbool
-;          (prompt "\n"
-;                  "Do you wish to use the 68020+ optimized\n"
+(if (= @user-level 2)
+    (set ##use020
+         (askbool
+          (prompt "\n"
+                  "Do you wish to use the 68020+ optimized\n"
 ;                  "versions of the BGUI library and PPT?")
-;          (help @askbool-help)
-;          (default ##use020)
-;          )
-;         )
-;  )
+                  "version of PPT?")
+          (help   (cat "It might be a good idea to install the version "
+                       "that best suits your Amiga's processor." ))
+          (default ##use020)
+          )
+         )
+  )
 
 (debug "Use020 : " ##use020)
 
@@ -55,7 +57,11 @@
                 "PPT in.  A directory called 'PPT' will be\n"
                 "created for you in this directory"
         )
-        (help   @askdir-help)
+        (help   (cat "Choose the top directory for PPT.  Installer will "
+                     "then create a directory called 'PPT' in the directory "
+                     "you chose and copy all of the PPT software in that "
+                     "directory.\n\n"
+                     @askdir-help) )
         (default ##installdir)
     )
 )
@@ -73,6 +79,8 @@
 ;   Remove old modules
 ;
 
+(complete 20)
+
 (if (exists @default-dest)
     (delete
         (tackon @default-dest "modules/#?")
@@ -87,16 +95,100 @@
 )
 
 ;
-;   Copy files.
+;   Copy main executables
 ;
 
+(complete 30)
+
 (copyfiles
-    (prompt "Copying PPT executables & modules")
-    (source "")
+    (prompt "Installing PPT executable")
+    (source (if (= ##use020 1) "ppt020" "ppt" ) )
     (dest @default-dest)
-    (pattern "~(libs)")
+    (newname "ppt")
+    (help @copyfiles-help)
+)
+
+(copyfiles
+    (prompt "Installing icon")
+    (source "ppt.info")
+    (dest   @default-dest)
     (help   @copyfiles-help)
 )
+
+;; Copy docs
+
+(complete 40)
+
+(copyfiles
+    (prompt "Installing documents")
+    (source "Docs")
+    (dest (tackon @default-dest "Docs") )
+    (help (cat "Choose which document files you want to install. "
+               "I really recommend you install them all.\n\n"
+               @copyfiles-help) )
+    (all)
+    (infos)
+    (confirm)
+)
+
+(complete 50)
+
+(copyfiles
+    (prompt "Installing miscallaneous stuff")
+    (source "")
+    (choices "README" "HISTORY" "ReleaseNotes" "ppt.asc" "ModuleInfo")
+    (dest @default-dest)
+    (help (cat "Choose which additional files you wish to install. "
+               "Again, I recommend you to install these all, as these "
+               "contain the release notes and the ModuleInfo utility.\n\n"
+               @copyfiles-help) )
+    (infos)
+    (confirm)
+)
+
+(complete 60)
+
+(copyfiles
+    (prompt "Installing REXX scripts")
+    (source "rexx")
+    (dest (tackon @default-dest "rexx") )
+    (help (cat "Here you can choose not to install all of the REXX scripts. "
+               "I really recommend that you install them all.\n\n"
+               @copyfiles-help) )
+    (all)
+    (infos)
+    (confirm)
+)
+
+
+;; PPT libraries
+
+(complete 70)
+
+(copyfiles
+    (prompt "Installing PPT external modules")
+    (source "modules")
+    (dest   (tackon @default-dest "modules") )
+    (help   (cat "Choose which external modules you'd like to install. "
+                 "If you wish to save space, you can remove those modules "
+                 "you think you're not going to need, such as the modules "
+                 "which have not been compiled for your processor.  However, "
+                 "PPT can figure out which processor your machine has and "
+                 "determine, which module is the best for you.  So you don't "
+                 "really need to remove any of these modules.\n\n"
+                 @copyfiles-help) )
+    (confirm)
+    (all)
+)
+
+;(copyfiles
+;    (prompt "Copying PPT executables & modules")
+;    (source "")
+;    (dest @default-dest)
+;    (pattern "~(libs)")
+;    (help   @copyfiles-help)
+;)
+
 
 (copyfiles
     (prompt "Installing icons")
@@ -110,7 +202,9 @@
 ;   Install libraries
 ;
 
-(message "\nNow make sure you have BGUI 41.7 installed")
+(complete 80)
+
+(message "\n\n\nNow make sure you have BGUI 41.7 installed")
 
 ;(copylib
 ;    (prompt "Copying BGUI library")
@@ -132,6 +226,8 @@
 ;
 ;   Make assigns
 ;
+
+(complete 90)
 
 (set ##jpegdir
     (askdir
@@ -165,3 +261,5 @@
 ;
 ;   The END.
 ;
+(complete 100)
+
