@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.10 1997/05/13 00:39:33 jj Exp $
+    $Id: load.c,v 2.11 1997/05/27 22:23:54 jj Exp $
 
     Code for loaders...
 */
@@ -465,7 +465,8 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
             }
             D(bug("\tOpened file\n"));
         } else {
-            InternalError("Unimplemented feature while loading!");
+            XReq(NEGNUL,NULL,
+                 ISEQ_C "\nYou did not specify a file!\n" );
             return PERR_FAILED;
         }
     } else {
