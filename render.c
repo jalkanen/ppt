@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.25 1998/08/14 19:30:33 jj Exp $
+   $Id: render.c,v 1.26 1998/10/14 20:36:32 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -222,6 +222,7 @@ VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
     DrawEllipse( win->RPort, x, y, rx, ry );
 }
 
+/// DrawSelectRectangle
 /*
    Draws a select box in the given frame displaywindow. Corners
    are at (x0,y0) and (x1,y1), relative to inner window top left
@@ -421,7 +422,9 @@ VOID DrawSelectRectangle(FRAME * frame, WORD x0, WORD y0, WORD x1, WORD y1, ULON
         d->handles.MaxY = y1;
     }
 }
+///
 
+/// AllocColorTable()
 /*
    Won't allocate it if it already exists.
  */
@@ -445,7 +448,8 @@ PERROR AllocColorTable(FRAME * frame)
 
     return res;
 }
-
+///
+/// ReleaseColorTable()
 VOID ReleaseColorTable(FRAME * frame)
 {
     if (frame) {
@@ -459,7 +463,7 @@ VOID ReleaseColorTable(FRAME * frame)
         UNLOCK(frame);
     }
 }
-
+///
 
 /*
    From 24bit RGB format to grayscale preview window.
