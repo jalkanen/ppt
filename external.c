@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.10 1996/11/03 01:50:31 jj Exp $
+    $Id: external.c,v 1.11 1996/11/17 22:06:36 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -544,7 +544,7 @@ PERROR OpenExternal( const char *who, UBYTE type )
     Note: This routine has no bugs.
 */
 
-SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
+SAVEDS ASM VOID CloseLibBases( REG(a6) EXTBASE *xd )
 {
     struct Library *LocaleBase;
     struct ExecBase *SysBase;
@@ -564,7 +564,7 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
 
     if(xd->lb_Locale)   CloseLibrary(xd->lb_Locale);
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
-    if(xd->lb_Gfx)      CloseLibrary(xd->lb_Gfx);
+    if(xd->lb_Gfx)      CloseLibrary( (struct Library *)xd->lb_Gfx);
     if(xd->lb_Utility)  CloseLibrary(xd->lb_Utility);
     if(xd->lb_Intuition) CloseLibrary( (struct Library *)xd->lb_Intuition);
     if(xd->lb_DOS)      CloseLibrary( (struct Library *)xd->lb_DOS);
@@ -598,7 +598,7 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
     // D(bug("\tOpening BGUI..."));
     xd->lb_BGUI =       OpenLibrary(BGUINAME,37L);
     // D(bug("done\n"));
-    xd->lb_Gfx =        OpenLibrary("graphics.library",37L);
+    xd->lb_Gfx =        (struct GfxBase *)OpenLibrary("graphics.library",37L);
     xd->lb_GadTools =   OpenLibrary("gadtools.library",37L);
 
     if( xd->TimerIO = CreateIORequest( xd->mport, sizeof( struct timerequest ) ) ) {

@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.6 1996/10/10 19:14:00 jj Exp $
+    $Id: vm.c,v 1.7 1996/11/17 22:10:23 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -55,7 +55,7 @@ Prototype PERROR    LoadVMData( VMHANDLE *, ULONG, EXTBASE * );
 Prototype PERROR    SaveVMData( VMHANDLE *, ULONG, EXTBASE * );
 Prototype VMHANDLE *CreateVMData( ULONG, EXTBASE * );
 Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
-Prototype PERROR    FlushVMData( VMHANDLE *, EXTDATA * );
+Prototype PERROR    FlushVMData( VMHANDLE *, EXTBASE * );
 Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
 Prototype PERROR    CleanVMDirectory( EXTBASE * );
 

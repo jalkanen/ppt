@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.9 1996/10/25 01:37:09 jj Exp $
+    $Id: infowin.c,v 1.10 1996/11/17 22:08:11 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -33,8 +33,8 @@
 
 /*-------------------------------------------------------------------------*/
 
-Prototype void          UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd );
-Prototype Object *      GimmeInfoWindow( EXTDATA *, INFOWIN * );
+Prototype void          UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd );
+Prototype Object *      GimmeInfoWindow( EXTBASE *, INFOWIN * );
 Prototype void          UpdateIWSelbox( FRAME *f );
 Prototype PERROR        AllocInfoWindow( FRAME *, EXTBASE * );
 Prototype void          DeleteInfoWindow( INFOWIN *, EXTBASE * );
@@ -251,7 +251,7 @@ void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 /// GimmeInfoWindow()
 
 Object *
-GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
+GimmeInfoWindow( EXTBASE *xd, INFOWIN *iw )
 {
     EXTBASE *ExtBase = xd; /* BUG */
     FRAME *f;
@@ -346,7 +346,7 @@ GimmeInfoWindow( EXTDATA *xd, INFOWIN *iw )
     Updates the infowindow attributes. Currently does not do anything more
     than update the window/screen titles.
 */
-void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
+void UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd )
 {
     APTR IntuitionBase = xd->lb_Intuition;
     APTR SysBase = xd->lb_Sys;

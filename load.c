@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.6 1996/11/04 00:21:59 jj Exp $
+    $Id: load.c,v 1.7 1996/11/17 22:08:30 jj Exp $
 
     Code for loaders...
 */
@@ -275,7 +275,7 @@ LOADER *CheckFileH( EXTBASE *xd, BPTR fh )
 */
 SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
 {
-    EXTDATA *xd;
+    EXTBASE *xd;
     APTR DOSBase;
     struct PPTMessage *msg;
     FRAME *frame = NULL;
@@ -344,9 +344,9 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
 {
     APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
     BPTR fh = NULL;
-    auto PERROR (* ASM L_Load)( REG(a0) FRAME *, REG(d0) BPTR, REG(a6) EXTDATA *, REG(a1) struct TagItem * );
+    auto PERROR (* ASM L_Load)( REG(a0) FRAME *, REG(d0) BPTR, REG(a6) EXTBASE *, REG(a1) struct TagItem * );
     LOADER *ld = NULL;
-    char ec[80];
+    UBYTE ec[80];
     BOOL res = PERR_OK;
     PERROR errcode = PERR_OK;
     struct TagItem loadertags[] = {
@@ -531,7 +531,7 @@ errexit:
 }
 
 
-/****** pptsupport/BeginLoad ******************************************
+/****i* pptsupport/BeginLoad ******************************************
 *
 *   NAME
 *       BeginLoad -- Initialize frame for loading.
@@ -607,7 +607,7 @@ SAVEDS ASM PERROR BeginLoad( REG(a0) FRAME *frame, REG(a6) EXTBASE *xd )
     return PERR_OK;
 }
 
-/****** pptsupport/EndLoad ******************************************
+/****i* pptsupport/EndLoad ******************************************
 *
 *   NAME
 *       EndLoad -- Finish up loading a frame.
