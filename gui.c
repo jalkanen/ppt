@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.48 1997/12/06 22:52:58 jj Exp $
+    $Id: gui.c,v 1.49 1998/01/04 16:38:07 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1435,6 +1435,9 @@ Object *GimmePrefsWindow( VOID )
 Object *GimmeMainWindow( VOID )
 {
     struct IBox ibox;
+    static ULONG colweights[] = { 20, 100 };
+    extern ASM LONG CompareListEntryHook( REG(a0) struct Hook *, REG(a2) Object *, REG(a1) struct lvCompare * );
+    static struct Hook frmCompareHook = { {0}, CompareListEntryHook, NULL, NULL };
 
     D(bug("GimmeMainWindow()\n"));
 
@@ -1473,7 +1476,11 @@ Object *GimmeMainWindow( VOID )
                             LISTV_ListFont, globals->userprefs->listfont,
                             BT_DragObject, TRUE,
                             BT_DropObject, TRUE,
-                            LISTV_ShowDropSpot, TRUE,
+                            LISTV_ShowDropSpot, FALSE,
+                            LISTV_Columns, 2,
+                            LISTV_DragColumns, TRUE,
+                            LISTV_ColumnWeights, colweights,
+                            LISTV_CompareHook,   &frmCompareHook,
                             BT_HelpHook, &HelpHook,
                             BT_HelpNode, "PPT.guide/MainWindow",    
                         EndObject,
