@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 1.20 1996/12/08 20:37:14 jj Exp $
+    $Id: support.c,v 1.21 1996/12/08 21:09:46 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -1114,7 +1114,7 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
             return TRUE;
         }
 
-        if(CheckSignal(SIGBREAF_CTRL_F)) {
+        if(CheckSignal(SIGBREAKF_CTRL_F)) {
             if( f->mywin ) {
                 WindowToFront(f->mywin->win);
                 ActivateWindow(f->mywin->win);
