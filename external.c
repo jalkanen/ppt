@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 2.14 1998/06/28 23:13:06 jj Exp $
+    $Id: external.c,v 2.15 1998/09/05 12:22:05 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -630,12 +630,12 @@ PERROR InitNewExternal( char *who, struct Library *ModuleBase )
 
         if( oldcpuflags >= cpuflags ) {
             /* Skip the new one */
-            D(bug("\tThe new one is worse than the old one\n"));
+            D(bug("\t%s is a better match for the hardware\n",prev->diskname));
             res = PERR_OK;
             goto nogood;
         } else {
             /* Remove the old one */
-            D(bug("\tThis new module is better than the old one\n"));
+            D(bug("\t%s is a better match for the hardware\n",who));
             PurgeExternal( prev, TRUE );
         }
 
