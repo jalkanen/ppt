@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.60 1999/02/21 20:32:27 jj Exp $
+    $Id: display.c,v 1.61 1999/02/21 20:49:46 jj Exp $
 
     Contains display routines.
 
@@ -1668,12 +1668,7 @@ PERROR OpenDisplay( VOID )
     }
 
     if( toolw.win && toolw.Win ) {
-        // BUG: Kludge alert!
-        DisposeObject( toolw.Win ); toolw.Win = NULL;
-        if( GimmeToolBarWindow() == PERR_OK ) {
-            SetAttrs( toolw.Win, WINDOW_Screen, MAINSCR, TAG_DONE );
-            toolw.win = WindowOpen( toolw.Win );
-        }
+        RebuildToolbarWindow();
     }
 
     if( selectw.win && selectw.Win ) {
