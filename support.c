@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 3.0 1997/02/07 00:02:05 jj Exp $
+    $Id: support.c,v 3.1 1997/02/10 23:16:43 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -13,7 +13,7 @@
 *
 *                 PPT support library documentation
 *
-*                       $VER: 2.0 (13-Nov-96)
+*                 $VER: pptsupport.doc 3.0 (7-Feb-97)
 *
 *   Please note that all functions expect to have a valid ExtBase * in
 *   A6 upon entering the function. Otherwise, these are just like
@@ -412,7 +412,7 @@ PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
             gray = (GrayPixel *)GetPixelRow( frame, 0, ExtBase );
             pgray[0] = gray[0]; pgray[1] = gray[width-1];
             gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
-            pgray[0] = gray[0]; pgray[1] = gray[width-1];
+            pgray[2] = gray[0]; pgray[3] = gray[width-1];
             ((GrayPixel *)pixel)->g = (((ULONG)pgray[0].g + pgray[1].g + pgray[2].g + pgray[3].g)/4);
             break;
     }
