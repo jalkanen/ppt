@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.5 $
-        $Date: 1998/06/28 23:11:35 $
+    $Revision: 1.6 $
+        $Date: 1998/12/15 21:22:00 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -44,7 +44,22 @@ struct PPTMessage {
 
 #define PPTMSGF_DONE            0x80000000 /* Set, if the message contains a death msg */
 
+/*
+ *  Effect done.
+ */
+
 #define PPTMSG_EFFECTDONE       (PPTMSGF_DONE + 0x01)
+
+struct EffectMessage {
+    struct PPTMessage   em_PMsg;
+    FRAME               *em_NewFrame;
+    ULONG               em_Status;
+};
+
+#define EMSTATUS_FAILED         0L
+#define EMSTATUS_NEWFRAME       1L
+#define EMSTATUS_NOCHANGE       2L
+
 #define PPTMSG_LOADDONE         (PPTMSGF_DONE + 0x02)
 #define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
 #define PPTMSG_SAVEDONE         (PPTMSGF_DONE + 0x04)
