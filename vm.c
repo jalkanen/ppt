@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.7 1996/11/17 22:10:23 jj Exp $
+    $Id: vm.c,v 1.8 1997/08/30 21:36:33 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -181,11 +181,12 @@ PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
     Returns NULL on failure.
 */
 
-VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
+VMHANDLE *CreateVMData( ULONG size, EXTBASE *ExtBase )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
-    struct DosLibrary *DOSBase = xd->lb_DOS;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct Library *UtilityBase = ExtBase->lb_Utility;
     BOOL tmp_name_ok = FALSE;
     VMHANDLE *vmh;
     static ULONG id = 0;
@@ -199,26 +200,40 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 
     bzero( vmh, sizeof(VMHANDLE) );
 
-    vmh->vm_id = id++;
-
     /*
      *  Create VM file name by using vm_id tag.
      */
 
-    LOCKGLOB();
     while(tmp_name_ok == FALSE) {
+        BPTR lock;
+
+        /*
+         *  Pick up a new identification code
+         */
+
+        if( UtilityBase->lib_Version >= 41 ) {
+            vmh->vm_id = GetUniqueID();
+        } else {
+            LOCKGLOB();
+            vmh->vm_id = id++;
+            UNLOCKGLOB();
+        }
+
         strcpy(vmfile,globals->userprefs->vmdir);
         sprintf(t,"%s.%X",VM_FILENAME,vmh->vm_id);
         AddPart(vmfile,t,MAXPATHLEN);
-        fh = Open(vmfile, MODE_OLDFILE);
-        if( fh ) { /* This is bad, since it already exists */
-            Close(fh);
-            vmh->vm_id++; /* Try next free id */
-        }
-        else
+
+        /*
+         *  If locking succeeds, then the file must already exist.
+         */
+
+        lock = Lock(vmfile, ACCESS_READ);
+        if( lock == 0L ) {
             tmp_name_ok = TRUE;
+        }
+
+        UnLock( lock ); /* Zero is harmless */
     }
-    UNLOCKGLOB();
 
     fh = Open(vmfile,MODE_NEWFILE);
 
@@ -246,7 +261,7 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 
     if(SetFileSize(fh,size,OFFSET_BEGINNING ) == -1) {
         D(bug("\tSetFileSize() failed!\n"));
-        DeleteVMData( vmh, xd );
+        DeleteVMData( vmh, ExtBase );
         XReq( NEGNUL, NULL, ISEQ_C"Unable to create virtual memory!\n(You are probably low on disk space)\n\nI need %lu bytes free",size);
         return NULL;
     }
