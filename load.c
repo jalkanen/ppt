@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.8 1996/11/23 00:44:29 jj Exp $
+    $Id: load.c,v 1.9 1996/11/28 23:21:38 jj Exp $
 
     Code for loaders...
 */
@@ -78,9 +78,11 @@ const char *external_patterns[] = {
 UBYTE *AskFile( EXTBASE *ExtBase )
 {
     static char Drawer[MAXPATHLEN+1] = "Data:gfx/Pics"; /* BUG: */
+    static char File[NAMELEN+1] = ""; /* BUG: */
     static ULONG Top = 0, Left = 0, Height = 0, Width = 0;
     Object *freq;
     UBYTE *path, *buffer = NULL;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
 
     /*
      *  Initialize default values.
@@ -92,11 +94,13 @@ UBYTE *AskFile( EXTBASE *ExtBase )
     freq = FileReqObject,
         ASLFR_Window,           globals->maindisp->win,
         ASLFR_InitialDrawer,    Drawer,
+        ASLFR_InitialFile,      File,
         ASLFR_InitialHeight,    Height,
         ASLFR_InitialWidth,     Width,
         ASLFR_InitialTopEdge,   Top,
         ASLFR_InitialLeftEdge,  Left,
         ASLFR_Locale,           ExtBase->locale,
+        ASLFR_TitleText,        "Open File",
         EndObject;
 
     if(freq) {
@@ -121,7 +125,7 @@ UBYTE *AskFile( EXTBASE *ExtBase )
             GetAttr( FRQ_Width, freq, &Width );
 
             strncpy( Drawer, path, MAXPATHLEN );
-
+            strncpy( File, FilePart( buffer ), NAMELEN );
         }
 
         AwakenAllWindows( ExtBase );
