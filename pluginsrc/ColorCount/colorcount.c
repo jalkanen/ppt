@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: colorcount.c,v 1.2 1999/01/18 23:01:54 jj Exp $
+    $Id: colorcount.c,v 3.0 1999/12/08 22:20:44 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -69,6 +69,8 @@ const struct TagItem MyTagArray[] = {
     // PPTX_NoNewFrame,    TRUE,
     PPTX_NoChangeFrame, TRUE,
     PPTX_ReqPPTVersion, 5,
+
+    PPTX_SupportsGetArgs, TRUE,
 
     TAG_END, 0L
 };
@@ -280,6 +282,10 @@ EFFECTEXEC(frame, tags, PPTBase, EffectBase)
     return frame;
 }
 
+EFFECTGETARGS(frame,tags,PPTBase,EffectBase)
+{
+    return PERR_OK;
+}
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
