@@ -4,11 +4,12 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.3 1997/02/23 18:22:59 jj Exp $
+    $Id: extensions.c,v 1.4 1997/03/04 23:58:05 jj Exp $
 */
 
 #include "defs.h"
 #include "misc.h"
+#include "gui.h"
 
 /*-------------------------------------------------------------------*/
 
@@ -25,6 +26,258 @@ struct OptNode {
 struct List optlist, extlist;
 struct SignalSemaphore optsemaphore, extsemaphore;
 
+/*-------------------------------------------------------------------*/
+/* Extensions editing */
+
+Prototype EDITWIN *AllocEditWindow( FRAME *frame );
+
+EDITWIN *AllocEditWindow( FRAME *frame )
+{
+    EDITWIN *ew;
+
+    if(ew = pmalloc( sizeof(EDITWIN) )) {
+        bzero(ew, sizeof(EDITWIN) );
+        ew->frame = frame;
+        frame->editwin = ew;
+    }
+
+    return ew;
+}
+
+Prototype VOID FreeEditWindow( EDITWIN *ew );
+
+VOID FreeEditWindow( EDITWIN *ew )
+{
+    if(ew) {
+        if(ew->frame) ew->frame->editwin = NULL;
+        pfree( ew );
+    }
+}
+
+Prototype PERROR GimmeEditWindow( EDITWIN *ew );
+
+PERROR GimmeEditWindow( EDITWIN *ew )
+{
+    PERROR res = PERR_OK;
+
+    D(bug("GimmeEditWindow( %08X )\n",ew));
+
+    ew->Win = WindowObject,
+        WINDOW_MenuStrip,   PPTMenus,
+        WINDOW_SharedPort,  MainIDCMPPort,
+        WINDOW_Font,        globals->userprefs->mainfont,
+        WINDOW_Screen,      MAINSCR,
+        WINDOW_ScaleWidth,  25,
+        WINDOW_MasterGroup,
+            VGroupObject, NormalVOffset, NormalHOffset, NormalSpacing,
+                StartMember,
+                    HGroupObject, NormalSpacing,
+                        StartMember,
+                            ew->ExtList = ListviewObject,
+                                GA_ID, GID_EDIT_EXTLIST,
+                                Label("Extensions"), Place(PLACE_ABOVE),
+                            EndObject, Weight(DEFAULT_WEIGHT/2),
+                        EndMember,
+                        StartMember,
+                            VGroupObject, NormalSpacing, NormalVOffset, NormalHOffset,
+                                VarSpace(50),
+                                StartMember,
+                                    VGroupObject, NormalSpacing, NormalVOffset, NormalHOffset,
+                                        FrameTitle("Edit Extension"),
+                                        DefaultFrame,
+                                        StartMember,
+                                            ew->ExtName = StringObject,
+                                                GA_ID, GID_EDIT_EXTNAME,
+                                                Label("Name"),
+                                                GA_Disabled, TRUE,
+                                                STRINGA_MaxChars, 40,
+                                                GA_TabCycle, TRUE,
+                                            EndObject,  FixMinHeight,
+                                        EndMember,
+                                        StartMember,
+                                            ew->ExtValue = StringObject,
+                                                GA_ID, GID_EDIT_EXTVALUE,
+                                                Label("Text"),
+                                                GA_Disabled, TRUE,
+                                                STRINGA_MaxChars, 255,
+                                                GA_TabCycle, TRUE,
+                                            EndObject, FixMinHeight,
+                                        EndMember,
+                                        StartMember,
+                                            HGroupObject, NormalSpacing,
+                                                StartMember,
+                                                    ew->ExtOk = GenericDButton( "OK", GID_EDIT_EXTOK ),
+                                                EndMember,
+                                                StartMember,
+                                                    ew->ExtNew = GenericButton( "New", GID_EDIT_EXTNEW ),
+                                                EndMember,
+                                                StartMember,
+                                                    ew->ExtRemove = GenericDButton( "Remove", GID_EDIT_EXTREMOVE ),
+                                                EndMember,
+                                            EndObject, FixMinHeight,
+                                        EndMember,
+                                    EndObject,
+                                EndMember,
+                                VarSpace(50),
+
+                            EndObject,
+                        EndMember,
+                    EndObject,
+                EndMember,
+                StartMember,
+                    HorizSeparator,
+                EndMember,
+                StartMember,
+                    HGroupObject, WideSpacing, NarrowVOffset, NarrowHOffset,
+                        VarSpace(50),
+                        StartMember,
+                            GenericButton( GetStr(MSG_OK_GAD), GID_EDIT_OK ),
+                        EndMember,
+                        VarSpace(50),
+#if 0
+                        StartMember,
+                            GenericButton( GetStr(MSG_CANCEL_GAD), GID_EDIT_CANCEL ),
+                        EndMember,
+#endif
+                    EndObject, FixMinHeight,
+                EndMember,
+            EndObject,
+    EndObject;
+
+    if(ew->Win) {
+        struct Node *cn;
+
+        UpdateFrameInfo( ew->frame ); /* Update window title */
+        RefreshFrameInfo( ew->frame, globxd );
+        /*
+         *  Add extensions text
+         */
+
+        for( cn = extlist.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
+            AddEntry( NULL, ew->ExtList, cn->ln_Name, LVAP_TAIL );
+        }
+
+        SortList( NULL, ew->ExtList );
+
+    } else {
+        D(bug("Failed to open edit win\n"));
+        res = PERR_WINDOWOPEN;
+    }
+
+    return res;
+}
+
+Prototype VOID DeleteEditWindow( EDITWIN *ew );
+
+VOID DeleteEditWindow( EDITWIN *ew )
+{
+    if( ew->Win ) {
+        DisposeObject(ew->Win);
+        ew->Win = NULL;
+    }
+}
+
+/*
+ *  Is protected agains multiple openings
+ */
+
+Prototype PERROR OpenEditWindow( EDITWIN *ew );
+
+PERROR OpenEditWindow( EDITWIN *ew )
+{
+    D(bug("OpenEditWindow(%08X)\n",ew));
+
+    if( ew->win == NULL ) {
+        if( ew->win = WindowOpen( ew->Win ) ) {
+            return PERR_OK;
+        } else {
+            D(bug("\tCouldn't open window!\n"));
+            return PERR_WINDOWOPEN;
+        }
+    }
+    return PERR_OK;
+}
+
+Prototype VOID CloseEditWindow( EDITWIN *ew );
+
+VOID CloseEditWindow( EDITWIN *ew )
+{
+    if( ew->win ) {
+        WindowClose( ew->Win );
+        ew->win = NULL;
+    }
+}
+
+/*
+    Removes all special \xxx markers
+ */
+Prototype VOID ConvertCToExtension( STRPTR c, STRPTR e, ULONG len );
+
+VOID ConvertCToExtension( STRPTR c, STRPTR e, ULONG len )
+{
+    int i = 0, j = 0;
+
+    D(bug("ConvertCToExtension( '%s', %08x, %d )\n",c,e,len));
+
+    while(c[i] && j < len-1) {
+        if(c[i] == '\\') {
+            switch(c[++i]) {
+              case 'n':
+                e[j++] = 10;
+                ++i;
+                break;
+              case '\\':
+                e[j++] = '\\';
+                ++i;
+                break;
+              case 'r':
+                ++i;
+                break;
+              default:
+                break;
+            }
+        } else {
+            e[j++] = c[i++];
+        }
+    }
+    e[j] = '\0';
+    D(bug("\tresult='%s'\n",e));
+}
+
+
+Prototype VOID ConvertExtensionToC( STRPTR e, STRPTR c, ULONG len );
+
+VOID ConvertExtensionToC( STRPTR e, STRPTR c, ULONG len )
+{
+    int i = 0, j = 0;
+
+    D(bug("ConvertExtensionToC( '%s', %08x, %d )\n",e,c,len));
+
+    while(e[i] && j < len-1) {
+        switch(e[i]) {
+            case 10:
+                if( j < len-3 ) {
+                    c[j++] = '\\';
+                    c[j++] = 'n';
+                }
+                break;
+            case '\\':
+                if( j < len-2 ) {
+                    c[j++] = '\\';
+                    c[j++] = '\\';
+                }
+                break;
+            default:
+                c[j++] = e[i];
+                break;
+        }
+        i++;
+    }
+    c[j] = '\0';
+    D(bug("\tresult='%s'\n",c));
+}
+
+/// Extensions
 /*-------------------------------------------------------------------*/
 /* Extensions */
 
@@ -43,6 +296,7 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
 
     on = (struct Extension *)smalloc( sizeof(struct Extension) );
     if( on ) {
+        bzero( on, sizeof(struct Extension) );
         on->en_Name = smalloc( strlen(name)+1 );
         if( on->en_Name ) {
             if( on->en_Data = pmalloc( size ) ) {
@@ -60,6 +314,43 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
         }
     }
     return on;
+}
+
+Prototype PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *ExtBase );
+
+PERROR ReplaceExtensionName( struct Extension *en, STRPTR newname, EXTBASE *ExtBase )
+{
+    PERROR res = PERR_OK;
+
+    if( en->en_Name ) sfree( en->en_Name );
+
+    if( en->en_Name = smalloc( strlen(newname)+1 ) ) {
+        strcpy(en->en_Name, newname );
+        en->en_Node.ln_Name = en->en_Name;
+    } else {
+        /* BUG: should probably retain old name */
+        res = PERR_OUTOFMEMORY;
+    }
+
+    return res;
+}
+
+
+Prototype PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *ExtBase );
+
+PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXTBASE *ExtBase )
+{
+    PERROR res = PERR_OK;
+
+    if( en->en_Data ) pfree( en->en_Data );
+    if(en->en_Data = pmalloc( size )) {
+        en->en_Length = size;
+        memcpy( en->en_Data, newdata, size );
+    } else {
+        /* BUG: Should probably retain old data */
+        res = PERR_OUTOFMEMORY;
+    }
+    return res;
 }
 
 /****u* pptsupport/AddExtension *******************************************
@@ -81,9 +372,6 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
 *       specify an existing extension, the old one is unceremoniously
 *       deleted.
 *
-*       By default, this data is assumed to be an editable string. If
-*       your extension contains something else than pure ASCII data,
-*       then set up EXTF_NOTASTRING.
 *
 *   INPUTS
 *       frame - the frame handle.
@@ -95,12 +383,21 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
 *           EXTNAME_ANNO - An annotation string.
 *           EXTNAME_DATE - A date string.
 *
+*           Note that if you use any of these, you should also set
+*           the EXTF_CSTRING flag...
+*
 *       data - pointer to your data.
 *       len  - length of your data chunk.
 *       flags - flags that describe the format of this data chunk.
 *           Possible values are:
 *
-*           EXTF_NOTASTRING - this extension is not a string.
+*           EXTF_PRIVATE - The format is private and PPT will not
+*               even try to guess it.
+*           EXTF_CSTRING - this extension is a standard C format
+*               string with a NUL at the end.  PPT will allow editing
+*               this kind of extension in the edit window.
+*
+*           As always, all unused bits should be set to zero.
 *
 *   RESULT
 *       success - PERR_OK if everything went OK and extension was
@@ -116,7 +413,6 @@ struct Extension *AllocExtension( STRPTR name, ULONG size, EXTBASE *ExtBase )
 *
 *   BUGS
 *       Extensions are not yet used too much.
-*       String extensions cannot be edited yet.
 *
 *   SEE ALSO
 *       GetOptions(),PutOptions(),FindExtension()
@@ -136,7 +432,7 @@ PERROR AddExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a2) APTR dat
     PERROR res = PERR_OK;
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 
-    D(bug("AddExtension(%08X (=%u),%s,%08X,%lu,%lu)\n",frame,frame->ID,name,data,len,flags));
+    D(bug("AddExtension(%08X (=%u),'%s',%08X,%lu,%lu)\n",frame,frame->ID,name,data,len,flags));
 
     ObtainSemaphore( &extsemaphore );
 
@@ -208,9 +504,9 @@ Prototype ASM struct Extension *FindExtension( REG(a0) FRAME *, REG(a1) STRPTR, 
 SAVEDS ASM
 struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *ExtBase )
 {
-    struct Extension *xn = (struct Extension *)extlist.lh_Head;
+    struct Extension *xn = (struct Extension *) &extlist;
 
-    D(bug("FindExtension( id=%d, %s )\n",frame->ID, name ));
+    D(bug("FindExtension( id=%d, '%s' )\n",frame->ID, name ));
 
     ObtainSemaphoreShared( &extsemaphore );
 
@@ -292,8 +588,9 @@ PERROR RemoveExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBA
 
     return res;
 }
+///
 
-
+/// Options
 /*-------------------------------------------------------------------*/
 /* Options */
 
@@ -536,5 +833,5 @@ VOID ExitOptions(VOID)
     }
 
 }
-
+///
 
