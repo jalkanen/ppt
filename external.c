@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.5 1996/09/17 20:32:12 jj Exp $
+    $Id: external.c,v 1.6 1996/09/22 18:09:24 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -57,16 +57,13 @@ Prototype struct Library *OpenModule( EXTERNAL *, EXTBASE * );
 struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
 {
     char buf[256];
-    struct Library *ModuleBase, *DOSBase = ExtBase->lb_DOS,
-                   *SysBase = ExtBase->lb_Sys;
+    struct Library *ModuleBase;
+    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct ExecBase   *SysBase = ExtBase->lb_Sys;
 
     // BUG:  should use globals->userprefs->modulepath
 
-#ifndef DEBUG_MODE
-    strcpy( buf, "PROGDIR:modules" );
-#else
-    strcpy( buf, "modules" );
-#endif
+    strcpy( buf, globals->userprefs->modulepath );
 
     SHLOCKGLOB();
     AddPart( buf, x->diskname, 255 );
@@ -76,13 +73,46 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
     return ModuleBase;
 }
 
+/*
+ *  Flushes a given library from memory by calling its Expunge-vector.
+ *  We can't use the base given by OpenModule because it may be different
+ *  for each module.
+ */
+
+Prototype void FlushLibrary(STRPTR, EXTBASE *);
+
+void FlushLibrary(STRPTR name, EXTBASE *ExtBase)
+{
+    struct Library *result;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+
+    D(bug("\tFlushing %s...\n", name ));
+
+    Forbid();
+    if(result=(struct Library *)FindName(&SysBase->LibList,name))
+        RemLibrary(result);
+    Permit();
+}
+
+/*
+ *  This closes the module and expunges it from memory, if necessary.
+ */
+
 Prototype VOID CloseModule( struct Library *, EXTBASE * );
 
 VOID CloseModule( struct Library *ModuleBase, EXTBASE *ExtBase)
 {
-    struct Library *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    char buf[40];
 
-    if( ModuleBase ) CloseLibrary( ModuleBase );
+    if( ModuleBase ) {
+        strncpy( buf, ModuleBase->lib_Node.ln_Name, 39 );
+        CloseLibrary( ModuleBase );
+
+        if( globals->userprefs->expungelibs ) {
+            FlushLibrary( buf, ExtBase );
+        }
+    }
 }
 
 /*
@@ -100,7 +130,7 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
 {
     struct Node *cn;
     int count = 0;
-    struct Library *IntuitionBase = xd->lb_Intuition, *UtilityBase = xd->lb_Utility;
+    struct Library *UtilityBase = xd->lb_Utility;
 
     SHLOCKGLOB();
     switch(type) {
@@ -245,11 +275,14 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
     if(who->usecount && force == FALSE) /* If someone is using us, don't release */
         return PERR_INUSE;
 
-    /* Make sure no-one can find us. */
+    /* Make sure no-one can find us anymore */
 
     LOCKGLOB();
     Remove( (struct Node *)who );
     UNLOCKGLOB();
+
+    if( globals->userprefs->expungelibs )
+        FlushLibrary( who->diskname, globxd );
 
     pfree(who);
 }
@@ -262,89 +295,6 @@ PERROR PurgeExternal( EXTERNAL *w, BOOL f )
         return PurgeOldExternal( w, f );
 }
 
-PERROR InitNewExternal( const char *who )
-{
-    struct Library *ModuleBase = NULL;
-    UWORD pptver;
-    PERROR res = PERR_OK;
-    STRPTR name;
-    UBYTE type;
-    EXTERNAL *x;
-
-    D(bug("NewOpenExternal(%s)\n",who));
-
-    ModuleBase = OpenLibrary( who,0L );
-    if(!ModuleBase) {
-#if 0
-        D(bug("\tFailed to open library!\n"));
-        Req(NEGNUL,NULL,
-            ISEQ_C"Could not open '%s':\n"
-            "It is probably not a proper module!\n",
-            who);
-        return PERR_WONTOPEN;
-#else
-        D(bug("\tPassing to InitOldExternal()...\n"));
-        return( InitOldExternal( who ) );
-#endif
-    }
-
-    /*
-     *  Determine name
-     */
-
-    name = (STRPTR) Inquire( PPTX_Name, globxd );
-
-    /*
-     *  Determine whether we can use this or not.
-     */
-
-    pptver = (UWORD) Inquire( PPTX_ReqPPTVersion,  globxd );
-
-    if( pptver > VERNUM ) {
-        Req(NEGNUL,NULL,"External %s requires PPT version %d+",name,pptver);
-        res = PERR_WONTOPEN;
-        goto nogood;
-    }
-
-    /*
-     *  Determine type
-     */
-
-    if( strcmp( &who[strlen(who)-7], ".effect" ) == 0 )
-        type = NT_EFFECT;
-    else
-        type = NT_LOADER;
-
-    /*
-     *  Allocate room and put the necessary info into memory.
-     */
-
-    x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
-    x->seglist    = 0L;
-    x->tags       = NULL;
-    x->islibrary  = TRUE;
-    x->usecount   = 0;
-    x->nd.ln_Type = type;
-    x->nd.ln_Name = x->realname;
-    x->nd.ln_Pri  = (BYTE)Inquire( PPTX_Priority, globxd );
-    strncpy( x->diskname, FilePart(who), 39 );
-    strncpy( x->realname, name, 39 );
-
-    LOCKGLOB();
-    if(type == NT_LOADER)
-        Enqueue( &globals->loaders, (struct Node *)x );
-    else {
-        Enqueue( &globals->effects, (struct Node *)x );
-    }
-    UNLOCKGLOB();
-
-    D(bug("\tOpened library OK.\n"));
-
-nogood:
-    if(ModuleBase) CloseLibrary( ModuleBase );
-
-    return res;
-}
 
 /*
     This routines opens the given external and then executes
@@ -442,6 +392,94 @@ PERROR InitOldExternal( const char *who )
     return PERR_OK;
 }
 
+/*
+    Open new style external
+*/
+PERROR InitNewExternal( const char *who )
+{
+    struct Library *ModuleBase = NULL;
+    UWORD pptver;
+    PERROR res = PERR_OK;
+    STRPTR name;
+    UBYTE type;
+    EXTERNAL *x;
+
+    D(bug("NewOpenExternal(%s)\n",who));
+
+    ModuleBase = OpenLibrary( who,0L );
+    if(!ModuleBase) {
+#if 0
+        D(bug("\tFailed to open library!\n"));
+        Req(NEGNUL,NULL,
+            ISEQ_C"Could not open '%s':\n"
+            "It is probably not a proper module!\n",
+            who);
+        return PERR_WONTOPEN;
+#else
+        D(bug("\tPassing to InitOldExternal()...\n"));
+        return( InitOldExternal( who ) );
+#endif
+    }
+
+    /*
+     *  Determine name
+     */
+
+    name = (STRPTR) Inquire( PPTX_Name, globxd );
+
+    /*
+     *  Determine whether we can use this or not.
+     */
+
+    pptver = (UWORD) Inquire( PPTX_ReqPPTVersion,  globxd );
+
+    if( pptver > VERNUM ) {
+        Req(NEGNUL,NULL,"External %s requires PPT version %d+",name,pptver);
+        res = PERR_WONTOPEN;
+        goto nogood;
+    }
+
+    /*
+     *  Determine type.  A kludge, at best.  Should probably use
+     *  Inquire() somehow.
+     */
+
+    if( strcmp( &who[strlen(who)-7], ".effect" ) == 0 )
+        type = NT_EFFECT;
+    else
+        type = NT_LOADER;
+
+    /*
+     *  Allocate room and put the necessary info into memory.
+     */
+
+    x = pmalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+    x->seglist    = 0L;
+    x->tags       = NULL;
+    x->islibrary  = TRUE;
+    x->usecount   = 0;
+    x->nd.ln_Type = type;
+    x->nd.ln_Name = x->realname;
+    x->nd.ln_Pri  = (BYTE)Inquire( PPTX_Priority, globxd );
+    strncpy( x->diskname, FilePart(who), 39 );
+    strncpy( x->realname, name, 39 );
+
+    LOCKGLOB();
+    if(type == NT_LOADER)
+        Enqueue( &globals->loaders, (struct Node *)x );
+    else {
+        Enqueue( &globals->effects, (struct Node *)x );
+    }
+    UNLOCKGLOB();
+
+    D(bug("\tOpened library OK.\n"));
+
+nogood:
+    if(ModuleBase) CloseModule( ModuleBase, globxd );
+
+    return res;
+}
+
 PERROR OpenExternal( const char *who )
 {
     return InitNewExternal( who );
@@ -457,9 +495,10 @@ PERROR OpenExternal( const char *who )
 
 SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
 {
-    struct Library *SysBase, *LocaleBase;
+    struct Library *LocaleBase;
+    struct ExecBase *SysBase;
 
-    SysBase = (struct Library *)SYSBASE();
+    SysBase = (struct ExecBase *)SYSBASE();
     LocaleBase = xd->lb_Locale;
 
     // D(bug("\tCloseLibBases()\n"));
@@ -471,8 +510,8 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
     if(xd->lb_Gfx)      CloseLibrary(xd->lb_Gfx);
     if(xd->lb_Utility)  CloseLibrary(xd->lb_Utility);
-    if(xd->lb_Intuition) CloseLibrary(xd->lb_Intuition);
-    if(xd->lb_DOS)      CloseLibrary(xd->lb_DOS);
+    if(xd->lb_Intuition) CloseLibrary( (struct Library *)xd->lb_Intuition);
+    if(xd->lb_DOS)      CloseLibrary( (struct Library *)xd->lb_DOS);
     if(xd->lb_GadTools) CloseLibrary(xd->lb_GadTools);
     if(xd->mport)       DeleteMsgPort(xd->mport); /* Exec call. Safe to do. */
 }
@@ -486,19 +525,20 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTDATA *xd )
 
 SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 {
-    struct Library *SysBase, *LocaleBase;
+    struct ExecBase *SysBase;
+    struct Library  *LocaleBase;
 
     // D(bug("\tOpenLibBases()\n"));
 
-    SysBase = (struct Library *)SYSBASE();
+    SysBase = (struct ExecBase *)SYSBASE();
 
     xd->lib.lib_Version = VERNUM;
     xd->g =             globals;
     xd->mport =         CreateMsgPort(); /* Exec call. Safe to do. */
     xd->lb_Sys =        SysBase;
-    xd->lb_DOS =        OpenLibrary(DOSNAME,37L);
+    xd->lb_DOS =        (struct DosLibrary *)OpenLibrary(DOSNAME,37L);
     xd->lb_Utility =    OpenLibrary("utility.library",37L);
-    xd->lb_Intuition =  OpenLibrary("intuition.library",37L);
+    xd->lb_Intuition =  (struct IntuitionBase *)OpenLibrary("intuition.library",37L);
     // D(bug("\tOpening BGUI..."));
     xd->lb_BGUI =       OpenLibrary(BGUINAME,37L);
     // D(bug("done\n"));
