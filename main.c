@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.83 1997/10/26 21:10:57 jj Exp $
+    $Id: main.c,v 1.84 1997/10/26 23:11:09 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1344,7 +1344,7 @@ int HandleSelectIDCMP( ULONG rc )
     switch( rc ) {
         case WMHI_CLOSEWINDOW:
             WindowClose( selectw.Win );
-            selectw.win = FALSE;
+            selectw.win = NULL;
             CheckMenuItem( MID_SELECTWINDOW, FALSE );
             break;
 
@@ -1621,9 +1621,8 @@ int HandlePrefsIDCMP( ULONG rc )
                 CopyPrefs( &tmpprefs, globals->userprefs );
                 bcopy( &tmpdisp, globals->maindisp, sizeof(DISPLAY) );
 
-                prefsw.win = NULL;
-
                 if( closed ) {
+                    prefsw.win = NULL; // Do not reopen
                     MAINSCR = NULL; /* BUG: Kludge */
                     if(OpenDisplay() != PERR_OK) {
                         /* Restore original screen mode and notify the user */
@@ -1647,6 +1646,7 @@ int HandlePrefsIDCMP( ULONG rc )
 
                 } else {
                     WindowClose( prefsw.Win );
+                    prefsw.win = NULL;
                 }
 
                 if( rc == GID_PW_SAVE ) {
