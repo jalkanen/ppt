@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.3 1998/12/16 22:41:03 jj Exp $
+    $Id: toolbar.c,v 1.4 1998/12/20 19:14:07 jj Exp $
 
  */
 
@@ -17,31 +17,21 @@
 
 /*------------------------------------------------------------------*/
 
-typedef enum {
-    TIT_TEXT,
-    TIT_IMAGE,
-    TIT_END
-} ToolbarItemType;
-
-struct ToolbarItem {
-    ULONG               ti_GadgetID;
-    ToolbarItemType     ti_Type;
-    STRPTR              ti_FileName;
-};
-
-#define TextItem(x)   { (x), TIT_TEXT, NULL }
-#define PicItem(x,a)  { (x), TIT_IMAGE, a }
-#define EndItem       { 0L,  TIT_END, NULL }
+#define TextItem(x)   { (x), TIT_TEXT, NULL, NULL, NULL }
+#define PicItem(x,a)  { (x), TIT_IMAGE, a, NULL, NULL }
+#define EndItem       { 0L,  TIT_END, NULL, NULL, NULL }
 
 #define BUFLEN 80
+#define DEFAULT_TOOLBAR_WIDTH   200
 #define MAX_TOOLBARSIZE 30
 
 /*------------------------------------------------------------------*/
 
-struct ToolbarItem PPTToolbar[MAX_TOOLBARSIZE] = {
+Class *ToolbarClass;
+
+struct ToolbarItem PPTToolbar[MAX_TOOLBARSIZE+1] = {
     TextItem( MID_LOADNEW ),
     TextItem( MID_PROCESS ),
-    TextItem( MID_RENDER ),
     EndItem
 };
 
@@ -67,7 +57,101 @@ enum {
     TO_TEXT
 } ToolbarOption;
 
+const LONG AvailableButtons[] = {
+    MID_NEW,
+    MID_LOADNEW,
+    MID_LOADAS,
+    MID_SAVEAS,
+    MID_DELETE,
+    MID_RENAME,
+    MID_HIDE,
+    MID_QUIT,
+
+    MID_UNDO,
+    MID_CUT,
+    MID_CUTFRAME,
+    MID_COPY,
+    MID_PASTE,
+
+    MID_ZOOMIN,
+    MID_ZOOMOUT,
+    MID_SELECTALL,
+    MID_EDITINFO,
+    MID_SETRENDER,
+    MID_RENDER,
+    MID_CLOSERENDER,
+    MID_CORRECTASPECT,
+    MID_EDITPALETTE,
+    MID_LOADPALETTE,
+    MID_SAVEPALETTE,
+
+    MID_PROCESS,
+    MID_BREAK,
+    -1L
+};
+
+typedef struct {
+    struct ToolbarItem  **td_Toolbar;
+    int                 td_NumItems;
+} TD;
+
 /*------------------------------------------------------------------*/
+
+/// FindNewMenuItem()
+Local
+struct NewMenu *FindNewMenuItem( struct NewMenu *menus, ULONG gadgetid )
+{
+    struct NewMenu *ptr = menus;
+
+    while( ptr->nm_Type != NM_END ) {
+        if( (ULONG)(ptr->nm_UserData) == gadgetid ) return ptr;
+        ptr++;
+    }
+    return NULL;
+}
+///
+/// FindNewMenuItemName()
+
+Prototype struct NewMenu *FindNewMenuItemName( struct NewMenu *menus, STRPTR name );
+
+struct NewMenu *FindNewMenuItemName( struct NewMenu *menus, STRPTR name )
+{
+    struct NewMenu *ptr = menus;
+
+    while( ptr->nm_Type != NM_END ) {
+        if( strcmp(ptr->nm_Label,name) == 0) return ptr;
+        ptr++;
+    }
+    return NULL;
+}
+///
+
+Prototype struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid );
+
+struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid )
+{
+    int i;
+
+    for( i = 0; head[i].ti_Type != TIT_END; i++ ) {
+        if( head[i].ti_GadgetID == gid ) return &head[i];
+    }
+    return NULL;
+}
+
+Prototype struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name );
+
+struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name )
+{
+    int i;
+
+    for( i = 0; head[i].ti_Type != TIT_END; i++ ) {
+        if( strcmp( head[i].ti_Label,name) == 0 ) return &head[i];
+    }
+    return NULL;
+}
+
+
+
 
 /// UpdateMouseLocation()
 /*
@@ -121,6 +205,102 @@ VOID ClearMouseLocation(VOID)
 }
 ///
 
+/*
+ *  Inserts a tool bar item onto the list.  Also updates visuals.
+ *  BUG: Currently only addtail()s
+ */
+
+Prototype VOID InsertToolItem( struct ToolbarItem *, struct ToolbarItem *, struct NewMenu * );
+
+VOID InsertToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *prev, struct NewMenu *nm )
+{
+    int i;
+
+    for( i = 0; toolbar[i].ti_Type != TIT_END; i++ );
+
+    if( i < MAX_TOOLBARSIZE ) {
+        toolbar[i].ti_Type = TIT_TEXT;
+        toolbar[i].ti_GadgetID = (ULONG)nm->nm_UserData;
+        toolbar[i].ti_FileName = NULL;
+        toolbar[i].ti_Label = nm->nm_Label;
+        toolbar[i].ti_Gadget = NULL;
+
+        toolbar[i+1].ti_Type = TIT_END;
+
+        AddEntrySelect( prefsw.win, prefsw.ToolbarList, nm->nm_Label, LVAP_TAIL );
+    }
+}
+
+Prototype VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb );
+
+VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb )
+{
+    int i,j;
+
+    for( i = 0; toolbar[i].ti_Type != TIT_END; i++ ) {
+        if( toolbar[i].ti_GadgetID == tb->ti_GadgetID ) {
+            for( j = i; toolbar[j].ti_Type != TIT_END; j++ ) {
+                toolbar[j] = toolbar[j+1];
+            }
+            return;
+        }
+    }
+
+    RemoveEntryVisible( prefsw.win, prefsw.ToolbarList, tb->ti_Label );
+}
+
+/// SetupToolbarList()
+/*
+ *  Go through the toolbar settings and set up the lists.
+ */
+Prototype VOID SetupToolbarList(VOID);
+
+VOID SetupToolbarList(VOID)
+{
+    struct ToolbarItem *tooldata = PPTToolbar;
+    int item = 0;
+    LONG barcode;
+    struct NewMenu *nm;
+    D(APTR b);
+
+    SetGadgetAttrs( GAD(prefsw.ToolItemType), prefsw.win, NULL,
+                    MX_DisableButton, 1, TAG_DONE );
+
+    D(bug("SetupToolbarList()\n"));
+    D(b = StartBench());
+
+    /*
+     *  First, go through the menu items and place them on the bigger listview.
+     */
+
+    while( (barcode = AvailableButtons[item]) > 0 ) {
+
+        nm = (APTR)FindNewMenuItem( PPTMenus, barcode );
+        if( nm ) {
+            if( !FindInToolbar( tooldata, barcode ) ) {
+                AddEntry( NULL, prefsw.AvailButtons, nm->nm_Label, LVAP_TAIL );
+            }
+        }
+
+        item++;
+    }
+
+    SortList( NULL, prefsw.AvailButtons );
+
+    /*
+     *  Now, set up the original list.
+     */
+    item = 0;
+    while( tooldata[item].ti_Type != TIT_END ) {
+        D(bug("AddEntry(%08x=%s)\n",&tooldata[item],tooldata[item].ti_Label ));
+        AddEntry( NULL, prefsw.ToolbarList, tooldata[item].ti_Label, LVAP_TAIL );
+        item++;
+    }
+    D(StopBench(b));
+    D(bug("...finished building toolbar list\n"));
+}
+///
+
 /// HandleToolIDCMP()
 /*
     Handle the tool window IDCMP messages.
@@ -162,77 +342,241 @@ int HandleToolIDCMP( ULONG rc )
 }
 ///
 
-/// FindNewMenuItem()
-Local
-struct NewMenu *FindNewMenuItem( struct NewMenu *menus, ULONG gadgetid )
+/// AddSingleItem
+BOOL
+AddSingleItem( Object *obj, TD *td, struct ToolbarItem *ti )
 {
-    struct NewMenu *ptr = menus;
+    if(td->td_Toolbar[td->td_NumItems] = smalloc( sizeof( struct ToolbarItem ) )) {
+        if(td->td_Toolbar[td->td_NumItems]->ti_Gadget = ButtonObject,
+            UScoreLabel( ti->ti_Label, '_' ),
+            GA_ID,       ti->ti_GadgetID,
+            XenFrame,
+            BT_ToolTip,  ti->ti_Label,
+            EndObject)
+        {
+            DoMethod( obj, GRM_ADDMEMBER, td->td_Toolbar[td->td_NumItems]->ti_Gadget, TAG_DONE );
+        } else {
+            return FALSE;
+        }
 
-    while( ptr->nm_Type != NM_END ) {
-        if( (ULONG)(ptr->nm_UserData) == gadgetid ) return ptr;
-        ptr++;
+        td->td_NumItems++;
+
     }
-    return NULL;
+    return TRUE;
+}
+
+BOOL
+AddItems( Object *obj, TD *td, struct ToolbarItem *tb )
+{
+    while( tb->ti_Type != TIT_END ) {
+        if( AddSingleItem( obj, td, tb ) == FALSE ) {
+            return FALSE;
+        }
+        tb++;
+    }
+
+    return TRUE;
 }
 ///
-/// CreateToolbar()
-Prototype Object *CreateToolbar(VOID);
 
-Object *CreateToolbar(VOID)
+/// ToolbarNew()
+
+ULONG STATIC ASM
+ToolbarNew( REGPARAM(a0,Class *,cl),
+            REGPARAM(a2,Object *,obj),
+            REGPARAM(a1,struct opSet *,ops) )
 {
-    Object *toolbar;
-    struct TagItem *tags;
-    struct ToolbarItem *tooldata = PPTToolbar;
+    TD      *td;
+    struct TagItem *tag, *tags = ops->ops_AttrList, *tstate;
     int    c = 0, item = 0;
     BOOL   quit = FALSE;
+    ULONG rc;
 
-    if(!(tags = AllocateTagItems( 100 ))) // BUG: MAGIC
-        return NULL;
+    D(bug("Toolbar: OM_NEW\n"));
+    /*
+     *  BUG: Should really do a FilterTagItems(),
+     *       then add own tags.
+     */
 
-    while( !quit ) {
-        switch( tooldata[item].ti_Type ) {
-            struct NewMenu *nm;
+    if( tag = FindTagItem( TAG_DONE, tags ) ) {
+        tag->ti_Tag  = TAG_MORE;
+        tag->ti_Data = DefaultTags;
+    }
 
-            case TIT_END:
-                quit = TRUE;
-                break;
+    if( rc = DoSuperMethodA( cl, obj, (Msg) ops )) {
+        td = (TD*)INST_DATA(cl,rc);
+        bzero( td, sizeof(TD) );
 
-            case TIT_TEXT:
-                /*
-                 *  Create a text item on the toolbar.  Note that the GUI localization
-                 *  has already been done on the menu bar.
-                 */
+        td->td_Toolbar = smalloc( sizeof(struct ToolbarItem *) * MAX_TOOLBARSIZE );
 
-                if( nm = FindNewMenuItem( PPTMenus, tooldata[item].ti_GadgetID ) ) {
-                    tags[c].ti_Tag   = GROUP_Member;
-                    tags[c].ti_Data  = (ULONG)ButtonObject,
-                                          UScoreLabel( nm->nm_Label, '_' ),
-                                          GA_ID,        tooldata[item].ti_GadgetID,
-                                          XenFrame,
-                                          BT_ToolTip,   nm->nm_Label,
-                                          BT_HelpHook,  &HelpHook,
-                                          BT_HelpNode,  "PPT.guide/Toolbar",
-                                       EndObject;
-                    c++;
-                    tags[c].ti_Tag   = TAG_END;
-                    tags[c].ti_Tag   = 0L;
-                    c++;
-                }
-                break;
+        tstate = tags;
+
+        while( tag = NextTagItem( &tstate ) ) {
+            switch( tag->ti_Tag ) {
+                case TOOLBAR_Items:
+                    if( AddItems( rc, td, tag->ti_Data ) == FALSE ) {
+                        CoerceMethod(cl, rc, OM_DISPOSE);
+                        rc = NULL;
+                    }
+                    break;
+            }
         }
+    }
+
+    return rc;
+}
+///
+/// ToolbarDispose()
+ULONG STATIC ASM
+ToolbarDispose( REGPARAM(a0,Class *,cl),
+                REGPARAM(a2,Object *,obj),
+                REGPARAM(a1,Msg,msg) )
+{
+    TD *td = (TD*)INST_DATA(cl,obj);
+    int i;
+
+    D(bug("Toolbar: OM_DISPOSE\n"));
+
+    if( td->td_Toolbar ) {
+        for( i = 0; i < td->td_NumItems; i++ ) {
+            if( td->td_Toolbar[i]) sfree( td->td_Toolbar[i] );
+        }
+        sfree( td->td_Toolbar );
+    }
+
+    return( DoSuperMethodA( cl, obj, msg ));
+}
+///
+
+/// GimmeToolBarWindow()
+/*
+    This creates and opens the tool bar window.
+*/
+PERROR GimmeToolBarWindow( VOID )
+{
+    PERROR res = PERR_OK;
+    ULONG  args[2];
+    struct IBox ibox;
+    long   minwidth, minheight;
+    struct TextExtent te;
+
+    args[0] = args[1] = 0L;
+
+    if( toolw.prefs.initialpos.Height == 0 ) {
+        ibox.Left   = 0;
+        if( MAINSCR )
+            ibox.Top    = MAINSCR->Height;
+        else
+            ibox.Top    = 320;
+    } else {
+        ibox = toolw.prefs.initialpos;
+    }
+
+    ibox.Height = 0;
+    ibox.Width  = DEFAULT_TOOLBAR_WIDTH;
+
+    D(bug("GimmeToolBarWindow()\n"));
+
+    LocalizeToolbar();
+
+    /*
+     *  Create the area for rendering the co-ordinates in.
+     *  Allow two pixels spare on all sides.
+     */
+
+    if(MAINWIN && MAINWIN->RPort) {
+        TextExtent( MAINWIN->RPort, "(MMM,MMM)MM", 11, &te );
+        minwidth = te.te_Width+4;
+        minheight = te.te_Height+4;
+        D(bug("\tCoordBox minimum size = %ld x %ld pixels\n",minwidth, minheight ));
+    } else {
+        minwidth = 100;
+        minheight = 12;
+        InternalError("Unable to determine Main Window RastPort???");
+        return PERR_WINDOWOPEN;
+    }
+
+    toolw.GO_ToolInfo = BGUI_NewObject( BGUI_AREA_GADGET,
+                                        AREA_MinWidth,     minwidth,
+                                        AREA_MinHeight,    minheight,
+                                        BT_DropObject,     FALSE,
+                                        GA_ID,             GID_TOOL_COORDS,
+                                        ICA_TARGET,        ICTARGET_IDCMP,
+                                        ButtonFrame,
+                                        FRM_Flags,         FRF_RECESSED,
+                                        BT_HelpHook,       &HelpHook,
+                                        BT_HelpNode,       "PPT.guide/Toolbar",
+                                        TAG_END );
+    if( !toolw.GO_ToolInfo ) {
+        D(bug("Toolinfo didn't open\n"));
+        return PERR_WINDOWOPEN;
+    }
+
+    toolw.GO_ToolBar = NewObject( ToolbarClass, NULL,
+                                  TOOLBAR_Items, &PPTToolbar,
+                                  TAG_DONE );
+
+    /*
+     *  The window itself. The area is attached onto it.
+     */
+
+    if(!toolw.Win) {
+        toolw.Win = WindowObject,
+            WINDOW_Title,           GetStr(MSG_TOOLBAR_WINDOW),
+            WINDOW_ScreenTitle,     std_ppt_blurb,
+            WINDOW_MenuStrip,       PPTMenus,
+            WINDOW_SharedPort,      MainIDCMPPort,
+            WINDOW_Font,            globals->userprefs->mainfont,
+            WINDOW_Screen,          MAINSCR,
+            WINDOW_Bounds,          &ibox,
+            WINDOW_SmartRefresh,    TRUE,
+            WINDOW_SizeGadget,      FALSE,
+            WINDOW_NoBufferRP,      TRUE,
+            // WINDOW_HelpHook,            &HelpHook,
+            // WINDOW_HelpNode,            "Toolbar",
+            WINDOW_MasterGroup,
+                HGroupObject, NarrowSpacing, NarrowHOffset, NarrowVOffset,
+                    StartMember,
+                        HGroupObject, Spacing(0), HOffset(0), VOffset(0),
+                            StartMember,
+                                toolw.GO_ToolInfo,
+                            EndMember,
+                        EndObject, FixMinWidth,
+                    EndMember,
+                    StartMember,
+                        toolw.GO_ToolBar,
+                    EndMember,
+                EndObject, FixMinHeight,
+            EndObject;
+    }
+
+    if(!toolw.Win) {
+        D(bug("Tool window couldn't be created\n"));
+        res = PERR_WINDOWOPEN;
+    }
+
+    return res;
+}
+///
+
+Prototype PERROR LocalizeToolbar(VOID);
+
+PERROR LocalizeToolbar(VOID)
+{
+    int item = 0;
+    struct NewMenu *nm;
+
+    while( PPTToolbar[item].ti_Type != TIT_END ) {
+        nm = (APTR)FindNewMenuItem( PPTMenus, PPTToolbar[item].ti_GadgetID );
+        if( nm ) {
+            PPTToolbar[item].ti_Label = nm->nm_Label;
+        }
+
         item++;
     }
 
-    tags[c].ti_Tag  = TAG_MORE;
-    tags[c].ti_Data = (ULONG)DefaultTags;
-
-    toolbar = BGUI_NewObjectA( BGUI_GROUP_GADGET, tags );
-
-    FreeTagItems( tags );
-
-    return toolbar;
+    return PERR_OK;
 }
-///
 
 /// ReadToolbarConfig()
 /*
@@ -309,3 +653,23 @@ PERROR WriteToolbarConfig( BPTR fh )
     return PERR_OK;
 }
 ///
+
+STATIC DPFUNC ClassFunc[] = {
+    OM_NEW,     (FUNCPTR)ToolbarNew,
+    OM_DISPOSE, (FUNCPTR)ToolbarDispose,
+    0xF00D,     (FUNCPTR)ToolbarNew,
+    DF_END
+};
+
+Class *InitToolbarClass(VOID)
+{
+    return BGUI_MakeClass( CLASS_SuperClassBGUI, BGUI_GROUP_GADGET,
+                           CLASS_ObjectSize,     sizeof(TD),
+                           CLASS_DFTable,        ClassFunc,
+                           TAG_DONE );
+}
+
+BOOL FreeToolbarClass( Class *cl )
+{
+    return BGUI_FreeClass( cl );
+}
