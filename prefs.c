@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.22 1997/10/24 22:58:17 jj Exp $
+    $Id: prefs.c,v 1.23 1998/01/04 16:37:01 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -404,8 +404,14 @@ int LoadPrefs( GLOBALS *g, char *pfile )
 
                     case EXTSTACKSIZE:
                         tmp = strtol(s, &tail, 0);
-                        if( tmp > 5000 )
+                        if( tmp >= 4096 ) {
                             p->extstacksize = tmp;
+                        } else {
+                            Req( NEGNUL, NULL, GetStr(mPREFS_EXTSTACK_LOW), 4096 );
+                            p->extstacksize = 4096;
+                        }
+
+                        D(bug("Set external stack at %lu\n",p->extstacksize));
                         break;
 
                     case STARTUPDIR:
