@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.13 1997/10/19 22:08:44 jj Exp $
+#       $Id: dmakefile,v 1.14 1998/02/28 18:03:39 jj Exp $
 #
 #####################################################################
 #
@@ -35,6 +35,9 @@ MAINDIR   = work:source/c/ppt
 
 #   Externals source directory
 EXTSRCDIR = $(MAINDIR)/externals/src
+
+#   Float gadget include files
+FLOATGADGET=floatgadget
 
 #   Object directories. OD is for the debugging version and
 #   ROD is for the release version with no debug code.
@@ -70,9 +73,9 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #CC     = dcc
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
-COPTS  = NOICONS IDIR=dinclude:pd IDIR=include \
+COPTS  = NOICONS IDIR=dinclude:pd IDIR=include IDIR=$(FLOATGADGET) \
          CONSTLIB NOSTKCHK STREQV STRMERGE IGNORE=304 NOCHKABORT \
-         IGNORE=104
+         IGNORE=104 MATH=S
 
 # a68k makes erroneous code!
 #AS     = das
@@ -83,7 +86,7 @@ ASOPTS = DEBUG=LINE
 # LINK   = dcc
 # LINKOPTS = -lbgui -lm
 LINK   = SC LINK
-LINKOPTS = MATH=s
+LINKOPTS = MATH=S
 
 #
 # If using Fortify, then link together with the
@@ -180,7 +183,8 @@ MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
 
 # These files version on version & gfx information
 
-VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c
+VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c\
+        display.c others.c
 
 #
 #   Object files.
@@ -371,7 +375,7 @@ rcs :
 
 # This makes a distribution
 
-dist : all release release020 $(DISTDIR) docs
+dist : all release release020 $(DISTDIR) docs bguilibs modinfo
         Copy $(RMAIN) $(RMAIN).debug
         Copy $(R2MAIN) $(R2MAIN).debug
         $(STRIP)
@@ -389,6 +393,7 @@ dist : all release release020 $(DISTDIR) docs
         Cd $(MAINDIR)
         Copy $(ARCHIVEDIR)PPT_dist.lha tmp:pptarchive/pptdist.lha
         lha u tmp:pptarchive/pptdist.lha $(RMAIN).debug $(R2MAIN).debug
+        lha -x u $(ARCHIVEDIR)PPT_security.lha modules/EmbedFile.effect modules/ExtractFile.effect README_security
         @beep
 
 strip :
@@ -429,6 +434,10 @@ catcode:
 catalogs:
         cd Catalogs
         FlexCat ppt.cd suomi/ppt.ct CATALOG suomi/ppt.catalog
+
+refreshcatalogs:
+        cd Catalogs
+        FlexCat ppt.cd suomi/ppt.ct NEWCTFILE suomi/ppt.ct
 
 # This will reconstruct the developer docs.
 
@@ -486,4 +495,14 @@ ppt.h : ppt_real.h
 pgpsig : dist
         @cd $(DISTDIR)
         pgp -sba ppt -u jalkanen
+
+#
+#   BGUI libraries to the add-on place
+#
+
+bguilibs :
+        cd floatgadget
+        @smake install
+        @cd /
+        copy sys:classes/gadgets/bgui_float.gadget libs/
 
