@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 5.4 $
-        $Date: 1999/05/30 18:11:39 $
+    $Revision: 5.5 $
+        $Date: 1999/06/15 12:49:38 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 5.4 1999/05/30 18:11:39 jj Exp $
+    $Id: ppt_real.h,v 5.5 1999/06/15 12:49:38 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -111,6 +111,11 @@ typedef void Pixel;                 /* Use only as Pixel * */
 #define MULS16(x,y) ( (WORD)(x) * (WORD)(y) )
 #define MULUW(x,y)  MULU16(x,y)
 #define MULSW(x,y)  MULS16(x,y)
+
+/* Clamps x between a and b (inclusive) */
+
+#define CLAMP(x,min,max)        if( (x) < (min) ) { (x) = (min); } \
+                                else if( (x) > (max) ) { (x) = (max); }
 
 /* This macro calculates picture size in bytes. Requires pointer to a  pixinfo
    structure.*/
