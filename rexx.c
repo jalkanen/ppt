@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.22 1997/12/06 22:53:35 jj Exp $
+    $Id: rexx.c,v 1.23 1998/01/04 16:38:41 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1011,10 +1011,11 @@ void rx_renameframe( REXXARGS *ra, struct RexxMsg *rm )
 
     if( entry = (APTR) FirstEntry( framew.Frames ) ) {
         do {
-            if( strcmp( entry, frame->name ) == 0 ) {
+            if( strcmp( ParseListEntry(entry), frame->name ) == 0 ) {
                 MakeFrameName( tmpbuf, tmpbuf, NAMELEN-1, globxd );
                 strncpy( frame->name, tmpbuf, NAMELEN-1 );
-                ReplaceEntry( framew.win, framew.Frames, entry, tmpbuf );
+                // BUG: following may fail.  Also, should probably use DoMainList()
+                ReplaceEntry( framew.win, framew.Frames, entry, ConstructListName( frame ) );
                 UpdateFrameInfo( frame );
                 break;
             }
