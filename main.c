@@ -2,11 +2,12 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.99 1998/12/15 21:24:46 jj Exp $
+    $Id: main.c,v 1.100 1998/12/20 19:12:27 jj Exp $
 
     Main PPT code for GUI handling.
 */
 
+/// Includes
 #include "defs.h"
 #include "misc.h"
 #include "version.h"
@@ -61,6 +62,7 @@
 #include <sprof.h>
 
 #include <proto/iomod.h>
+///
 
 /*------------------------------------------------------------------------*/
 /* Internal Defines */
@@ -71,7 +73,7 @@
 /* Types */
 
 /*------------------------------------------------------------------------*/
-/* Global variables */
+/// Global variables
 
 GLOBALS *globals;
 EXTBASE *globxd;
@@ -106,12 +108,13 @@ BOOL loader_close = TRUE; /* TRUE, if the Loader window should be closed
 #ifdef DEBUG_MODE
 BPTR debug_fh, old_fh;
 #endif
+///
 
 /*------------------------------------------------------------------------*/
 /*  Internal variables */
 
 /*------------------------------------------------------------------------*/
-/* Internal prototypes */
+/// Internal prototypes
 
 extern int              main(int, char **);
 Local void              HandleAppMsg( const struct AppMessage * );
@@ -120,6 +123,7 @@ Local void              UpdateDispPrefsWindow( FRAME * );
 #ifdef _DCC
 Local int               wbmain( struct WBStartup * );
 #endif
+///
 
 /*------------------------------------------------------------------------*/
 /* External prototypes */
@@ -130,6 +134,7 @@ Prototype VOID          UpdateMainWindow( FRAME * );
 /*------------------------------------------------------------------------*/
 /* Code */
 
+/// Compiler dependant code
 #ifdef _DCC
 int brk(void) {
     return 0;
@@ -143,7 +148,9 @@ int brk(void) {
 void __regargs _CXBRK(void) {}
 void __regargs __chkabort(void) {}
 #endif
+///
 
+/// ZoomIn, ZoomOut
 /*
     Zooms into the given rectangle
 */
@@ -171,8 +178,9 @@ VOID ZoomOut( FRAME *f )
     f->zoombox.Width = f->pix->width;
     UNLOCK(f);
 }
+///
 
-
+/// CheckArea()
 BOOL CheckArea( const FRAME *frame )
 {
     if(frame->selbox.MinX == ~0) {
@@ -181,7 +189,9 @@ BOOL CheckArea( const FRAME *frame )
     }
     return TRUE;
 }
+///
 
+/// HowManyFrames
 Local int HowManyFrames(void)
 {
     int c = 0;
@@ -197,7 +207,9 @@ Local int HowManyFrames(void)
 
     return c;
 }
+///
 
+/// ConstructListName, ParseListEntry, and CompareListEntryHook
 Prototype STRPTR ConstructListName( FRAME *);
 
 STRPTR ConstructListName( FRAME *frame )
@@ -232,7 +244,9 @@ LONG CompareListEntryHook( REG(a0) struct Hook *hook,
     return( stricmp( ParseListEntry( lvc->lvc_EntryA ),
                      ParseListEntry( lvc->lvc_EntryB ) ) );
 }
+///
 
+/// SetFrameStatus()
 /*
     Sets the display status on the main window.  Currently only does the
     busy thing.
@@ -267,6 +281,7 @@ VOID SetFrameStatus( FRAME *frame, ULONG status )
     DoMainList( frame );
 #endif
 }
+///
 
 /// DoMainList()
 /*
@@ -467,6 +482,7 @@ VOID UpdateMainWindow( FRAME *frame )
 }
 ///
 
+/// DisplayFrames()
 /*
     Renders all frames attached to it, if need be
 */
@@ -487,6 +503,7 @@ VOID DisplayFrames( FRAME *start )
     }
 #endif
 }
+///
 
 /// AreaDrop()
 /*
@@ -1541,14 +1558,14 @@ int HandleSelectIDCMP( ULONG rc )
 
 ///
 
+/// HandlePrefsIDCMP()
+
 /*
     Does exactly what the name says: handles all IDCMP messages
     sent by the Prefs window.
     BUG: Display preferences are not handled correctly on Cancel.
     BUG: All values should be read when user hits USE/SAVE
 */
-
-/// HandlePrefsIDCMP()
 
 Local
 int HandlePrefsIDCMP( ULONG rc )
@@ -1559,8 +1576,51 @@ int HandlePrefsIDCMP( ULONG rc )
     UBYTE *tmp2, buffer[NAMELEN+1];
     PERROR res = PERR_OK;
     BOOL   closed = FALSE;
+    APTR   entry;
+    struct ToolbarItem *ti;
+    static BOOL toolbarchanged = FALSE;
 
     switch(rc) {
+
+        case GID_PW_TOOLBARLIST:
+            if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
+                if(ti = FindInToolbarName(PPTToolbar, entry) ) {
+                    SetGadgetAttrs( GAD(prefsw.ToolItemType), prefsw.win, NULL,
+                                    MX_Active, ti->ti_Type, TAG_DONE );
+                    SetGadgetAttrs( GAD(prefsw.ToolItemFile), prefsw.win, NULL,
+                                    STRINGA_TextVal, ti->ti_FileName, NULL );
+                } else {
+                    InternalError( "Toolbar out of sync!" );
+                }
+                toolbarchanged = TRUE;
+            }
+            break;
+
+        case GID_PW_TOTOOLBAR:
+            if( entry = (APTR)FirstSelected( prefsw.AvailButtons ) ) {
+                struct NewMenu *nm;
+
+                if( nm = FindNewMenuItemName( PPTMenus, entry ) ) {
+                    InsertToolItem( PPTToolbar, NULL, nm );
+                    RemoveSelected( prefsw.win, prefsw.AvailButtons );
+                    toolbarchanged = TRUE;
+                }
+            }
+            break;
+
+        case GID_PW_FROMTOOLBAR:
+            if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
+                if(ti = FindInToolbarName(PPTToolbar, entry) ) {
+                    RemoveToolItem( PPTToolbar, ti );
+                    RemoveSelected( prefsw.win, prefsw.ToolbarList );
+                    AddEntrySelect( prefsw.win, prefsw.AvailButtons, entry, LVAP_SORTED );
+                    RefreshList( prefsw.win, prefsw.ToolbarList );
+                } else {
+                    InternalError( "Toolbar out of sync!" );
+                }
+                toolbarchanged = TRUE;
+            }
+            break;
 
         case GID_PW_EXTPRIORITY:
             GetAttr(SLIDER_Level, prefsw.ExtPriority, &tmp);
@@ -1721,6 +1781,34 @@ int HandlePrefsIDCMP( ULONG rc )
                 CopyPrefs( &tmpprefs, globals->userprefs );
                 bcopy( &tmpdisp, globals->maindisp, sizeof(DISPLAY) );
 
+                /*
+                 *  Toolbar handling.  BUG: Horrible kludge!
+                 */
+
+                if( entry = DoMethod( prefsw.ToolbarList, LVM_FIRSTENTRY, NULL, 0L ) ) {
+                    int item = 0;
+                    struct NewMenu *nm;
+
+                    do {
+                        nm = FindNewMenuItemName( PPTMenus, entry );
+                        if( entry ) {
+                            PPTToolbar[item].ti_Type = TIT_TEXT;
+                            PPTToolbar[item].ti_GadgetID = (ULONG)nm->nm_UserData;
+                            PPTToolbar[item].ti_FileName = NULL;
+                            PPTToolbar[item].ti_Label = nm->nm_Label;
+                            PPTToolbar[item].ti_Gadget = NULL;
+                            item++;
+                        }
+                        entry = DoMethod( prefsw.ToolbarList, LVM_NEXTENTRY, entry, 0L );
+                    } while( entry );
+                    PPTToolbar[item].ti_Type = TIT_END;
+                }
+
+                if( toolbarchanged ) {
+                    DisposeObject( toolw.Win );
+                    toolw.Win = NULL; toolw.win = NULL;
+                }
+
                 if( closed ) {
                     prefsw.win = NULL; // Do not reopen
                     MAINSCR = NULL; /* BUG: Kludge */
@@ -1745,6 +1833,9 @@ int HandlePrefsIDCMP( ULONG rc )
                     WindowClose( prefsw.Win );
                     prefsw.win = NULL;
                 }
+
+                HandleMenuIDCMP( MID_TOOLWINDOW, NULL, FROM_PREFSWINDOW );
+
 
                 if( rc == GID_PW_SAVE ) {
                     if(SavePrefs( globals, NULL ) != PERR_OK ) {
