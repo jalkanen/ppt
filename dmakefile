@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.3 1996/08/09 01:11:02 jj Exp $
+#       $Id: dmakefile,v 1.4 1996/09/29 02:35:32 jj Exp $
 #
 #####################################################################
 #
@@ -28,8 +28,18 @@ EXTSRCDIR = $(MAINDIR)/externals/src
 
 #   Object directories. OD is for the debugging version and
 #   ROD is for the release version with no debug code.
-OD        = dtmp:ppt/
-ROD       = dtmp:ppt_rel/
+OD        = dtmp:pptsc/
+ROD       = dtmp:pptsc_rel/
+
+# GST files for SAS/C
+GST   = defs.gst
+RGST  = rdefs.gst
+
+# Main executables
+MAIN   = ppt
+MFILE  = T:defs.m
+RMAIN  = ppt_rel
+RMFILE = T:rdefs.m
 
 #   Example files. These are currently scanned for autodoc
 #   entries
@@ -43,11 +53,67 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #   This is for the debug-version
 #
 
-CC     = dcc
-COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
+#CC     = dcc
+#COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
+CC     = SC
+COPTS  = ignore=104 OBJECTNAME=$(OD) NOICONS IDIR=dinclude:pd \
+         NOCONSTLIB NOSTKCHK
+
 # a68k makes erroneous code!
-AS     = das
+#AS     = das
+#ASOPTS =
+AS     = SC
 ASOPTS =
+
+# LINK   = dcc
+# LINKOPTS = -lbgui -lm
+LINK   = SC LINK
+LINKOPTS = MATH=s
+
+#
+# If using Fortify, then link together with the
+# following files.
+#
+FORTOBJS = /fortify/fortify.o
+FORTLITEOBJS = /fortify/fortifylite.o
+#FORTCOPTS = -DFORTIFY
+#FORTLOPTS = -lpptsupp -L$(MAINDIR)/linklib
+FORTCOPTS  = Define=FORTIFY
+FORTLOPTS  = LIB=$(MAINDIR)/linklib/pptsupp.lib
+
+#
+#  Debugger version
+#
+#DCOPTS = -d1
+#LDFLAGS= $(LINKOPTS) $(FORTLOPTS) -s
+DCOPTS = DEF=DEBUG_MODE DEBUG=SF ERRORREXX GST=$(GST)
+LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
+
+#
+#  Release version
+#
+#RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
+RCOPTS  = $(COPTS) cpu=68020 OPT OPTSCHED NODEBUG STRCON GST=include:all.gst
+RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
+
+#####################################################################
+#
+#  End of configurational stuff.  This section defines the
+#  differences in compilers.
+#
+#  Syntax options
+#
+
+# DCC
+#OBJNAME = -o
+#COMPILE = -c
+#LINKTO  = -o
+
+# SAS
+OBJNAME = OBJNAME
+COMPILE =
+LINKTO  = TO
 
 #####################################################################
 #
@@ -68,6 +134,12 @@ ASSYS = render2.a
 # HDRS = ppt_real.h defs.h ppt_cat.h
 HDRS = ppt_real.h defs.h
 
+# A change in these headers forces a recompile of the pre-generated
+# header files.
+
+MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
+        render.h rexx.h ppt_cat.h gui.h askreq.h
+
 #   Object files.
 
 COBJS = $(SRCS:"*.c":"$(OD)*.o")
@@ -80,42 +152,21 @@ VOBJS = $(OD)main.o $(OD)gui.o $(OD)prefs.o $(OD)palette_edit.o $(OD)askreq.o
 RENDOBJS = $(OD)colormap.o $(OD)palette.o $(OD)rendermod.o $(OD)dispdevs.o \
            $(OD)dither.o $(OD)palette_edit.o $(OD)main.o
 
-MAIN = ppt
-LINKOPTS = -lbgui -lm
-MFILE = t:defs.m
-
-#
-# If using Fortify, then link together with the
-# following files.
-#
-FORTOBJS = /fortify/fortify.o
-FORTCOPTS = -DFORTIFY
-FORTLOPTS = -lpptsupp -L$(MAINDIR)/linklib
 
 #
 # Debug version
 #
 
-CFLAGS = $(COPTS) $(FORTCOPTS)
-LDFLAGS= $(LINKOPTS) $(FORTLOPTS) -s
+CFLAGS = $(COPTS) $(FORTCOPTS) $(DCOPTS)
 OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS)
-
 
 #
 #   Release version
 #
-RCOPTS  = -proto -mi -ms
 
-RMAIN= ppt_rel
-RMFILE = T:rdefs.m
-
-#
-#   The release version flags
-#
-RCFLAGS = $(RCOPTS) -H$(RMFILE)=defs.h $(FORTCOPTS)
-RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
+RCFLAGS = $(COPTS) $(RCOPTS) $(FORTCOPTS)
 RCOBJS  = $(SRCS:"*.c":"$(ROD)*.o")
-ROBJS   = $(RCOBJS) $(AOBJS) $(FORTOBJS)
+ROBJS   = $(RCOBJS) $(AOBJS) $(FORTLITEOBJS)
 RVOBJS  = $(ROD)main.o $(ROD)gui.o $(ROD)prefs.o
 
 #####################################################################
@@ -123,7 +174,7 @@ RVOBJS  = $(ROD)main.o $(ROD)gui.o $(ROD)prefs.o
 #   End of configuration, now begins the compiler stuff
 #
 
-all : $(MFILE) $(MAIN) $(OD) externals
+all : $(GST) $(MFILE) $(MAIN) $(OD) externals modinfo
         @List $(MAIN) NOHEAD
         @beep
         @Avail FLUSH >NIL:
@@ -141,20 +192,24 @@ $(ROD) : $(ROD)
 # Link phase
 
 $(MAIN) : $(OBJS) $(VOBJS)
-        $(CC) $(CFLAGS) $(OBJS) -o %(left) $(LDFLAGS)
+        $(LINK) $(OBJS) $(LINKTO) %(left) $(LDFLAGS)
 
 $(RMAIN) : $(ROBJS)
-        $(CC) $(RCFLAGS) $(ROBJS) -o %(left) $(RLDFLAGS)
+        $(LINK) $(ROBJS) $(LINKTO) %(left) $(RLDFLAGS)
+        $(STRIP)
+        Copy $(RMAIN).strip $(RMAIN)
+        Delete $(RMAIN).strip
 
 #
 # Compile phase
 #
 
 $(COBJS) : $(SRCS)
-        $(CC) $(CFLAGS) %(right) -o %(left) -c
+        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
+
 
 $(AOBJS) : $(ASSYS)
-        $(AS) $(ASOPTS) %(right) -o%(left)
+        $(AS) $(ASOPTS) %(right) $(OBJNAME) %(left)
 
 $(VOBJS) :: version.h gui.h
 
@@ -165,7 +220,7 @@ $(OD)rexx.o :: rexx.h
 $(OD)external.o :: misc.h
 
 $(RCOBJS) : $(SRCS)
-        $(CC) $(RCFLAGS) %(right) -o %(left) -c
+        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
 $(COBJS) :: $(HDRS)
 
@@ -184,11 +239,21 @@ externals : ppt.h
         cd $(EXTSRCDIR)
         @dmake install
 
-$(MFILE) : defs.h ppt_real.h protos.h machine-protos.h
-        Delete t:defs.m >NIL:
+$(MFILE) : $(MHDRS)
+        Delete $(MFILE) >NIL:
 
-$(RMFILE) : defs.h ppt.h protos.h machine-protos.h
+$(RMFILE) : $(MHDRS)
         Delete $(RMFILE) > NIL:
+
+$(GST) : $(MHDRS)
+        Delete $(GST) >NIL:
+        SC MAKEGST=$(GST) $(COPTS) $(DCOPTS) gst.c IGNORE=105
+
+$(RGST) : $(MHDRS)
+        Delete $(RGST) >NIL:
+        SC MAKEGST=$(RGST) $(COPTS) gst.c IGNORE=105
+
+gst : $(GST) $(RGST)
 
 ext :
         cd $(EXTSRCDIR)
@@ -212,9 +277,8 @@ rcs :
 
 # This makes a distribution
 
-dist : all release $(DISTDIR)
+dist : all release $(DISTDIR) docs
         dupdate $(MAINDIR) $(DISTDIR) FORCE
-        Rename $(DISTDIR)/ppt $(DISTDIR)/ppt.debug
         Rename $(DISTDIR)/ppt_rel $(DISTDIR)/ppt
         lha -r u RAM:PPT_dist.lha $(DISTDIR)/#?
         @beep
@@ -231,8 +295,10 @@ linklib:
 
 # Use this to make a new pragma library
 
-pragma:
-        fd2pragma SAS pragma/pptsupp_pragmas.h pptsupp_lib.fd
+pragmas:
+        fd2pragma SAS pragmas/pptsupp_pragmas.h fd/pptsupp_lib.fd
+        fd2pragma SAS pragmas/module_pragmas.h fd/module_lib.fd
+        fd2pragma SAS pragmas/effect_pragmas.h fd/effect_lib.fd
 
 # This will build the ppt catalog strings
 
@@ -254,6 +320,17 @@ docs:
         adoc -Ft:autodoc.tmp -C -I -c $(EXAMPLES) > docs/externals.doc
         Delete dme.refs
         autorefs dme.refs docs/support.doc docs/externals.doc
+
+#
+# Support stuff
+#
+
+modinfo : ModuleInfo/moduleinfo
+
+ModuleInfo/moduleinfo : ppt_real.h
+        cd ModuleInfo
+        @dmake install
+        @cd /
 
 # This can be used to force recompile
 
