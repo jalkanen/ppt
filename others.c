@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.23 1998/08/20 09:00:54 jj Exp $
+    $Id: others.c,v 1.24 1998/09/20 00:37:11 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -581,48 +581,32 @@ int HowManyThreads( void )
     If the specified time has passed, shows a nag requester
 */
 
-#if 0
+#ifdef DEBUG_MODE
 Prototype void Nag(void);
 
 void Nag(void)
 {
     struct DateStamp ds;
-    struct DateTime  dt = {0};
-    LONG   age,day,year;
-    char buf[40],mon[20],*arg;
+    LONG   age,day,year, month;
 
 #ifdef __SASC
     DateStamp( &ds ); // Current date
-    arg = strtok(__DATE__," ");
-    strcpy(mon,arg);
-    arg = strtok(NULL," ");
-    day = atoi(arg);
-    arg = strtok(NULL," ");
-    year= atoi(arg)-1900; /* BUG: No year 2000 compliance */
 
-    sprintf(buf,"%d-%s-%d",day,mon,year);
+    sscanf( __AMIGADATE__, "(%d.%d.%d)", &day, &month, &year );
 
-    dt.dat_Format = FORMAT_DOS;
-    dt.dat_StrDate = buf;
-    dt.dat_StrTime = NULL;
-
-    D(bug("Checking date %s\n",buf));
+    D(bug("Checking date %s = %d days\n",__AMIGADATE__, (year-78)*365+30*month+day));
 #else
 #error "Can't compile with this compiler"
 #endif
 
-    if( StrToDate( &dt ) ) {
-        age = dt.dat_Stamp.ds_Days - ds.ds_Days;
-        if( age >= NAG_PERIOD) {
-            Req(NEGNUL,"Understood",
-                "\n"
-                ISEQ_C ISEQ_B "WARNING" ISEQ_N
-                "\n\n"
-                ISEQ_C "This program is now %d days old\n"
-                "so you really should get a new version at\n\n"
-                "http://www.iki.fi/~jalkanen/PPT.html\n",
-                age);
-        }
+    age = (year-78)*365+30*month+day+23 - ds.ds_Days; // Magic number 23 = extra days
+    D(bug("Age = %d days\n",age));
+    if( age >= NAG_PERIOD) {
+        Panic("\nWARNING"
+              "\n\n"
+              "This program has now expired,\n"
+              "so you really should get a new version at\n\n"
+              "http://www.iki.fi/~jalkanen/PPT.html\n" );
     }
 }
 #endif
