@@ -1,0 +1,273 @@
+;
+;  This is a base for the locale file for PPT
+;
+;  $Id: ppt.cd,v 1.1 1996/08/28 18:41:42 jj Exp $
+;
+;
+;
+MSG_ABOUT (//)
+\ec\nPPT is (C) by Janne Jalkanen 1995-1996\n\
+This is V%s, release %s\n\
+(Compiled on %s)\
+%s\
+\nYou can reach me via the Internet at\n\
+Janne.Jalkanen@hut.fi\n\n\
+Free Chip:%ld bytes\n\
+Free Fast:%ld bytes\n\
+\nFrames: %ld,  Threads: %ld\n\
+\n\eb\euIMPORTANT!\n\en\
+This program is in pre-Alpha stage\n\
+and thus may not be spread without\n\
+express permission from the author\n\
+\n\eiAll hail the Drummer Bunny!\n
+;
+MSG_QUIT (//)
+\nDo you \033ireally\033n wish to quit?\n
+;
+MSG_DELETE (//)
+\033c\nAre you sure you wish to \033bdelete\033n frame\n\
+'%s'?\n
+;----------------------------------------------------------------------
+;
+;   Simple gadgets.
+;
+MSG_YESNO_GAD (//)
+Yes|No
+;
+MSG_OK_GAD (//)
+OK
+;
+MSG_LOAD_GAD (//)
+Load
+;
+MSG_CANCEL_GAD (//)
+Cancel
+;
+MSG_INFO_GAD (//)
+Info
+;
+MSG_SAVE_GAD (//)
+Save
+;
+MSG_USE_GAD (//)
+Use
+;
+MSG_PROCESS_GAD (//)
+Process
+;
+MSG_KEEP_DISCARD_GAD (//)
+Keep It|Discard
+;
+MSG_PICK_FRAME (//)
+Pick a Frame
+;
+MSG_MAINWIN_INFO (//)
+%ldx%ld %s data\n\
+%ld bits/channel\n\
+Alpha: %s
+;
+MSG_NO_ALPHA (//)
+No Alpha Channel
+;
+MSG_MAIN_NOFRAME (//)
+\033cNo frame\nselected
+;
+;-------------------------------------------------
+; Save window
+;
+MSG_PICK_SAVE_FORMAT_LAB (//)
+Pick format
+;
+MSG_PICK_SAVE_MODE_LAB (//)
+Save Mode
+;
+;---------------------------------------------------
+;
+; DispPrefs window
+;
+MSG_DISPLAY_PREFERENCES_LAB (//)
+\033c\033bDisplay Preferences
+;
+MSG_SCREENMODE_LAB (//)
+Screen Mode
+;
+MSG_DITHER_LAB (//)
+Dither:
+;
+MSG_COLORS_LAB (//)
+Colors:
+;
+MSG_FORCE_BW_LAB (//)
+Force B/W?
+;
+MSG_PALETTE_LAB (//)
+Palette
+;
+;----------------------------------------------------
+;
+; FX window
+;
+MSG_EFFECTS_LIST_LAB (//)
+Pick effect
+;
+MSG_EXECUTE_GAD (//)
+Execute
+;
+MSG_IDLE_GAD (//)
+«idle»
+;
+MSG_BREAK_GAD (//)
+Break
+;
+;-----------------------------------------------------
+;
+;  Infowindow
+;
+MSG_COULD_NOT_ALLOC_INFOWINDOW (//)
+\nUnable to allocate info window\n
+;
+;-----------------------------------------------------------------------
+;
+; Windows
+;
+MSG_MAIN_WINDOW (//)
+List of frames currently in memory
+;
+MSG_TOOLBAR_WINDOW (//)
+Toolbar
+;
+MSG_LOADAS_WINDOW (//)
+Load As
+;
+MSG_SAVEAS_WINDOW (//)
+Save frame
+;
+;-----------------------------------------------------------------------
+;
+;  ReqA()
+;
+MSG_PPT_REQUEST (//)
+PPT Request
+;
+MSG_PPT_INFORMATION (//)
+PPT Information
+;-----------------------------------------------------------------------
+;
+;  Informational messages
+;
+MSG_NO_AREA_SELECTED (//)
+\033cNo area has been selected!\n\
+\n\
+(Use the mouse or the menu to mark the area\n\
+ you wish to select)\n
+;
+MSG_NO_FRAME_SELECTED (//)
+\033c\nNo frame has been selected!\n\n\
+(Pick one from the main list or activate\n\
+ an image window)\n
+;
+MSG_FRAME_IN_USE (//)
+\033c\nFrame '\033i%s\033n'\nis currently in use!\n
+;
+MSG_FRAME_IN_USE_BY_XXX (//)
+\033c\nFrame '\033i%s\033n'\nis currently in use by external\n\033i'%s'\n
+;
+MSG_IS_A_DIRECTORY (//)
+\n'%s' is a directory!\n
+;
+MSG_CANNOT_OPEN_INFOWINDOW (//)
+\nCannot open Information window!\n
+;
+MSG_CANNOT_OPEN_PREFSWINDOW (//)
+\nCannot open Preferences window!\n
+;
+MSG_CANNOT_OPEN_LOADASWINDOW (//)
+\nCannot open Load-As -window!\n
+;
+MSG_CANNOT_OPEN_DISPPREFSWINDOW (//)
+\nCannot open Display preferences window!\n
+;
+MSG_NO_CURRENT_PROCESS (//)
+\nThere is no current process for this frame\n
+;---------------------------------------------------------------------------
+;
+; Displays
+;
+MSG_FRAME_SCREEN_TITLE (//50)
+PPT: '%s' %lux%lux%lu %s image (%lu bytes)
+;---------------------------------------------------------------------------
+;
+; Tool tips
+;
+MSG_MOUSECOORDS_TT (//)
+The current mouse location within the image
+;
+;---------------------------------------------------------------------------
+;
+;  Errors
+;
+MSG_PERR_UNKNOWNTYPE (//)
+Unknown type!
+;
+MSG_PERR_INUSE (//)
+Object is in use.
+;
+MSG_PERR_INITFAILED (//)
+Initialization phase failed.
+;
+MSG_PERR_CANCELED (//)
+Cancelled operation
+;
+MSG_PERR_OUTOFMEMORY (//)
+Out of memory!
+;
+MSG_PERR_BREAK (//)
+User break.
+;
+MSG_PERR_WONTOPEN (//)
+Cannot open resource!
+;
+MSG_PERR_FAILED (//)
+A generic error occurred.
+;
+MSG_PERR_MISSINGCODE (//)
+No code?!?
+;
+MSG_PERR_INVALIDARGS (//)
+Invalid arguments!
+;
+MSG_PERR_WINDOWOPEN (//)
+Couldn't open window!
+;
+MSG_PERR_FILEOPEN (//)
+Couldn't open file!
+;
+MSG_PERR_FILEREAD (//)
+Error while reading file!
+;
+MSG_PERR_FILEWRITE (//)
+Error while writing to file!
+;
+MSG_PERR_FILECLOSE (//)
+Error while closing file!
+;
+MSG_PERR_OK (//)
+Soft Error: Everything was really OK?!?\n\
+(If you see this message, there's a bug in PPT\n\
+which needs to be reported!\n
+;
+;---------------------------------------------------------------------------
+;
+; Miscallaneous
+;
+MSG_UNKNOWN (//)
+Unknown
+;
+MSG_SELECT_VALUES (//)
+\033cSelect values
+;
+MSG_AR_WEIRDOBJECT (//)
+\nReally weird Object type %ld in ReadARGadgets()\n
+;
+MSG_AR_UNKNOWNTYPE (//)
+\nUnknown object type %08X specified in AskReq()\n

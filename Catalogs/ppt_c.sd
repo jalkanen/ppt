@@ -1,0 +1,94 @@
+##stringtype C
+##shortstrings
+/****************************************************************
+   This file was created automatically by `%fv'
+   from "%f0".
+
+   Do NOT edit by hand!
+
+   This is a special version of the code included in the
+   FlexCat package, tuned for PPT performance.
+
+   $Id: ppt_c.sd,v 1.1 1996/08/28 18:40:18 jj Exp $
+
+****************************************************************/
+
+#include <defs.h>
+#include <misc.h>
+
+
+#if defined(__SASC)  ||  defined(_DCC)
+#include <pragma/locale_pragmas.h>
+#elif defined(__GNUC__)
+#include <inline/locale.h>
+#else
+#include <clib/locale_protos.h>
+#endif
+
+
+/*  Prototypes  */
+Prototype VOID   Open%bCatalog(struct Locale *, STRPTR, EXTBASE *);
+Prototype VOID   Close%bCatalog( EXTBASE * );
+Prototype STRPTR Get%bString( struct LocaleString *, EXTBASE *);
+
+
+static LONG %b_Version = %v;
+static const STRPTR %b_BuiltInLanguage = (STRPTR) %l;
+
+const struct LocaleString %i_LS = { %d, %s };
+
+VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
+{
+    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct TagItem tags[] = {
+        OC_BuiltInLanguage, %b_BuiltInLanguage,
+        TAG_IGNORE, 0L,
+        OC_Version, %b_Version,
+        TAG_DONE
+    };
+
+    Close%bCatalog( ExtBase ); /* Not needed if the programmer pairs Open%bCatalog
+                                  and Close%bCatalog right, but does no harm.  */
+
+    if (LocaleBase != NULL  &&  ExtBase->catalog == NULL) {
+        if (language) {
+            tags[1].ti_Tag  = OC_Language;
+            tags[1].ti_Data = (LONG) language;
+        }
+
+        ExtBase->catalog = OpenCatalogA(loc, (STRPTR) "%b.catalog", tags );
+
+    }
+}
+
+VOID Close%bCatalog( EXTBASE *ExtBase )
+{
+    struct Library *LocaleBase = ExtBase->lb_Locale;
+
+    if (LocaleBase != NULL) {
+        CloseCatalog(ExtBase->catalog);
+    }
+    ExtBase->catalog = NULL;
+}
+
+/*
+ *  A standard routine.
+ */
+
+STRPTR Get%bString(struct LocaleString *fcstr, EXTBASE *ExtBase)
+{
+    struct Library *LocaleBase = ExtBase->lb_Locale;
+    STRPTR msg;
+
+    if( fcstr ) {
+        if( ExtBase->catalog && LocaleBase ) {
+            msg = GetCatalogStr(ExtBase->catalog, fcstr->ID, fcstr->Str);
+        } else {
+            msg = fcstr->Str;
+        }
+    } else {
+        msg = "";
+    }
+
+    return msg;
+}

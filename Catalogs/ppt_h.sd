@@ -1,0 +1,35 @@
+##stringtype C
+##shortstrings
+/****************************************************************
+   This file was created automatically by `%fv'
+   from "%f0".
+
+   Do NOT edit by hand!
+
+   This is a special version for PPT.
+
+   $Id: ppt_h.sd,v 1.1 1996/08/28 18:40:33 jj Exp $
+
+****************************************************************/
+
+#ifndef %b_CAT_H
+#define %b_CAT_H
+
+
+#ifndef EXEC_TYPES_H
+#include <exec/types.h>
+#endif  /*  !EXEC_TYPES_H           */
+#ifndef LIBRARIES_LOCALE_H
+#include <libraries/locale.h>
+#endif  /*  !LIBRARIES_LOCALE_H     */
+
+
+/*  Macros  */
+#define GetStr( x )  Get%bString( (x), globxd )
+#define XGetStr( x ) Get%bString( (x), ExtBase )
+
+/*  Definitions (LocaleString defined in ppt.h */
+
+extern const struct LocaleString %i_LS;\n#define %i (&(%i_LS))
+
+#endif /*   !%b_CAT_H  */
