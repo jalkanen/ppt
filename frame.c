@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.16 1999/05/30 18:13:10 jj Exp $
+    $Id: frame.c,v 4.17 1999/06/15 12:50:04 jj Exp $
 
     This contains frame handling routines
 
@@ -787,7 +787,7 @@ PERROR MakeUndoFrame( FRAME *frame )
     frame->busy      = BUSY_NOT;
     frame->busycount = 0;
     ClearFrameInput( frame ); // Just in case.
-    frame->selstatus = 0;
+    frame->selection.selstatus = 0;
 
     UNLOCK( frame );
     return PERR_OK;
@@ -846,7 +846,7 @@ FRAME *UndoFrame( FRAME *currentframe )
      *  Since this is a new frame, we won't have a rectangle drawn for us.
      */
 
-    undoframe->selstatus &= ~(SELF_RECTANGLE|SELF_BUTTONDOWN);
+    undoframe->selection.selstatus &= ~(SELF_RECTANGLE|SELF_BUTTONDOWN);
 
     return undoframe;
 }
@@ -958,7 +958,6 @@ VOID UpdateFrameInfo( FRAME *f )
     EDITWIN *e = f->editwin;
     UBYTE   name[SCRTITLELEN+1] = "..."; /* OK, it has some extra */
     long    len;
-    struct  IBox *bounds;
 
     LOCK(f);
 
@@ -971,6 +970,7 @@ VOID UpdateFrameInfo( FRAME *f )
 
     if(d) {
         ULONG picArea, zoomArea;
+        //struct  IBox *bounds;
 
         //GetAttr( AREA_AreaBox, d->RenderArea, (ULONG *)&bounds );
         picArea = p->width * p->height;
@@ -1435,7 +1435,7 @@ FRAME * SAVEDS ASM MakeFrame( REGPARAM(a0,FRAME *,old), REGPARAM(a6,EXTBASE *,Ex
         f->pw           = NULL;
         f->dpw          = NULL;
         f->mywin        = NULL;
-        f->selectport   = NULL;
+        f->selection.selectport   = NULL;
         f->editwin      = NULL;
         f->attached     = 0L;
         ClearError( f );
