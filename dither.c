@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.10 1997/08/31 20:54:17 jj Exp $
+    $Id: dither.c,v 5.0 1999/02/20 15:27:03 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -30,15 +30,22 @@ struct FSObject {
     BOOL odd_row;
 };
 
+struct OrderedObject {
+    int **dith_mat;
+    int dith_dim, dith_dm2;
+};
 
 /*-----------------------------------------------------------*/
 /* Prototypes */
 
 Prototype PERROR Dither_NoneI( struct RenderObject * );
 Prototype PERROR Dither_FSI( struct RenderObject * );
+Prototype PERROR Dither_OrderedI( struct RenderObject * );
 
 /*-----------------------------------------------------------*/
+/* No dithering */
 
+/// Dither_NoneD()
 /*
     Deconstructor
 */
@@ -47,7 +54,8 @@ PERROR Dither_NoneD( struct RenderObject *rdo )
     D(bug("\tDither_NoneD()\n"));
     return PERR_OK;
 }
-
+///
+/// Dither_None()
 /*
     Execution
 */
@@ -83,7 +91,8 @@ PERROR Dither_None( struct RenderObject *rdo )
     }
     return PERR_OK;
 }
-
+///
+/// Dither_NoneGray()
 Local
 PERROR Dither_NoneGray( struct RenderObject *rdo )
 {
@@ -106,8 +115,8 @@ PERROR Dither_NoneGray( struct RenderObject *rdo )
     }
     return PERR_OK;
 }
-
-
+///
+/// Dither_NoneI()
 /*
     Initialization
 */
@@ -130,11 +139,187 @@ PERROR Dither_NoneI( struct RenderObject *rdo )
 
     return PERR_OK;
 }
+///
 
+/*-----------------------------------------------------------*/
+/* Ordered dithering */
+
+#define DITHER(p,d)         ((UBYTE) (( (((p)+(d))<<4) -(p))>>4) )
+
+/// MakeDitherMatrix()
+/*
+ *  Builds a global dithering matrix.
+ *  Uses code from the netpbm package.
+ *  ppmdither is (C) 1991 Christos Zoulas
+ */
+
+Local
+int DithValue( int y, int x, int size )
+{
+    int d;
+
+    for( d = 0; size-- > 0; x >>= 1, y >>= 1 ) {
+        d = (d << 2) | (((x & 1) ^ (y & 1)) << 1) | (y & 1);
+    }
+    return d;
+}
+
+Prototype VOID MakeDitherMatrix(int ***matrix, int *ddim, int *dm2, int dim);
+
+VOID MakeDitherMatrix(int ***matrix, int *ddim, int *dm2, int dim)
+{
+    int x, y, *dat;
+
+    D(bug("MakeDitherMatrix(%d)\n",dim));
+
+    (*ddim) = (1<<dim);
+    (*dm2) = (*ddim) * (*ddim);
+
+    *matrix = (int **)smalloc( ( (*ddim) * sizeof(int *) ) +
+                               ( (*dm2) * sizeof(int)));
+
+    if( *matrix == NULL ) return; // BUG: no error code
+
+    dat = (int *) &(*matrix)[ (*ddim) ];
+    for (y = 0; y < (*ddim); y++)
+        (*matrix)[y] = &dat[y * (*ddim)];
+
+    for (y = 0; y < (*ddim); y++) {
+        for (x = 0; x < (*ddim); x++) {
+             (*matrix)[y][x] = DithValue(y, x, dim);
+
+            D(bug("%4d ",(*matrix)[y][x]));
+        }
+        D(bug("\n"));
+    }
+}
+///
+
+/// Dither_Ordered()
+Local
+PERROR Dither_Ordered( struct RenderObject *rdo )
+{
+    struct OrderedObject *oo = (struct OrderedObject *) rdo->DitherObject;
+    WORD width = rdo->frame->pix->width, col;
+    ROWPTR cp = rdo->cp;
+    UBYTE *dcp = rdo->buffer;
+    UBYTE colorspace = rdo->frame->pix->colorspace;
+    DISPLAY *d = rdo->frame->disp;
+    int dm = oo->dith_dim - 1, *m;
+
+    m = oo->dith_mat[rdo->currentrow & dm];
+
+    for( col = 0; col < width; col++ ) {
+        UWORD pixcode;
+        UBYTE red,green,blue, ialpha = 255;
+        int dv;
+
+        rdo->currentcolumn = col;
+        dv = m[col & dm];
+
+        if( colorspace == CS_ARGB ) ialpha = 255 - *cp++; /* Skip Alpha */
+
+        red   = *cp++;
+        green = *cp++;
+        blue  = *cp++;
+
+        red   = DITHER(red,dv);
+        green = DITHER(green,dv);
+        blue  = DITHER(blue,dv);
+
+        if( d->drawalpha )
+            pixcode = (*rdo->GetColor)( rdo, (red*ialpha)>>8, (green*ialpha)>>8, (blue*ialpha)>>8 );
+        else
+            pixcode = (*rdo->GetColor)( rdo, red, green, blue );
+
+        dcp[col] = (UBYTE)pixcode;
+
+    }
+
+    return PERR_OK;
+}
+///
+/// Dither_OrderedGray()
+Local
+PERROR Dither_OrderedGray( struct RenderObject *rdo )
+{
+    struct OrderedObject *oo = (struct OrderedObject *) rdo->DitherObject;
+    WORD width = rdo->frame->pix->width, col;
+    ROWPTR cp = rdo->cp;
+    UBYTE *dcp = rdo->buffer;
+    int dm = oo->dith_dim - 1, *m;
+
+    m = oo->dith_mat[rdo->currentrow & dm];
+
+    for( col = 0; col < width; col++ ) {
+        UWORD pixcode;
+        UBYTE grey;
+        int dv;
+
+        rdo->currentcolumn = col;
+        dv = m[col & dm];
+
+        grey  = *cp++;
+        grey  = DITHER(grey,dv);
+
+        pixcode = (*rdo->GetColor)( rdo, grey, grey, grey );
+
+        dcp[col] = (UBYTE)pixcode;
+    }
+
+    return PERR_OK;
+}
+///
+/// Dither_OrderedD()
+PERROR Dither_OrderedD( struct RenderObject *rdo )
+{
+    struct OrderedObject *oo = (struct OrderedObject *) rdo->DitherObject;
+
+    D(bug("\tDither_OrderedD()\n"));
+
+    if( oo ) {
+        if( oo->dith_mat ) sfree( oo->dith_mat );
+        sfree( oo );
+        rdo->DitherObject = NULL;
+    }
+    return PERR_OK;
+}
+///
+/// Dither_OrderedI()
+PERROR Dither_OrderedI( struct RenderObject *rdo )
+{
+    struct OrderedObject *oo;
+
+    D(bug("\tDither_OrderedI()\n"));
+
+    rdo->DitherD = Dither_OrderedD;
+
+    oo = smalloc( sizeof( struct OrderedObject ) );
+    if(!oo) return PERR_OUTOFMEMORY;
+
+    bzero( oo, sizeof(oo) );
+    rdo->DitherObject = oo;
+
+    MakeDitherMatrix( &oo->dith_mat, &oo->dith_dim, &oo->dith_dm2, 2 );
+
+    switch( rdo->frame->pix->colorspace ) {
+        case CS_RGB:
+        case CS_ARGB:
+            rdo->Dither = Dither_Ordered;
+            break;
+        case CS_GRAYLEVEL:
+            rdo->Dither = Dither_OrderedGray;
+            break;
+    }
+
+    return PERR_OK;
+}
+///
 
 /*-----------------------------------------------------------*/
 /* FLOYD-STEINBERG */
 
+/// Init_FS_ErrorLimits()
 /*
     This routine has been stolen from the IJG V5 code. It initializes
     the FS error limits.
@@ -196,8 +381,8 @@ int *Init_FS_ErrorLimits( void )
 
     return table;
 }
-
-
+///
+/// Dither_FSD()
 /*
     Deconstructor
 */
@@ -210,10 +395,12 @@ PERROR Dither_FSD( struct RenderObject *rdo )
         if( fs->fserrors ) pfree( fs->fserrors );
         if( fs->error_limit ) pfree( fs->error_limit - MAXSAMPLE );
         pfree( fs );
+        rdo->DitherObject = NULL;
     }
     return PERR_OK;
 }
-
+///
+/// Dither_FS()
 /*
     Execution.  This will handle both RGB and ARGB images.
 */
@@ -356,7 +543,8 @@ PERROR Dither_FS( struct RenderObject *rdo )
 
     return PERR_OK;
 }
-
+///
+/// Dither_FSGray8()
 /*
     Execution. This is for graylevel data.
 */
@@ -452,8 +640,8 @@ PERROR Dither_FSGray8( struct RenderObject *rdo )
 
     return PERR_OK;
 }
-
-
+///
+/// Dither_FSI()
 /*
     Initialization routine
 */
@@ -506,5 +694,5 @@ PERROR Dither_FSI( struct RenderObject *rdo )
 
     return res;
 }
-
+///
 
