@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.90 1998/07/01 22:19:47 jj Exp $
+    $Id: main.c,v 1.91 1998/07/01 22:33:53 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -97,11 +97,15 @@
 
 GLOBALS *globals;
 EXTBASE *globxd;
-const char verstr[] = "$VER: PPT v"VERSION" ("__DATE__"). "
+const char verstr[] = "$VER: PPT v"VERSION" "__AMIGADATE__". "
+#if defined(DEBUG_MODE)
+    "(debug version)";
+#else
 #if defined(_M68020)
     "(68020+ optimized version)";
 #else
     "(68000 version)";
+#endif
 #endif
 
 int quit = 0;
