@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.32 1999/11/25 23:14:45 jj Exp $
+    $Id: filter.c,v 6.0 1999/12/15 00:16:31 jj Exp $
 
     Code containing effects stuff.
 
@@ -78,6 +78,8 @@ Prototype PERROR    ExecEasyFilter( FRAME *, FPTR, EXTBASE * );
     up a given effect with the given args, adding the command to
     the rexx list, so that the argument string will be freed
     upon completion of the job.
+
+    args may be NULL, in which case a dummy argument string is supplied.
  */
 
 Prototype PERROR RunFilterCommand( FRAME *, STRPTR, STRPTR );
@@ -88,6 +90,8 @@ RunFilterCommand( FRAME *frame, STRPTR filtername, STRPTR args )
     PPTREXXARGS *ra;
     char buffer[100];
     PERROR res;
+
+    if( !args ) args = "";
 
     if( ra = SimulateRexxCommand( frame, args ) ) {
         sprintf( buffer, "NAME=%s ARGS=%ld", filtername, ra->process_args );
