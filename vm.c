@@ -5,6 +5,7 @@
 
     Virtual memory handling routines.
 
+    $Id: vm.c,v 1.2 1995/07/28 23:44:15 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -22,7 +23,19 @@
 /* Defines */
 
 #define TMPBUF          65536L
+#undef  USE_SLOW_SEEK
+#define  VM_DEBUG
 
+
+/*
+    V(bug()) is our a local debugging command
+*/
+
+#ifdef VM_DEBUG
+#define V(x)            x
+#else
+#define V(x)
+#endif
 
 /*----------------------------------------------------------------------*/
 /* Global variables */
@@ -30,12 +43,12 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Prototype int       LoadVMData( VMHANDLE *, ULONG, EXTDATA * );
-Prototype int       SaveVMData( VMHANDLE *, ULONG, EXTDATA * );
-Prototype VMHANDLE *CreateVMData( ULONG, EXTDATA * );
-Prototype int       DeleteVMData( VMHANDLE *, EXTDATA * );
-Prototype int       FlushVMData( VMHANDLE *, EXTDATA * );
-
+Prototype PERROR    LoadVMData( VMHANDLE *, ULONG, EXTBASE * );
+Prototype PERROR    SaveVMData( VMHANDLE *, ULONG, EXTBASE * );
+Prototype VMHANDLE *CreateVMData( ULONG, EXTBASE * );
+Prototype PERROR    DeleteVMData( VMHANDLE *, EXTBASE * );
+Prototype PERROR    FlushVMData( VMHANDLE *, EXTDATA * );
+Prototype PERROR    SanitizeVMData( VMHANDLE *, EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -49,12 +62,13 @@ Prototype int       FlushVMData( VMHANDLE *, EXTDATA * );
     BUG: should really use mode OFFSET_CURRENT for speed.
 */
 
-int LoadVMData( VMHANDLE *vmh, ULONG offset, EXTDATA *xd )
+PERROR LoadVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG seekpos, bufsiz;
     struct Library *DOSBase = xd->lb_DOS;
 
-//    DEBUG("LoadVMData()\n");
+    V(bug("LoadVMData()\n"));
+
     bufsiz  = vmh->end - vmh->begin;
 
 #if 0
@@ -72,18 +86,22 @@ int LoadVMData( VMHANDLE *vmh, ULONG offset, EXTDATA *xd )
     if(seekpos < 0) seekpos = 0; /* Check for boundaries */
     if(seekpos >= vmh->last - bufsiz) seekpos = vmh->last - bufsiz;
 
-//    DEBUG("\tSeek %X to %x : seekpos = %ld, bufsiz = %lu\n",vmh->vm_fh, vmh->data, (LONG)seekpos - (LONG)vmh->end, bufsiz);
+    V(bug("\tSeek %X to %x : seekpos = %ld, bufsiz = %lu\n",vmh->vm_fh, vmh->data, (LONG)seekpos - (LONG)vmh->end, bufsiz));
 
-//    vmh->end = Seek(vmh->vm_fh, (LONG) seekpos - (LONG)vmh->end, OFFSET_CURRENT );
-
+#ifdef USE_SLOW_SEEK
     Seek(vmh->vm_fh, seekpos, OFFSET_BEGINNING);
+#else
+    Seek( vmh->vm_fh, (LONG) seekpos - (LONG)vmh->end, OFFSET_CURRENT );
+#endif
+
     Read(vmh->vm_fh, vmh->data, bufsiz);
 
     /* Update begin and end */
     vmh->begin = seekpos;
     vmh->end   = seekpos + bufsiz;
 
-//    DEBUG("\tNew begin and end: %lu ---> %lu\n",vmh->begin, vmh->end);
+    V(bug("\tNew begin and end: %lu ---> %lu\n",vmh->begin, vmh->end));
+
     return PERR_OK;
 }
 
@@ -95,18 +113,23 @@ int LoadVMData( VMHANDLE *vmh, ULONG offset, EXTDATA *xd )
     BUG: should really use OFFSET_CURRENT for speed
 */
 
-int SaveVMData( VMHANDLE *vmh, ULONG offset, EXTDATA *xd )
+PERROR SaveVMData( VMHANDLE *vmh, ULONG offset, EXTBASE *xd )
 {
     LONG bufsiz,seekpos;
     struct Library *DOSBase = xd->lb_DOS;
 
-//    DEBUG("SaveVMData()\n");
+    V(bug("SaveVMData()\n"));
     bufsiz = vmh->end - vmh->begin;
     seekpos = (LONG)offset;
 
-//    DEBUG("\tSaving data @ %x : seekpos = %ld, bufsiz = %lu\n",vmh->data,seekpos - (LONG)vmh->end,bufsiz);
-//    f->pix->end = Seek(vmh->vm_fh, seekpos - (LONG)vmh->end, OFFSET_CURRENT );
+    V(bug("\tSaving data @ %x : seekpos = %ld, bufsiz = %lu\n",vmh->data,seekpos - (LONG)vmh->end,bufsiz));
+
+#ifdef USE_SLOW_SEEK
     Seek(vmh->vm_fh, seekpos, OFFSET_BEGINNING);
+#else
+    vmh->end = Seek( vmh->vm_fh, (LONG) seekpos - (LONG)vmh->end, OFFSET_CURRENT );
+#endif
+
     Write(vmh->vm_fh, vmh->data, bufsiz);
 
     vmh->chflag = 0;
@@ -119,7 +142,7 @@ int SaveVMData( VMHANDLE *vmh, ULONG offset, EXTDATA *xd )
     BUG: should really observe any changes.
 */
 
-int FlushVMData( VMHANDLE *vmh, EXTDATA *xd )
+PERROR FlushVMData( VMHANDLE *vmh, EXTBASE *xd )
 {
     ULONG offset;
 
@@ -134,12 +157,12 @@ int FlushVMData( VMHANDLE *vmh, EXTDATA *xd )
 /*
     Creates a new VM file for usage. The frame must be initialized properly
     before calling (that is, xsize and ysize must be correct)
-    It will also load the first buffer to mem to update begin and end.
+    The file handle is left to point at the beginning of the file.
 
     Returns NULL on failure.
 */
 
-VMHANDLE *CreateVMData( ULONG size, EXTDATA *xd )
+VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 {
     char vmfile[MAXPATHLEN],t[40];
     BPTR fh;
@@ -222,7 +245,7 @@ VMHANDLE *CreateVMData( ULONG size, EXTDATA *xd )
     anything after calling this, since it is freed.
 */
 
-int DeleteVMData( VMHANDLE *vmh, EXTDATA *xd )
+PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
 {
     char vmfile[MAXPATHLEN],t[30];
     struct Library *DOSBase = xd->lb_DOS;
@@ -251,6 +274,32 @@ int DeleteVMData( VMHANDLE *vmh, EXTDATA *xd )
 }
 
 
+/*
+    Use this operation to restore the sanity of the VM handles, if
+    you have done anything with the actual files. This is NOT
+    recommended, however. You should only use LoadVMData()
+    and SaveVMData().
+
+    BUG: Does not return a proper error value.
+*/
+
+PERROR SanitizeVMData( VMHANDLE *vmh, EXTBASE *xb )
+{
+    struct Library *DOSBase = xb->lb_DOS;
+    ULONG size = vmh->last;
+
+    V(bug("SanitizeVMData()\n"));
+
+    if(size > globals->userprefs->vmbufsiz * 1024L )
+        size = globals->userprefs->vmbufsiz * 1024L;
+
+    Seek( vmh->vm_fh, size, OFFSET_BEGINNING );
+    vmh->begin = 0;
+    vmh->end   = size;
+    LoadVMData( vmh, 0L, xb );
+
+    return PERR_OK;
+}
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
