@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.40 1999/03/13 17:33:47 jj Exp $
+    $Id: initexit.c,v 1.41 1999/03/14 20:56:02 jj Exp $
 
     Initialization and exit code.
 */
@@ -648,10 +648,7 @@ int Initialize( void )
         ASLFR_InitialFile,  globals->userprefs->startupfile,
         ASLFR_InitialPattern, "#?",
         ASLFR_DoPatterns,   TRUE,
-        ASLFR_InitialTopEdge,   gvLoadFileReq.prefs.initialpos.Top,
-        ASLFR_InitialLeftEdge,  gvLoadFileReq.prefs.initialpos.Left,
-        ASLFR_InitialWidth, gvLoadFileReq.prefs.initialpos.Width,
-        ASLFR_InitialHeight,gvLoadFileReq.prefs.initialpos.Height,
+        ASLREQ_Bounds,      &gvLoadFileReq.prefs.initialpos,
     EndObject;
 
     gvPaletteOpenReq.Req = FileReqObject,
@@ -660,10 +657,7 @@ int Initialize( void )
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
         ASLFR_InitialPattern, "#?",
         ASLFR_DoPatterns,   TRUE,
-        ASLFR_InitialTopEdge,   gvPaletteOpenReq.prefs.initialpos.Top,
-        ASLFR_InitialLeftEdge,  gvPaletteOpenReq.prefs.initialpos.Left,
-        ASLFR_InitialWidth, gvPaletteOpenReq.prefs.initialpos.Width,
-        ASLFR_InitialHeight,gvPaletteOpenReq.prefs.initialpos.Height,
+        ASLREQ_Bounds,      &gvPaletteOpenReq.prefs.initialpos,
     EndObject;
 
     gvPaletteSaveReq.Req = FileReqObject,
@@ -671,10 +665,7 @@ int Initialize( void )
         ASLFR_Locale,       globxd->locale,
         ASLFR_DoSaveMode,   TRUE,
         ASLFR_InitialDrawer,globals->userprefs->startupdir,
-        ASLFR_InitialTopEdge,   gvPaletteSaveReq.prefs.initialpos.Top,
-        ASLFR_InitialLeftEdge,  gvPaletteSaveReq.prefs.initialpos.Left,
-        ASLFR_InitialWidth, gvPaletteSaveReq.prefs.initialpos.Width,
-        ASLFR_InitialHeight,gvPaletteSaveReq.prefs.initialpos.Height,
+        ASLREQ_Bounds,      &gvPaletteSaveReq.prefs.initialpos,
     EndObject;
 
     if( !gvLoadFileReq.Req || !gvPaletteOpenReq.Req || !gvPaletteSaveReq.Req ) {
