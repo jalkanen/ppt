@@ -2,7 +2,7 @@
 ;   PROJECT: ppt
 ;   MODULE : render2.a
 ;
-;   $Id: render2.a,v 1.1 1995/08/21 01:50:41 jj Exp $
+;   $Id: render2.a,v 1.2 1995/08/21 23:58:18 jj Exp $
 ;
 ;   Support functions for renderer. Mainly to fasten things up a bit ;)
 ;
@@ -302,7 +302,7 @@ maploop:
 
 ;-------------------------------------------------------------------------
 ;
-;  Plane2Chunk(UBYTE **planes, UBYTE *output, int width, int depth )
+;  Plane2Chunk(UBYTE **planes, UBYTE *output, int width, WORD depth )
 ;              a0              a1             d0         d1
 ;
 ;  Generic bitplane-to-chunky converter.  There must be 8 elements
@@ -316,7 +316,8 @@ maploop:
 @Plane2Chunk:
                 movem.l d2/d3-d6/a2-a4,-(sp)
 
-                move.l  d1,d3
+                moveq   #0,d3
+                move.w  d1,d3
                 subq    #1,d3
                 lsr.l   #3,d3                   ;
                 addq    #1,d3                   ; d3 = ((depth-1)/8) +1
