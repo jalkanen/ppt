@@ -1,5 +1,5 @@
 /*
-    $Id: dispdevs.c,v 1.18 1999/03/31 13:25:39 jj Exp $
+    $Id: dispdevs.c,v 1.19 1999/08/01 16:45:19 jj Exp $
 
     Has code for different display devices.
 
@@ -251,7 +251,7 @@ PERROR Device_BitMappedScreenOpen( struct RenderObject *rdo )
             SA_AutoScroll, TRUE,
             SA_Behind, TRUE,
             SA_Overscan, OSCAN_TEXT,
-            SA_Title, "PPT Render",
+            SA_Title, (ULONG)"PPT Render",
             SA_ShowTitle, FALSE,
             TAG_END };
 
@@ -534,7 +534,7 @@ LONG Device_BitMappedScreenIDCMP( struct RenderObject *rdo )
                      *  BUG: Shouldn't this return something else?
                      */
                     CloseRender( frame,globxd );
-                    frame->selstatus &= ~(0x01);
+                    // frame->selstatus &= ~(0x01);
                     break;
 
                 case IDCMP_INACTIVEWINDOW:
