@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.32 1998/12/07 13:43:43 jj Exp $
+    $Id: gui.h,v 1.33 1998/12/15 23:17:11 jj Exp $
 */
 
 #ifndef GUI_H
@@ -11,8 +11,6 @@
 #ifndef LIBRARIES_BGUI_H
 #include <libraries/bgui.h>
 #endif
-
-#include <libraries/bgui_beta.h>
 
 #ifndef LIBRARIES_BGUI_MACROS_H
 #include <libraries/bgui_macros.h>
@@ -541,6 +539,8 @@ extern const ULONG dpcol_fl2sl[];
 #define MID_CORRECTASPECT   (MENUB + 121)
 #define MID_HIDE            (MENUB + 122)
 #define MID_EDITINFO        (MENUB + 123)
+
+/* Process Menu */
 
 /* Debug Menu */
 #define MID_TESTAR          (MENUB + 900)
