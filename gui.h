@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.37 1999/03/31 13:23:15 jj Exp $
+    $Id: gui.h,v 6.0 1999/09/05 02:18:57 jj Exp $
 */
 
 #ifndef GUI_H
@@ -177,7 +177,7 @@ struct PrefsWindow {
                     *MaxUndo, *FlushLibs, *ExtNiceVal, *ExtNiceValI,
                     *ExtPriority, *ExtPriorityI, *PreviewMode, *Confirm;
 
-    Object          *EnableTips;
+    Object          *EnableTips, *ShowSplash;
 
     Object          *AvailButtons, *ToToolbar, *FromToolbar,
                     *ToolbarList, *ToolItemType, *ToolItemFile,
@@ -401,6 +401,7 @@ extern const ULONG dpcol_fl2sl[];
 #define GID_PW_GETTOOLITEMFILE (PGIDB + 30)
 #define GID_PW_DITHERPREVIEW (PGIDB + 31)
 #define GID_PW_ENABLETIPS   (PGIDB + 32)
+#define GID_PW_SHOWSPLASH   (PGIDB + 33)
 
 /* Filter window */
 #define FGIDB               (4000)
