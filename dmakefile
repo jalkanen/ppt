@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.4 1996/09/29 02:35:32 jj Exp $
+#       $Id: dmakefile,v 1.5 1996/10/10 19:14:36 jj Exp $
 #
 #####################################################################
 #
@@ -57,7 +57,7 @@ EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
 #COPTS  = -proto -Ht:defs.m=defs.h -mi -DDEBUG_MODE -d1 -ms
 CC     = SC
 COPTS  = ignore=104 OBJECTNAME=$(OD) NOICONS IDIR=dinclude:pd \
-         NOCONSTLIB NOSTKCHK
+         NOCONSTLIB NOSTKCHK STREQV
 
 # a68k makes erroneous code!
 #AS     = das
@@ -93,7 +93,7 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #  Release version
 #
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
-RCOPTS  = $(COPTS) cpu=68020 OPT OPTSCHED NODEBUG STRCON GST=include:all.gst
+RCOPTS  = $(COPTS) cpu=68020 OPT OPTSCHED DEBUG=LINE STRCON
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
 
@@ -121,8 +121,8 @@ LINKTO  = TO
 #
 
 SRCS = initexit.c gui.c infowin.c debug.c load.c edit.c frame.c main.c \
-       filter.c others.c message.c errors.c support.c vm.c display.c render.c \
-       rendermod.c dither.c dispdevs.c colormap.c palette.c \
+       filter.c others.c message.c memory.c errors.c support.c vm.c display.c \
+       render.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
        askreq.c ppt_cat.c
 
@@ -157,7 +157,8 @@ RENDOBJS = $(OD)colormap.o $(OD)palette.o $(OD)rendermod.o $(OD)dispdevs.o \
 # Debug version
 #
 
-CFLAGS = $(COPTS) $(FORTCOPTS) $(DCOPTS)
+CFLAGS = $(COPTS) $(DCOPTS) $(FORTCOPTS)
+#CFLAGS = $(COPTS) $(DCOPTS)
 OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS)
 
 #
@@ -174,7 +175,7 @@ RVOBJS  = $(ROD)main.o $(ROD)gui.o $(ROD)prefs.o
 #   End of configuration, now begins the compiler stuff
 #
 
-all : $(GST) $(MFILE) $(MAIN) $(OD) externals modinfo
+all : $(GST) $(MFILE) $(MAIN) $(OD) externals
         @List $(MAIN) NOHEAD
         @beep
         @Avail FLUSH >NIL:
@@ -280,6 +281,9 @@ rcs :
 dist : all release $(DISTDIR) docs
         dupdate $(MAINDIR) $(DISTDIR) FORCE
         Rename $(DISTDIR)/ppt_rel $(DISTDIR)/ppt
+        MakeDir $(DISTDIR)/libs
+        Copy LIBS:bgui.library $(DISTDIR)/libs
+        Copy SYS:Classes/Gadgets/palette_bgui.gadget $(DISTDIR)/libs
         lha -r u RAM:PPT_dist.lha $(DISTDIR)/#?
         @beep
 
