@@ -1,8 +1,8 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.4 $
-;      $Date: 1997/10/19 22:06:53 $
+;  $Revision: 1.5 $
+;      $Date: 1998/01/04 17:26:25 $
 ;
 
 (message "\n"
@@ -29,6 +29,10 @@
 
 (set ##use020 (not (patmatch "68000|68010" (database "cpu"))))
 
+; FPU
+
+(set ##use881 (not (patmatch "688|68040|68060" (database "cpu"))))
+
 ; If user-level is expert, ask which versions to install.
 
 (if (= @user-level 2)
@@ -46,6 +50,7 @@
   )
 
 (debug "Use020 : " ##use020)
+(debug "Use881 : " ##use881)
 
 ;
 ;  Ask the directory to be installed in
@@ -204,8 +209,6 @@
 
 (complete 80)
 
-(message "\n\n\nNow make sure you have BGUI 41.7 installed")
-
 ;(copylib
 ;    (prompt "Copying BGUI library")
 ;    (confirm)
@@ -215,13 +218,26 @@
 ;    (help   @copylib-help)
 ;)
 
+(copylib
+    (prompt "Copying BGUI floating point gadget")
+    (confirm)
+    (source "libs/bgui_float.gadget")
+    (dest   "SYS:Classes/Gadgets")
+    (help   @copylib-help)
+)
+
 ;(copylib
-;    (prompt "Copying BGUI support gadgets")
+;    (prompt "Copying BGUI palette gadget")
 ;    (confirm)
 ;    (source "libs/bgui_palette.gadget")
 ;    (dest   "SYS:Classes/Gadgets")
 ;    (help   @copylib-help)
 ;)
+
+
+(message "\n\n\nNow make sure you have BGUI 41.8 installed.  Also, do not "
+         "forget to install the BGUI palette gadget in your SYS:Classes/Gadgets "
+         "directory!")
 
 ;
 ;   Make assigns
