@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.107 1999/03/14 20:56:59 jj Exp $
+    $Id: main.c,v 1.108 1999/03/17 23:08:14 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -59,7 +59,10 @@
 #include <cybergraphics/cybergraphics.h>
 
 #include <stdlib.h>
+
+#ifdef __SASC
 #include <sprof.h>
+#endif
 
 #include <proto/iomod.h>
 ///
@@ -377,7 +380,7 @@ VOID UpdateMainWindow( FRAME *frame )
 {
     D(bug("UpdateMainWindow(%08x = %s)\n",frame, frame ? frame->name : ""));
 
-    UpdateIWSelbox( frame ); /* NULL is OK */
+    UpdateIWSelbox( frame, TRUE ); /* NULL is OK */
 
     if( frame ) {
         FRAME *alpha = NULL;
@@ -882,7 +885,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             if( FrameFree( frame ) ) {
                 RemoveSelectBox( frame );
                 SelectWholeImage( frame );
-                UpdateIWSelbox(frame);
+                UpdateIWSelbox(frame,TRUE);
                 DrawSelectBox( frame, 0L );
             }
             break;
@@ -1238,7 +1241,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             if( !selectw.win ) {
                 selectw.win = WindowOpen( selectw.Win );
                 CheckMenuItem( MID_SELECTWINDOW, TRUE );
-                UpdateIWSelbox(frame);
+                UpdateIWSelbox(frame,TRUE);
             } else {
                 WindowClose( selectw.Win );
                 selectw.win = NULL;
@@ -1369,76 +1372,6 @@ VOID SetSelboxActive( BOOL act )
 #endif
 }
 
-/*
-    This routine updates the toolbox area display.
-    BUG: Should not be here, I think.
-*/
-
-Prototype void UpdateIWSelbox( FRAME *f );
-
-void UpdateIWSelbox( FRAME *f )
-{
-    LONG tl, tr, bl, br, cx, cy, cr;
-
-    if( !selectw.win ) return;
-
-    if( !f ) {
-        tl = tr = bl = br = 0;
-    } else {
-        if( f->selbox.MinX == ~0 ) {
-            tl = tr = 0;
-            bl = f->pix->width-1;
-            br = f->pix->height-1;
-        } else {
-            tl = f->selbox.MinX;
-            tr = f->selbox.MinY;
-            bl = f->selbox.MaxX-1;
-            br = f->selbox.MaxY-1;
-        }
-    }
-
-    SetGadgetAttrs( GAD(selectw.TopLeft), selectw.win, NULL,
-                    STRINGA_LongVal, tl,
-                    TAG_DONE );
-    SetGadgetAttrs( GAD(selectw.TopRight), selectw.win, NULL,
-                    STRINGA_LongVal, tr,
-                    TAG_DONE );
-    SetGadgetAttrs( GAD(selectw.BottomLeft), selectw.win, NULL,
-                    STRINGA_LongVal, bl,
-                    TAG_DONE );
-    SetGadgetAttrs( GAD(selectw.BottomRight), selectw.win, NULL,
-                    STRINGA_LongVal, br,
-                    TAG_DONE );
-
-    SetGadgetAttrs( GAD(selectw.Width), selectw.win, NULL,
-                    STRINGA_LongVal, abs(bl-tl)+1,
-                    TAG_DONE );
-    SetGadgetAttrs( GAD(selectw.Height), selectw.win, NULL,
-                    STRINGA_LongVal, abs(br-tr)+1,
-                    TAG_DONE );
-
-#ifdef DEBUG_MODE
-    if( f ) {
-        cx = f->circlex = ((abs(bl-tl)+1)>>1)+tl;
-        cy = f->circley = ((abs(br-tr)+1)>>1)+tr;
-        cr = f->circleradius = (abs(bl-tl)+1)>>1;
-    } else {
-        cx = cy = cr = 0;
-    }
-
-    SetGadgetAttrs( GAD(selectw.CircleRadius), selectw.win, NULL,
-                    STRINGA_LongVal, cr,
-                    TAG_DONE );
-
-    SetGadgetAttrs( GAD(selectw.CircleX), selectw.win, NULL,
-                    STRINGA_LongVal, cx,
-                    TAG_DONE );
-
-    SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
-                    STRINGA_LongVal, cy,
-                    TAG_DONE );
-#endif
-}
 
 Local
 int HandleSelectIDCMP( ULONG rc )
@@ -1472,7 +1405,7 @@ int HandleSelectIDCMP( ULONG rc )
                 frame->selbox.MinX = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
@@ -1486,7 +1419,7 @@ int HandleSelectIDCMP( ULONG rc )
                 frame->selbox.MinY = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
@@ -1501,7 +1434,7 @@ int HandleSelectIDCMP( ULONG rc )
                 frame->selbox.MaxX = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
@@ -1516,7 +1449,7 @@ int HandleSelectIDCMP( ULONG rc )
                 frame->selbox.MaxY = t;
                 ReorientSelbox(&frame->selbox);
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
@@ -1534,7 +1467,7 @@ int HandleSelectIDCMP( ULONG rc )
                 }
                 ReorientSelbox( &frame->selbox );
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
@@ -1552,7 +1485,7 @@ int HandleSelectIDCMP( ULONG rc )
                 }
                 ReorientSelbox( &frame->selbox );
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
 
             break;
@@ -1570,7 +1503,7 @@ int HandleSelectIDCMP( ULONG rc )
                     frame->selectmethod = GINP_LASSO_RECT;
                 }
                 DrawSelectBox( frame, 0L );
-                UpdateIWSelbox( frame );
+                UpdateIWSelbox( frame, TRUE );
             }
             break;
 
