@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : rexx.h
 
-    $Id: rexx.h,v 1.2 1996/08/28 18:37:16 jj Exp $
+    $Id: rexx.h,v 1.3 1996/09/30 02:43:50 jj Exp $
 
     Definitions for AREXX port.
 */
@@ -22,6 +22,7 @@
 #include <rexx/storage.h>
 #include <rexx/rxslib.h>
 
+#define REXX_EXTENSION "prx"
 
 /*
     For STEM handling
@@ -79,7 +80,7 @@ typedef struct {
 struct RexxCommand {
     const char *name;
     const char *args;
-    void       (*func)( REXXARGS *ra, struct RexxMessage *rm );
+    void       (*func)( REXXARGS *ra, struct RexxMsg *rm );
 };
 
 
