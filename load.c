@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.3 1997/02/23 14:47:11 jj Exp $
+    $Id: load.c,v 2.4 1997/02/23 18:23:32 jj Exp $
 
     Code for loaders...
 */
@@ -319,7 +319,7 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
                     return ld;
                 }
             } else {
-                D(bug("ERROR: Pattern overflow!\n"));
+                InternalError("Pattern overflow!");
             }
         }
 
@@ -470,7 +470,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
     struct Library *IOModuleBase = NULL;
     LOADER *ld = NULL;
     UBYTE ec[80];
-    BOOL res = PERR_OK, nofile;
+    BOOL res = PERR_OK, nofile = FALSE;
     PERROR errcode = PERR_OK;
     struct TagItem loadertags[] = {
         PPTX_FileName, NULL,
