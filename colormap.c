@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.3 1995/09/17 22:59:27 jj Exp $
+    $Id: colormap.c,v 1.4 1995/09/23 21:59:51 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -14,6 +14,7 @@
 #include <render.h>
 
 Prototype __D0 UWORD GetColor_Normal( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
+Prototype __D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *, __D0 UBYTE, __D1 UBYTE, __D2 UBYTE ) ;
 Prototype __D0 UWORD GetColor_HAM( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE );
 Prototype __D0 UWORD GetColor_HAM8( __A0 struct RenderObject *, __D0 UBYTE , __D1 UBYTE , __D2 UBYTE  );
 
@@ -58,3 +59,28 @@ __D0 UWORD GetColor_Normal( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UB
     return color;
 }
 
+__D0 UWORD GetColor_NormalGray( __A0 struct RenderObject *rdo, __D0 UBYTE r, __D1 UBYTE g, __D2 UBYTE b )
+{
+    UBYTE *colormap   = rdo->colortable;
+    HGRAM *histograms = rdo->histograms;
+    UWORD color;
+
+    color = histograms[r];
+
+    if( color == 0 ) {
+        color = 1 + BestMatchPen8( colormap, rdo->ncolors, r,r,r );
+        histograms[r] = color;
+    }
+
+    --color;
+
+    { register ULONG color3;
+        color3 = color * 3;
+
+        rdo->newr = colormap[color3++];
+        rdo->newg = colormap[color3++];
+        rdo->newb = colormap[color3];
+    }
+
+    return color;
+}
