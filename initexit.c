@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.33 1998/06/28 23:21:40 jj Exp $
+    $Id: initexit.c,v 1.34 1998/09/05 12:21:34 jj Exp $
 
     Initialization and exit code.
 */
@@ -490,6 +490,7 @@ int Initialize( void )
         globals->maindisp->height = DEFAULT_SCRHEIGHT;
         globals->maindisp->width  = DEFAULT_SCRWIDTH;
         globals->maindisp->depth  = DEFAULT_SCRDEPTH;
+        globals->userprefs->colorpreview = FALSE; /* Just in case */
     }
 
     /*
@@ -560,6 +561,7 @@ int Initialize( void )
         globals->maindisp->height = DEFAULT_SCRHEIGHT;
         globals->maindisp->width  = DEFAULT_SCRWIDTH;
         globals->maindisp->depth  = DEFAULT_SCRDEPTH;
+        globals->userprefs->colorpreview = FALSE; /* Just in case */
         if( OpenDisplay() != PERR_OK )
             Panic("Couldn't get screen!");
         else
@@ -900,6 +902,7 @@ int FreeResources (GLOBALS *g)
 
 void Panic( const char *msg )
 {
+    extern BPTR debug_fh, old_fh;
     struct EasyStruct es = {
         sizeof(struct EasyStruct),0L,"PPT Panic!",
         "%s\n","Exit program"
@@ -911,6 +914,13 @@ void Panic( const char *msg )
     PutStr(msg); /* Put it into stdout as well */
     Delay(100); /* Make sure it gets out. */
     FreeResources(globals);
+
+#ifdef DEBUG_MODE
+    Flush(Output());
+    SelectOutput( old_fh );
+    Close(debug_fh);
+#endif
+
     exit(20);
 }
 
@@ -926,13 +936,7 @@ void __stdargs _CXOVF(void)
     mytask = FindTask(NULL);
 
     if( mytask == (struct Task *)globals->maintask ) {
-        /*
-         *  BUG: Won't release debug filehandles.
-         */
-
-        InternalError("Stack overflow detected, attempting to exit...");
-        FreeResources(globals);
-        exit(20);
+        Panic("Stack overflow detected, attempting to exit...");
     } else {
         /*
          *  This is one of dem spawned subtasks.  Currently I just
