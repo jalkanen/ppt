@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.62 1999/03/13 17:33:04 jj Exp $
+    $Id: display.c,v 1.63 1999/05/30 18:12:30 jj Exp $
 
     Contains display routines.
 
@@ -1369,7 +1369,7 @@ ULONG QuickDisplayFrame( FRAME *frame )
      */
 
     frame->selstatus &= ~SELF_RECTANGLE;
-    DrawSelectBox( frame, 0L );
+    DrawSelection( frame, 0L );
 
     return rc;
 }

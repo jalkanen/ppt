@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 4.7 1999/04/01 23:06:41 jj Exp $
+    $Id: preview.c,v 4.8 1999/05/30 18:14:56 jj Exp $
 */
 
 #include "defs.h"
@@ -531,7 +531,7 @@ VOID SetupFrameForPreview( struct PPTMessage *pmsg )
 
     LOCK(frame);
 
-    RemoveSelectBox( frame );
+    EraseSelection( frame );
     // WindowBusy( frame->disp->Win );
 
     UNLOCK(frame);

@@ -5,7 +5,7 @@
     This file contains the input-handlers of PPT for the external
     modules.
 
-    $Id: input.c,v 1.3 1999/03/17 23:07:23 jj Exp $
+    $Id: input.c,v 1.4 1999/05/30 18:13:34 jj Exp $
 
  */
 
@@ -296,14 +296,14 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
     LOCK(f);
 
-    RemoveSelectBox( f );
+    EraseSelection( f );
 
-    f->selectmethod = (ULONG)pmsg->data;
-    f->selectport   = pmsg->msg.mn_ReplyPort;
+    ChangeSelectMethod( f, (ULONG) pmsg->data );
+    f->selection.selectport = pmsg->msg.mn_ReplyPort;
 
-    if( f->selectmethod == GINP_FIXED_RECT ) {
-        f->fixrect = ((struct gFixRectMessage *)pmsg)->dim;
-        DrawSelectBox( f, DSBF_FIXEDRECT);
+    if( f->selection.selectmethod == GINP_FIXED_RECT ) {
+        f->selection.fixrect = ((struct gFixRectMessage *)pmsg)->dim;
+        DrawSelection( f, 0L );
     }
 
     ChangeBusyStatus( f, BUSY_READONLY );
@@ -326,15 +326,13 @@ Prototype VOID ClearFrameInput( FRAME * );
 VOID ClearFrameInput( FRAME *f )
 {
     struct Library *SysBase = SYSBASE();
-    struct IBox clrrect = {0};
 
     D(bug("ClearFrameInput(%08X)\n",f));
 
-    RemoveSelectBox( f );
+    EraseSelection( f );
     LOCK(f);
-    f->selectmethod = GINP_LASSO_RECT;
-    f->selectport   = NULL;
-    f->fixrect      = clrrect;
+    ChangeSelectMethod( f, GINP_LASSO_RECT );
+    f->selection.selectport = NULL;
     UNLOCK(f);
 }
 

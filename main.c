@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.110 1999/04/01 23:06:20 jj Exp $
+    $Id: main.c,v 1.111 1999/05/30 18:13:59 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -889,10 +889,10 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
         case MID_SELECTALL:
             if( FrameFree( frame ) ) {
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 SelectWholeImage( frame );
                 UpdateIWSelbox(frame,TRUE);
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
             }
             break;
 
@@ -1407,10 +1407,10 @@ int HandleSelectIDCMP( ULONG rc )
                 if( t > frame->pix->width ) {
                     t = frame->pix->width;
                 }
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 frame->selbox.MinX = t;
                 ReorientSelbox(&frame->selbox);
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -1421,10 +1421,10 @@ int HandleSelectIDCMP( ULONG rc )
                 if( t > frame->pix->height ) {
                     t = frame->pix->height;
                 }
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 frame->selbox.MinY = t;
                 ReorientSelbox(&frame->selbox);
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -1436,10 +1436,10 @@ int HandleSelectIDCMP( ULONG rc )
                 if( t > frame->pix->width ) {
                     t = frame->pix->width;
                 }
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 frame->selbox.MaxX = t;
                 ReorientSelbox(&frame->selbox);
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -1451,10 +1451,10 @@ int HandleSelectIDCMP( ULONG rc )
                 if( t > frame->pix->height ) {
                     t = frame->pix->height;
                 }
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 frame->selbox.MaxY = t;
                 ReorientSelbox(&frame->selbox);
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -1465,14 +1465,14 @@ int HandleSelectIDCMP( ULONG rc )
 
                 GetAttr( STRINGA_LongVal, selectw.Width, &t );
                 newx = frame->selbox.MinX + t;
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 if( newx < frame->pix->width ) {
                     frame->selbox.MaxX = newx;
                 } else {
                     frame->selbox.MaxX = frame->pix->width;
                 }
                 ReorientSelbox( &frame->selbox );
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -1483,14 +1483,14 @@ int HandleSelectIDCMP( ULONG rc )
 
                 GetAttr( STRINGA_LongVal, selectw.Height, &t );
                 newy = frame->selbox.MinY + t;
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 if( newy < frame->pix->height ) {
                     frame->selbox.MaxY = newy;
                 } else {
                     frame->selbox.MaxY = frame->pix->height;
                 }
                 ReorientSelbox( &frame->selbox );
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
 
@@ -1500,15 +1500,15 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( PAGE_Active, selectw.Page, &t );
                 D(bug("\tNew select method: %lu\n",t));
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 if( t ) {
                     D(bug("Changed into circle mode\n"));
-                    frame->selectmethod = GINP_LASSO_CIRCLE;
+                    ChangeSelectMethod( frame, GINP_LASSO_CIRCLE );
                 } else {
                     D(bug("Changed into rectangle mode\n"));
-                    frame->selectmethod = GINP_LASSO_RECT;
+                    ChangeSelectMethod( frame, GINP_LASSO_RECT );
                 }
-                DrawSelectBox( frame, 0L );
+                DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
             }
             break;
@@ -2180,11 +2180,10 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 {
     struct Rectangle *sb = &frame->selbox;
     DISPLAY *d = frame->disp;
-    WORD xloc, yloc;
-    WORD mousex, mousey;
     BOOL isin = TRUE;
     APTR   dropentry;
     ULONG top, left;
+    struct MouseLocationMsg msg = {0};
 
 //    D(bug("HandleQ(%lu)\n",rc));
 
@@ -2196,8 +2195,8 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 
     handleMsg:
 
-    mousex = d->win->MouseX;
-    mousey = d->win->MouseY;
+    msg.mousex = d->win->MouseX;
+    msg.mousey = d->win->MouseY;
 
     switch( rc ) {
         case WMHI_CLOSEWINDOW:
@@ -2207,15 +2206,15 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
             /*
              *  Make sure the select box is on the window
              */
-            if( IsAreaSelected(frame) && !(frame->selstatus & SELF_RECTANGLE) ) {
-                DrawSelectBox( frame, 0L );
+            if( IsAreaSelected(frame) && !(frame->selstatus & SELF_DRAWN) ) {
+                DrawSelection( frame, 0L );
             }
             ClearMouseLocation();
             break;
 
         case WMHI_ACTIVE:
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
-            UpdateMouseLocation( xloc, yloc );
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
+            UpdateMouseLocation( msg.xloc, msg.yloc );
             DoMainList( frame );
             UpdateMainWindow( frame );
             break;
@@ -2263,7 +2262,7 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
                 top  != frame->zoombox.Top )
             {
                 D(bug("New LOCATION!\n"));
-                RemoveSelectBox( frame );
+                EraseSelection( frame );
                 frame->zoombox.Left = left;
                 frame->zoombox.Top  = top;
                 DisplayFrame( frame );
@@ -2282,47 +2281,47 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
                 if( IsAreaSelected(frame) ) {
 
                     /*
-                     *  This kludge tells RemoveSelectBox that it should not
+                     *  This kludge tells EraseSelection that it should not
                      *  erase the corner handles
                      */
 
                     if( frame->selstatus & SELF_BUTTONDOWN ) {
-                        RemoveSelectBox( frame );
+                        EraseSelection( frame );
                     } else {
                         frame->selstatus |= SELF_BUTTONDOWN;
-                        RemoveSelectBox( frame );
+                        EraseSelection( frame );
                         frame->selstatus &= ~SELF_BUTTONDOWN;
                     }
 
                     if( (frame->disp->selpt >>= 1) == (0xF0F0F0F0>>8) )
                         frame->disp->selpt = 0xF0F0F0F0;
-                    DrawSelectBox( frame, DSBF_INTERIM );
+                    DrawSelection( frame, DSBF_INTERIM );
                 }
             }
             break;
 #endif
 
         case GID_DW_SELECTDOWN:
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
             if(!isin) break;
-            DW_ButtonDown(frame,mousex,mousey,xloc,yloc);
+            ButtonDown(frame,&msg);
             break;
 
         case GID_DW_CONTROLSELECTDOWN:
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
             if(isin) {
-                DW_ControlButtonDown(frame,mousex,mousey,xloc,yloc);
+                ControlButtonDown(frame,&msg);
             }
             break;
 
         case GID_DW_SELECTUP:
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
-            DW_ButtonUp(frame,xloc,yloc);
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
+            ButtonUp(frame,&msg);
             break;
 
         case GID_DW_MOUSEMOVE:
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
-            DW_MouseMove(frame,xloc,yloc);
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
+            MouseMove(frame,&msg);
             break;
 
         default:
@@ -2330,13 +2329,13 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
              *  It may happen that the button is still down while the menu
              *  gets disturbed. In this case we'll use this as the select location
              */
-            isin = CalcMouseCoords( frame, mousex, mousey, &xloc, &yloc );
+            isin = CalcMouseCoords( frame, msg.mousex, msg.mousey, &msg.xloc, &msg.yloc );
 
             if(rc > MENUB && rc < 65536) {
-                if( frame->selstatus & SELF_BUTTONDOWN ) {
-                    sb->MaxX = xloc; sb->MaxY = yloc;
-                    frame->selstatus &= ~(SELF_BUTTONDOWN);
-                    D(bug("Marked panic select end (%d,%d)\n",xloc,yloc));
+                if( frame->selection.selstatus & SELF_BUTTONDOWN ) {
+                    sb->MaxX = msg.xloc; sb->MaxY = msg.yloc;
+                    frame->selection.selstatus &= ~(SELF_BUTTONDOWN);
+                    D(bug("Marked panic select end (%d,%d)\n",msg.xloc,msg.yloc));
                 }
 
                 return( HandleMenuIDCMP( rc, frame, FROM_DISPLAYWINDOW ));

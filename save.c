@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.17 1999/03/17 23:09:36 jj Exp $
+    $Id: save.c,v 2.18 1999/05/30 18:15:28 jj Exp $
 
     This code is executed in multiple threads.
 */
@@ -63,7 +63,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 
     LOCKGLOB();
 
-    RemoveSelectBox( frame );
+    EraseSelection( frame );
 
     if(argstr)
         sprintf(argbuf,"%lu %s",frame, argstr);
