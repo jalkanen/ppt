@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.6 $
-        $Date: 1997/03/04 23:48:34 $
+    $Revision: 3.7 $
+        $Date: 1997/03/13 00:11:48 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.6 1997/03/04 23:48:34 jj Exp $
+    $Id: ppt_real.h,v 3.7 1997/03/13 00:11:48 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -521,6 +521,8 @@ typedef struct {
     BOOL            expungelibs;    /* TRUE, if all modules should be expunged
                                        after use. */
     UBYTE           rexxpath[MAXPATHLEN]; /* All scripts reside here */
+
+    UBYTE           startupdir[MAXPATHLEN];
 
     /*!!PUBLIC*/
 } PREFS;
