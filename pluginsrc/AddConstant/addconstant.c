@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: addconstant.c,v 3.0 1999/11/28 22:25:13 jj Exp $
+    $Id: addconstant.c,v 3.1 1999/12/08 22:10:32 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -318,7 +318,7 @@ EFFECTGETARGS(frame,tags,PPTBase,EffectBase)
     if( res == PERR_OK ) {
         UBYTE colorspace = CS_RGB;
 
-        if(res = HandleGUI( frame, &val, colorspace, PPTBase ) == PERR_OK ) {
+        if( (res = HandleGUI( frame, &val, colorspace, PPTBase )) == PERR_OK ) {
             SPrintF( buffer, "RED %d GREEN %d BLUE %d",
                               val.Red, val.Green, val.Blue );
         }
