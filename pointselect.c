@@ -6,14 +6,48 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: pointselect.c,v 1.1 1999/05/30 18:14:39 jj Exp $
+    $Id: pointselect.c,v 1.2 1999/06/15 12:50:29 jj Exp $
 
  */
 
 #include "defs.h"
 #include "misc.h"
 
+#ifndef GRAPHICS_GFXMACROS_H
+#include <graphics/gfxmacros.h>
+#endif
+
 /*-------------------------------------------------------------------------*/
+
+/// DrawPickPointSelector
+Local
+VOID DrawPickPointSelector(FRAME *frame, WORD mousex, WORD mousey)
+{
+    WORD winbottom, winright, xoffset, yoffset;
+    struct Window *win = frame->disp->win;
+
+    if( frame->disp->RenderArea ) {
+        struct IBox *abox;
+        GetAttr(AREA_AreaBox, frame->disp->RenderArea, (ULONG *) & abox);
+        winright = abox->Width+abox->Left;
+        winbottom = abox->Height+abox->Top;
+        xoffset = abox->Left;
+        yoffset = abox->Top;
+    } else return;
+
+    CLAMP(mousex,xoffset,winright);
+    CLAMP(mousey,yoffset,winbottom);
+
+    SetDrMd(win->RPort, COMPLEMENT);
+
+    SetDrPt(win->RPort, (UWORD) frame->disp->selpt);    // Uses just lower 16 bits
+
+    Move( win->RPort, mousex, yoffset );
+    Draw( win->RPort, mousex, winright );
+    Move( win->RPort, xoffset, mousey );
+    Draw( win->RPort, winbottom, mousey );
+}
+///
 
 /// PickPointButtonDown
 Local
@@ -39,6 +73,28 @@ VOID PickPointButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     }
 }
 ///
+/// PickPointMouseMove
+Local
+VOID PickPointMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
+{
+    struct Selection *selection = &frame->selection;
+    static WORD ox = 0,oy = 0;
+
+    /* Erase */
+
+    if( selection->selstatus & SELF_DRAWN ) {
+        DrawPickPointSelector(frame, ox, oy);
+    }
+
+    /* Redraw */
+
+    DrawPickPointSelector(frame, msg->mousex, msg->mousey);
+    selection->selstatus |= SELF_DRAWN;
+    ox = msg->mousex;
+    oy = msg->mousey;
+}
+///
+
 #if 0
 /// PickPointControlButtonDown
 Local
@@ -53,16 +109,6 @@ VOID PickPointControlButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
 /// PickPointButtonUp
 Local
 VOID PickPointButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
-{
-    struct Selection *selection = &frame->selection;
-    WORD xloc   = msg->xloc;
-    WORD yloc   = msg->yloc;
-    struct Rectangle *sb = &frame->selbox;
-}
-///
-/// PickPointMouseMove
-Local
-VOID PickPointMouseMove( FRAME *frame, struct MouseLocationMsg *msg )
 {
     struct Selection *selection = &frame->selection;
     WORD xloc   = msg->xloc;
@@ -103,7 +149,7 @@ PERROR InitPickPointSelection( FRAME *frame )
     s->ControlButtonDown = NULL;
     s->DrawSelection     = NULL;
     s->EraseSelection    = NULL;
-    s->MouseMove         = NULL;
+    s->MouseMove         = PickPointMouseMove;
     s->IsInArea          = NULL;
 
     return PERR_OK;
