@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 1.5 1996/09/30 02:38:38 jj Exp $
+    $Id: vm.c,v 1.6 1996/10/10 19:14:00 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -193,7 +193,7 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
 
     D(bug("CreateVMData( size = %lu )\n",size));
 
-    vmh = pmalloc( sizeof(VMHANDLE) );
+    vmh = smalloc( sizeof(VMHANDLE) );
     if(!vmh)
         return NULL;
 
@@ -238,7 +238,7 @@ VMHANDLE *CreateVMData( ULONG size, EXTBASE *xd )
     if(!fh) {
         D(bug("Couldn't open file %s\n",vmfile));
         XReq( NEGNUL, NULL, "Couldn't open swap file!\n\nPlease check VM settings and directory.");
-        pfree(vmh);
+        sfree(vmh);
         return NULL;
     }
 
@@ -285,7 +285,7 @@ PERROR DeleteVMData( VMHANDLE *vmh, EXTBASE *xd )
         D(bug("WARNING! Unable to close filehandle\n"));
     }
 
-    pfree( vmh );
+    sfree( vmh );
 
     D(bug("Done!\n"));
 
