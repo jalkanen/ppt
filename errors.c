@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.5 1996/09/17 20:37:54 jj Exp $
+    $Id: errors.c,v 1.6 1996/11/23 00:42:58 jj Exp $
 
     Error handling routines.
 */
@@ -127,7 +127,7 @@ VOID CopyError( FRAME *source, FRAME *dest )
     }
 }
 
-/****** pptsupport/SetErrorCode ******************************************
+/****u* pptsupport/SetErrorCode ******************************************
 *
 *   NAME
 *       SetErrorCode -- Set the error code for the frame.
@@ -179,7 +179,7 @@ SAVEDS ASM VOID SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error )
     }
 }
 
-/****** pptsupport/SetErrorMsg ******************************************
+/****u* pptsupport/SetErrorMsg ******************************************
 *
 *   NAME
 *       SetErrorMsg -- Set an error message string
