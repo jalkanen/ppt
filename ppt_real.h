@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.7 1996/01/03 00:42:33 jj Exp $
+    $Id: ppt_real.h,v 1.8 1996/01/27 12:13:22 jj Exp $
 
     Main definitions for PPT.
 
@@ -381,6 +381,18 @@ typedef struct {
     UWORD           maxundo;        /* Maximum amount of undo levels */
     struct TextFont *maintf;        /* These two are the same as the TextAttr - structs */
     struct TextFont *listtf;        /* above, but these contain valid pointers. */
+
+    /*
+     *  OK, this is not a pretty solution, but here are embedded the
+     *  TextAttr - and font name fields.
+     */
+
+    struct TextAttr mfont;
+    struct TextAttr lfont;
+
+    char            mfontname[NAMELEN];
+    char            lfontname[NAMELEN];
+
 } PREFS;
 
 
@@ -631,6 +643,7 @@ struct LocaleString {
 #define EDITCMD_COPY        2
 #define EDITCMD_PASTE       3
 #define EDITCMD_CUTFRAME    4
+#define EDITCMD_CROPFRAME   5
 
 /*------------------------------------------------------------------*/
 /* Interprocess communication */
