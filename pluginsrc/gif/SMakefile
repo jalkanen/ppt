@@ -1,0 +1,30 @@
+#
+# This is a generic iomodule makefile for SAS/C
+#
+#
+
+NAME = GIF
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).iomod
+
+all : M000
+
+M000 :
+    sc buildprj OBJNAME=000/ PROGNAME=$(EXE)
+
+clean:
+    Delete \#?.o \#?.lnk \#?~ 000/\#?.o
+
+clobber: clean
+    Delete $(EXE)
+
+install : all
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+
+installdbg: all
+    Copy $(EXE) $(MAINDIR)/$(INSTDIR)/$(EXE)
+

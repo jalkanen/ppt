@@ -1,0 +1,46 @@
+#
+# This is a text.effect makefile for SAS/C
+#
+# $Id: SMakefile,v 1.1 2001/10/25 16:23:03 jalkanen Exp $
+#
+
+NAME = text
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE020=$(NAME)_020.effect
+
+DEBUGOPTS=DEBUG=FF DEF=DEBUG_MODE CPU=ANY NOOPT
+
+all : M000
+
+M000 :
+    sc buildprj OBJNAME=000/ PROGNAME=$(EXE)
+
+M020 :
+    sc buildprj CPU=68020 NOUTILLIB PROGNAME=$(EXE020) OBJNAME=020/
+
+debug : clean
+    sc buildprj OBJNAME=000/ PROGNAME=$(EXE) $(DEBUGOPTS)
+
+clean:
+    Delete \#?.lnk \#?~ 020/\#?.o 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE020) QUIET
+
+install : M000
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+#    slink $(EXE020) TO $(MAINDIR)/$(INSTDIR)/$(EXE020) STRIPDEBUG NOICONS
+
+installdbg : debug
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE020) QUIET
+

@@ -1,0 +1,588 @@
+@database loaders.guide
+@rem $Id: loaders.guide,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+@node Main "PPT I/O Modules"
+
+    This documentation is a short  description  of  the  different  file
+    types PPT recognizes. Click on the name below to get to the point.
+
+    [ (*) = Documention not yet complete ]
+
+        @{" BMP             " link BMP}
+        @{" C-code          " link C-code}
+        @{" IFF ILBM        " link ILBM}
+        @{" Targa           " link Targa}
+        @{" JFIF/JPEG       " link JPEG}
+        @{" Compuserve GIF  " link GIF}
+        @{" PNG             " link PNG}
+        @{" PNM/PGM/PPM/PBM " link PNM}
+        @{" Psion PIC       " link PsionPIC}
+        @{" Datatypes       " link Datatypes}
+        @{" YUVN            " link YUVN}
+        @{" TIFF            " link TIFF}
+
+    PPT saves the I/O modules in the PROGDIR:modules subdirectory.  Any
+    modules ending with ".iomod" taken to be an I/O module.
+
+    NB: V2 used a completely another style of I/O module that  ended  in
+    ".loader".  If you happen to have these around, delete them. They're
+    no use to anyone anymore and PPT wouldn't even load them even if you
+    tried.
+
+@endnode
+
+@node BMP "BMP.iomod"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: TYPE/K
+
+    TYPE - Either of strings "Windows" or "OS/2".  You can
+        just specify the first letter, though.
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    Windows and OS/2 BMP files from 1 to 256 colors.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    Windows and OS/2 BMP files from 1 to 256 colors.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    BMP file format is a non-compressed format (still) in use with
+    the Windows world and is really beginning to show its age.
+
+@{b}NOTES@{ub}
+    First appeared in PPT version 6.0.
+
+    Parts of this module are from the NetPBM package.  Original
+    copyright notice appears below:
+    @{i}
+    Copyright (C) 1992 by David W. Sanderson.
+
+    Permission to use, copy, modify, and distribute this software and its
+    documentation for any purpose and without fee is hereby granted,
+    provided that the above copyright notice appear in all copies and
+    that both that copyright notice and this permission notice appear
+    in supporting documentation.  This software is provided "as is"
+    without express or implied warranty.
+    @{ui}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node Datatypes "datatypes.iomod"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: N/A
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    All picture datatypes you've cobbled your hard drive with.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    None.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    This IO module will use the new OS3.0 datatypes.library in order  to
+    load  images.  You  can  find  new datatypes in Aminet, in directory
+    util/dtype.
+
+    Note that the current version of picture datatype is not equipped to
+    handle more than 256 color images and thus all images you get have a
+    maximum of 256 colors, even if the original image had  more  colors.
+    This  shortcoming has been corrected with CyberGfx picture.datatype,
+    but so far PPT does not understand it.
+
+@{b}NOTES@{ub}
+    The priority of this IO module is -100, so that it  won't  be  tried
+    until  all  other  image loaders have failed to recognize the image.
+    That way your own JPEG datatypes, for example, won't come into  play
+    before PPT's internal JPEG IO module.
+
+@{b}BUGS@{ub}
+    Does not support the DTM_WRITE method.  Is there really a need?
+
+@{b}SEE ALSO@{ub}
+    Any good PD archive for a plethora of useful and useless datatypes.
+
+@endnode
+
+
+@node GIF "Compuserve GIF"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: INTERLACED/S,TRANSPARENT/N
+
+    INTERLACED - saves an interlaced file.
+    TRANSPARENT - set the given color to be transparent. Color 0 is
+        always the background color.
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    GIF87, GIF89a.  Interlaced images are supported.  Transparent GIFs
+    are supported from v1.1 onwards.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    GIF87, GIF89a.  Interlaced images are supported.
+    Transparent GIFs are supported.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    GIF is a very popular format in the PC environment and since it  has
+    been adopted as the standard for WWW, it has become extremely widely
+    known. Unfortunately, UNISYS owns the patent for the  LZW  algorithm
+    used in packing the image in the GIF file and decided that they wish
+    their piece of the action and now you must pay money if you use  GIF
+    in a commercial or shareware program.
+
+    GIF will hopefully be superseded by @{"PNG" link PNG} in the near future.
+
+@{b}NOTES@{ub}
+    GIF animations will produce a warning, but you can load the first
+    image in, though.  This will have to do until I finish the animation
+    support... ;->
+
+    @{b}The GIF.iomod is no longer available.  You should be noted that
+    in case you have somehow found this module (from an earlier release)
+    I have not paid the GIF license, which means that should you use
+    any GIF files you have built using PPT, you (or your system operator)
+    should pay the 5000USD license fee to Unisys (www.unisys.com).  This
+    license fee applies only to graphics published in the World Wide Web.
+    For more information, see Unisys web page.
+
+    Alternatively, use a commercial program to touch up the images.@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"PNG" link PNG}, @{"PNG" link PNG}, @{"PNG" link PNG}, ...
+
+@endnode
+
+
+@node ILBM "Amiga IFF ILBM"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    Color: 1-8 bitplanes, 24 bitplanes.
+    HAM6, HAM8, Extra Half-Brite.
+    Both compressed and uncompressed images.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    Color: 1-8 bitplanes, 24 bitplanes.
+    HAM6, HAM8, Extra Half-Brite.
+    Only compressed images are supported.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    Save: Annotation,Author.
+    Load: Annotation,Author.
+
+@{b}DESCRIPTION@{ub}
+    The IFF ILBM format has been the most popular format  in  the  Amiga
+    community.  Every  graphics  package  supports it and it is the only
+    format that can save Amiga-specific images like Extra-Halfbrite, HAM
+    and  HAM8  (short  for  Hold  And Modify). Also, the OS gives a good
+    support  for  reading  and  writing  IFF  file  formats,  since  the
+    iffparse.library has been standard from version 2.0 onwards.
+
+    However, the compression used by the  ILBM  algorithm  is  not  very
+    efficient and thus it looses in any competition for image size.  For
+    a much better compression algorithm, use @{"PNG" link PNG}.
+
+    Of course, if you must save a HAM/HAM8 or ExtraHalfBrite image, only
+    ILBM gives you the possibility to save Amiga viewmodes.
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node JPEG "Joint Photographic Experts Group"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: COMPRESSIONLEVEL/N,PROGRESSIVE/S,OPTIMIZE/S
+
+    COMPRESSIONLEVEL - JPEG compression level. Must be between 0 and
+        100, the default is 75.
+
+    PROGRESSIVE - When this switch is on, a progressive JPEG file will
+        be saved.
+
+    OPTIMIZE - Produces optimized files, which are smaller but which
+        take longer to generate.
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    8 bit and 24 bit JFIF files.  Progressive files are supported.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    8 bit and 24 bit JFIF files.  Progressive files are supported.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    JPEG is a @{"lossy" link lossy} image format, which is intended for real-world
+    images.  It is a very popular format since it produces very small
+    files with no visible degradation.
+
+    However, I do not recommend that you use JPEG for computer-generated
+    files, because the result may be quite bad.
+
+    Progressive JPEG files are a special case where the areas that have
+    more detail are coded with greater resolution in the beginning,
+    so that when, for example, the Web browser loads in the image,
+    it can show parts of it before the image has completely been
+    downloaded.  It's a sort of interlacing scheme, only more complex.
+
+    Optimizing a JPEG file means that the iomodule tries to produce
+    optimal encoding for the Huffman compression tables.  It usually
+    saves a few percent in the resulting file size, but can be costly
+    in terms of memory and speed.
+
+@{b}NOTES@{ub}
+    This loader needs to have a JPEGTMP: assign set up before using.  If
+    the  JPEG  file  proves  to  be  too large (for example, progressive
+    JPEGs) to be written or read in one go,  a  temporary  file  may  be
+    created.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"PNG" link PNG}
+
+@endnode
+
+
+@node PNG "Portable Network Graphics"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    8, 24 and 32 bit images.  Interlacing is not supported at the moment.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    8 and 24 bit images.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    PNG is the new standard, designed to replace @{"GIF" link GIF} by the folks on
+    the 'Net.  It offers a very good compression using the patent-free
+    GZIP algorithm and it supports a variety of data formats.  Also,
+    the compression is NOT @{"lossy" link lossy}, so no information is lost in this
+    format.
+
+    I heartily recommend using this format unless you have real-world
+    images and wish to use @{"JPEG" link JPEG} for them.
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"JPEG" link JPEG}
+
+@endnode
+
+
+@node PPM "Portable Bitmap Format"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    P2,P3,P5 and P6
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    P5 and P6
+
+@{b}DESCRIPTION@{ub}
+    PPM is a format used by the NetPBM package. It  features  a  simple,
+    non-compressed   format  that  can  handle  bitmaps,  grayscale  and
+    truecolor images alike, both in ASCII and binary formats.
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node PsionPIC "Psion PIC file format"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    Series 3 and Series 3a/c/mx 1 and 2 bpp formats.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    Series 3 and Series 3a/c/mx 1 and 2 bpp formats.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    This loader supports the PIC file format used by the
+    Psion Series 3 palmtops.
+
+@{b}NOTES@{ub}
+    There is a Psion3x.palette file available in the Palettes
+    directory of the PPT distribution.  The suggested procedure
+    for making a Psion image is as follows:
+
+    1. Choose your image, and scale it to the size you want
+       (Psion 3a/c/mx screen is 480x160 pixels).
+
+    2. Choose Render/Settings... and set the following values:
+
+       Colors   : 3
+       Dithering: <something else than off, Floyd-Steinberg is OK)
+       Force Palette -> PROGDIR:Palettes/psion3x.palette
+
+       If you want a pure black/white image, use 2 colors.  Psion
+       3 (the original) series supports only 2 colors, black and white.
+       Psion 3a added one grey level, for a total of three colors.
+
+       Render.
+
+    3. File/Save As... and save the rendered image.
+
+@{b}BUGS@{ub}
+    Does not yet support multi-image files.
+    No MBM (Psion Series 5) support yet.
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+@node Targa "TrueVision Targa"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: COMPRESS/S
+
+    COMPRESS - if this option is specified, the Targa file is compressed
+        using a simple run-length encoding.
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    8, 15, 16, 24 and 32 bit, colormapped and non-colormapped formats.
+    Interleaved images are supported when loading.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    8 and 24 bit non-colormapped.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    Targa is an old image format which is usually quite portable  across
+    machines. It is quite popular among PC-folks and is used by programs
+    that do not wish to support very many image formats, as Targa is  an
+    extremely simple format.
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+@node C-code "C-code"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD: <NA>
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    None.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    8 and 24 bit, with optional alpha channel.
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    ANNO.
+
+@{b}DESCRIPTION@{ub}
+    This simple saver module writes out the image  in  a  simple  format
+    that can be compiled and included in a C-program.
+
+    The image file consists of several variables:
+
+    UWORD XX_height : height of the image
+    UWORD XX_width  : width  of the image
+    UWORD XX_components : # of components in the image
+
+    UBYTE XX_data[] : an array containing the image data.
+
+    If the image is a colormapped image, the following variables also
+    exist:
+
+    UWORD XX_colors : # of colors in the image
+    UBYTE XX_alpha  : 0, if there is no alpha channel information
+    UBYTE XX_cmap[] : An array containing the color map.  If
+        XX_alpha!=0, then each array element contains 4 values, in
+        the ARGB order, otherwise just simple RGB values.
+
+    In the above descriptions, XX is replaced by the image name (with
+    any punctuation marks removed).
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+
+@node YUVN "Vlab YUVN"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE: <NA>
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    Vlab YUVN.  Alpha channel extensions are not currently supported.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    ANNO, AUTH. (loading only)
+
+@{b}DESCRIPTION@{ub}
+    The YUVN image format is a rare format used (as far as I know) only
+    by the VLab digitizing software by MacroSystem GmbH.
+
+    Since the format is uncompressed, this is an inefficient method
+    of storing information, and this is why I chose not to support saving
+    YUV.  However, if you need it, drop me some mail and I'll try to
+    support saving YUVN images in the next release.
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+    Since I don't have very many YUV pictures, so I wasn't able to test
+    this loader module thoroughly.  If you have a spare VLab scanner,
+    try to test the module as much as you can.  Even better, send me
+    some YUV images that have been saved with a variety of options.
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+@node TIFF "SGI TIFF"
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD: <NA>
+    SAVE: <NA>
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+    Striped or scanlined Greyscale, RGB, and RGBA images, with
+    PackBits compression.  No JPEG or CCITT yet.
+
+    LZW is not supported anymore.
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+    N/A
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+    None.
+
+@{b}DESCRIPTION@{ub}
+    The TIFF image format is arguably the most versatile around.
+    Designed by Silicon Graphics, it is meant to hold almost any kind
+    of imaginable image.  This causes it to be a very difficult format
+    to support, as the loader module has to know a lot.  At the moment,
+    the bulk of the work is being done by the libtiff library by
+    Sam Leffler of SGI (see the Info box of the iomod to see which
+    library version is used).
+
+    The good thing about TIFF is that almost any professional program
+    supports it, and it is often the only format that is accepted by
+    professionals.  This is probably due to the fact that the other
+    two common formats, GIF and JPEG are not suited for lossless
+    transportation of 24-bit images.
+
+@{b}NOTES@{ub}
+    @{b}The TIFF.iomod can no longer save LZW.  You should be noted that
+    in case you have somehow found this module (from an earlier release)
+    I have not paid the LZW license, which means that should you use
+    any TIFF files you have built using PPT, you (or your system operator)
+    should pay the 5000USD license fee to Unisys (www.unisys.com).  This
+    license fee applies only to graphics published in the World Wide Web.
+    For more information, see Unisys web page.
+
+    Alternatively, use a commercial program to touch up the images.@{ub}
+
+@{b}BUGS@{ub}
+    Does not support half of the formats.  Chokes if the image is
+    larger than 32767x32767 pixels (really!).  No extensions are
+    supported.  Requires a 68881 co-processor.
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node lossy "Lossy image compression"
+
+    Lossy image compression means  that  in  order  to  achieve  greater
+    compression  level, some of the information in the original image is
+    discarded. This degradation of the image is usually not  visible  to
+    the  eye,  since  the eye can be fooled into thinking no degradation
+    has happened. However, if the image is  compressed  too  much,  then
+    you're gonna see some so-called artifacts in the resulting image.
+
+@endnode
+
+@node Dummy ""
+
+@{b}REXX TEMPLATE@{ub}
+    LOAD:
+    SAVE:
+
+@{b}LOAD FORMATS SUPPORTED@{ub}
+
+@{b}SAVE FORMATS SUPPORTED@{ub}
+
+@{b}@{"EXTENSIONS" link PPT.guide/Extensions} SUPPORTED@{ub}
+
+@{b}DESCRIPTION@{ub}
+
+@{b}NOTES@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+

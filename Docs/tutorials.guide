@@ -1,0 +1,118 @@
+@database tutorials.guide
+@author "Janne Jalkanen"
+@(c) "Janne Jalkanen 1998"
+@remark $Id: tutorials.guide,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+@wordwrap
+
+@node Main "PPT Tutorials"
+
+    Hello. These short tutorials will teach you how to effectively  process
+    images  using  PPT. I suggest you start from lesson 1 and work your way
+    downwards, especially if image processing is not very familiar to you.
+
+    These lessons assume you are somewhat  familiar  with  the  Amiga  user
+    interface.
+
+    @{"Lesson 1." link lesson1}  How to load a new image and apply a simple effect to it.
+               Image processing fundamentals.
+
+    @{fg highlight}NOTEZ-BIEN@{fg text}:
+
+    I have just implemented one lesson at the moment.  I will add more stuff
+    later on, but it would be nice if you could send me any comments.
+
+@endnode
+
+@node lesson1 "Lesson 1: Image processing fundamentals"
+
+    First, let's load a new image:
+
+    1. Open up the file requester by clicking on the "Open" button located
+       in the tool bar at the bottom of the screen.  Alternatively, use the
+       right mouse button to open the menus and select "Open..." from the
+       "Project" -menu.
+
+    2. Locate the Images -subdirectory of the PPT main  directory.  Open
+       the  directory  and  open the image "Rose.jpg" by double-clicking on
+       it.
+
+       PPT will now display a progress bar, which  tells  you  what  it  is
+       doing and how much of it it has completed. When the entire image has
+       been loaded in, the progress window will be removed and you will see
+       a picture of a rose.
+
+    3. You can move and resize the image window at will.  Try it out.
+
+       After a while, you will notice how the image can get very distorted,
+       and  it  may be difficult to make it look the way that it was. Press
+       Right Amiga-J to make the image back to its original  aspect  ratio,
+       i.e. the pixels will be square again. Alternatively, you can use the
+       'Edit/Correct Aspect" menu item.
+
+    Let us then delve into image processing.
+
+    4. On the right side of the screen, you'll see a list of effects.  These
+       effects are the brains of PPT and can do a lot of interesting stuff.
+       We'll start by applying a simple brightness change to the image.
+
+       Pick the 'Brightness' - effect, then press 'Execute' from the bottom
+       of the window.  Alternatively, double-click the 'Brightness' - effect.
+
+    5. A window opens where you see a smaller version of the rose.  You
+       see also a slider, which controls the brightness of the image.  If
+       you move the slider around, the number next to the slider changes,
+       and the image of the rose changes in brightness, too.  This is known
+       as a @{i}preview@{ui}, or a representation of what the resulting
+       image will look like.  It may not be completely correct, but it
+       will give you a simple idea.
+
+       Move the slider to the right, so that the brightness increase is about
+       1.200, then press 'Ok'.  You will see a progress bar flashing in the
+       middle of the screen.  Depending on the speed of your Amiga, this can
+       take a few seconds.
+
+       The main image window just changed.  Congratulations, you've just
+       applied your first effect!
+
+    OK, now let's go back a bit:
+
+    6. Choose 'Undo' from the menu.  As you are probably already aware, this
+       returns the image to an earlier state.  In default configuration, PPT
+       saves four images in memory, so you can go back up to four of your
+       recent changes.  (You can change this from the preferences.)
+
+    7. Now choose an area:  Take the mouse, and select the rose by moving
+       the mouse to about the top left corner of the rose.  Then press the
+       mouse button down and move the mouse towards the right.  You will now
+       see a line of 'ants' forming a box.  This is known as the @{i}select box@{ui}.
+
+       When you've surrounded the entire rose with the ant line, let go
+       of the mouse button.  If you made a mistake, don't worry: you can
+       correct it in several ways:
+
+       - redraw the whole rectangle again.
+
+       - point at one of the small squares at the corner of the image and
+         press the mouse button down.  You can now move around the corner
+         of the image.
+
+       - press CONTROL key from the keyboard, point at the rectangle and
+         press mouse button down.  You can now move the entire rectangle,
+         but it's size doesn't change.
+
+    8. You now have an area selected.  Apply the Brightness effect just
+       as you did before.
+
+       Notice, how just the area you selected, changed in brightness!
+
+    Finally, we will save the image you created:
+
+    9. Choose 'Save As...' from the "File" menu.  You are presented with a
+       requester, where there is a number of file formats on the left.
+       Click on 'JPEG', and change the file name to 'Rose1.jpg', then click
+       on 'Save'.  You don't need to worry about the other options yet.
+
+    Congratulations!  You just finished lesson one.
+
+@endnode

@@ -1,0 +1,1990 @@
+TABLE OF CONTENTS
+
+linklib/PDebug
+pptsupport/--background--
+pptsupport/AddExtension
+pptsupport/AskReqA
+pptsupport/AttachFrame
+pptsupport/ClearProgress
+pptsupport/CloseProgress
+pptsupport/CopyFrame
+pptsupport/CopyFrameData
+pptsupport/DupFrame
+pptsupport/ExecA4
+pptsupport/FindExtension
+pptsupport/FindFrame
+pptsupport/FinishProgress
+pptsupport/GetBackgroundColor
+pptsupport/GetBitMapRow
+pptsupport/GetNPixelRows
+pptsupport/GetOptions
+pptsupport/GetPixel
+pptsupport/GetPixelRow
+pptsupport/GetStr
+pptsupport/InitFrame
+pptsupport/InitProgress
+pptsupport/MakeFrame
+pptsupport/NewFrame
+pptsupport/ObtainFrame
+pptsupport/ObtainPreviewFrameA
+pptsupport/PlanarToChunky
+pptsupport/Progress
+pptsupport/PutNPixelRows
+pptsupport/PutOptions
+pptsupport/PutPixel
+pptsupport/PutPixelRow
+pptsupport/ReleaseFrame
+pptsupport/ReleasePreviewFrame
+pptsupport/RemFrame
+pptsupport/RemoveExtension
+pptsupport/RenderFrame
+pptsupport/SPrintF
+pptsupport/SetErrorCode
+pptsupport/SetErrorMsg
+pptsupport/SetRexxVariable
+pptsupport/StartInput
+pptsupport/StopInput
+pptsupport/TagData
+pptsupport/pgeta4
+pptsupport/prela4
+linklib/PDebug                                                    linklib/PDebug
+
+   NAME
+        PDebug -- put out debug information.
+
+   SYNOPSIS
+        PDebug( fmt, ... );
+
+        VOID PDebug( const char *, ... );
+
+   FUNCTION
+        Display debug information to the user. Use like you
+        would use printf(). Output goes to standard output (not stdout,
+        but AmigaDOS Output() ).
+
+        This function is really of use only in debugging phase and
+        with a special debug version of PPT and is documented here
+        for completeness only. If you can find any use for it,
+        be happy.
+
+   INPUTS
+        fmt - a standard C formatting string.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        This version DOES NOT use exec.library's RawDoFmt(), and thus
+        conforms to standard ANSI C formatting codes. It does however
+        require you to link with your c.lib since it uses sprintf() -
+        function. Sorry.
+
+   BUGS
+
+   SEE ALSO
+        printf(), sprintf().
+
+pptsupport/--background--                              pptsupport/--background--
+
+                  PPT support library documentation
+
+                  $VER: pptsupport.doc 6.0 (02-Oct-99)
+
+    Please note that all functions expect to have a valid PPTBase * in
+    A6 upon entering the function. Otherwise, these are just like
+    any other library functions, except that there are no stack-based
+    versions. If your compiler does not support registerized parameters,
+    tough luck.
+
+
+pptsupport/AddExtension                                  pptsupport/AddExtension
+
+   NAME
+        AddExtension -- Add one extension to a frame (V3)
+
+   SYNOPSIS
+        success = AddExtension( frame, name, data, len, flags );
+
+        PERROR AddExtension( FRAME *, STRPTR, APTR, ULONG, ULONG )
+        D0                   A0       A1      A2    D0     D1
+
+   FUNCTION
+        Adds a transparent extension to the image.  For example, you
+        could use this to save Author information for an image.
+
+        Extensions are collectively deleted during exiting PPT.  If you
+        specify an existing extension, the old one is unceremoniously
+        deleted.
+
+
+   INPUTS
+        frame - the frame handle.
+        name - a NUL-terminated string that is an unique identifier
+            for your option chunk.  The name is case-sensitive. PPT
+            understands and uses the following pre-defined names:
+
+            EXTNAME_AUTHOR - A string that contains author data.
+            EXTNAME_ANNO - An annotation string.
+            EXTNAME_DATE - A date string.
+
+            Note that if you use any of these, you should also set
+            the EXTF_CSTRING flag...
+
+        data - pointer to your data.
+        len  - length of your data chunk.
+        flags - flags that describe the format of this data chunk.
+            Possible values are:
+
+            EXTF_PRIVATE - The format is private and PPT will not
+                even try to guess it.
+            EXTF_CSTRING - this extension is a standard C format
+                string with a NUL at the end.  PPT will allow editing
+                this kind of extension in the edit window.
+
+            As always, all unused bits should be set to zero.
+
+   RESULT
+        success - PERR_OK if everything went OK and extension was
+            successfully saved in memory, PERR_OUTOFMEMORY, if
+            there was not enough memory to save the extension.
+
+   EXAMPLE
+
+   NOTES
+        This function allocates new space for each data item and
+        copies your data to a safe location.  Please note that it is
+        quite unhealthy to save pointers to your own data.
+
+   BUGS
+        Extensions are not yet used too much.
+
+   SEE ALSO
+        GetOptions(),PutOptions(),FindExtension()
+
+pptsupport/AskReqA                                            pptsupport/AskReqA
+
+   NAME
+        AskReqA -- Query the user for some values
+        AskReq -- Varargs version
+
+   SYNOPSIS
+        error = AskReqA( frame, objectlist );
+        D0               A0     A1
+
+        PERROR AskReqA( FRAME *, struct TagItem * );
+
+        error = AskReq( PPTBase, frame, tag1, ... )
+
+        PERROR AskReq( struct PPTBase *, FRAME *, Tag, ... )
+
+   FUNCTION
+        Show a configurable requester to ask the user for some values.
+
+   INPUTS
+        frame - as usual. May be NULL.
+        objs - a pointer to an array of TagItems, which contain
+            the object data. The following tags are allowed:
+
+            AR_Text - A piece of text to be shown to the user. English
+                default is "Change values:". You may use any BGUI control
+                sequences here.
+
+            AR_Positive - Text for the gadget for a positive answer.
+                English default is "Ok".
+
+            AR_Negative - Text for the gadget for a negative answer.
+                English default is "Cancel".  If the negative tag
+                is specified, but set to NULL or to an empty string,
+                the window will have only the positive gadget.
+
+            AR_Title - Title for the requester window. English default is
+                "PPT Request".
+
+            AR_HelpText (STRPTR) - A help text that is shown in a separate
+                requester when the user presses HELP.  This requester is
+                synchronous.  Default is NULL.
+
+            AR_HelpNode (STRPTR) - The Amigaguide node that is to be shown
+                in the help window when the user presses HELP.  This help
+                is asynchronous.  Default is NULL.
+
+                Note that both AR_HelpText and AR_HelpNode are shown globally
+                for the window, if there are no object-specific help
+                texts defined.  See below for AROBJ_HelpText and
+                AROBJ_HelpNode.
+
+        You may also specify an object type for creation. These are handled
+        in the order they appear in. The ti_Data field should point to an
+        array of TagItems, which should contain more information on the
+        object. If you do not state any objects, you will get a simple
+        boolean Yes/No -type requester.
+
+        You may choose from these objects:
+
+        AR_SliderObject - Creates a slider object that has also an integer
+            gadget associated. Labels are placed on the left side. Available
+            attributes are:
+
+            ARSLIDER_Min
+            ARSLIDER_Max - Minimum and maximum value for the slider. Defaults
+                are 0 and 100, respectively.
+
+            ARSLIDER_Default - Starting value. Default is 50.  If this tag
+                does not exist, the default is taken from wherever
+                AROBJ_Value happens to be pointing at.
+
+            The AROBJ_Value field will contain the slider value on return.
+
+        AR_StringObject - Create a string gadget. Available attributes
+            are:
+
+            ARSTRING_MaxChars (ULONG) - Maximum length of the string
+            ARSTRING_InitialString (STRPTR) - A pointer to the initial string
+                to be displayed in the gadget.
+
+            The AROBJ_Value - field should point to a buffer containing
+            space for at least ARSTRING_MaxChars characters.
+
+        AR_CheckBoxObject - Create a checkbox.  Available attributes
+            are:
+
+            ARCHECKBOX_Selected (BOOL) - TRUE, if the original state is
+                selected; FALSE otherwise.  If this tag does not exist,
+                the default is taken from the AROBJ_Value field.
+
+            The AROBJ_Value - field is set upon return to != 0, if the
+            gadget was set, 0 otherwise.
+
+        AR_CycleObject - Create a cycle (popmenu) object.  Available
+            attributes are:
+
+            ARCYCLE_Labels (STRPTR *) - pointer to a NULL-terminated array
+                of strings, containing the labels of different choices.
+
+            ARCYCLE_Active (LONG) - which one of the choices should be active
+                upon startup.  Defaults to whatever AROBJ_Value field
+                is currently pointing at.
+
+            ARCYCLE_Popup (BOOL) - TRUE, if the cycle object should be
+                a popup menu variant.  Default is FALSE.
+
+            The AROBJ_Value is set upon return to the currently active
+            selection.
+
+        AR_MxObject - Create a mx (radiobutton) object.  Available
+            attributes are:
+
+            ARMX_Labels (STRPTR *) - pointer to a NULL-terminated array
+                of strings, containing the labels of different choices.
+
+            ARMX_Active (LONG) - which one of the choices should be active
+                upon startup.  Defaults to whatever AROBJ_Value field
+                is currently pointing at.
+
+            The AROBJ_Value is set upon return to the currently active
+            selection.
+
+        AR_FloatObject - Creates a string gadget which accepts only
+            floating point values.  It also attaches a slider next to it.
+            Available attributes are:
+
+            ARFLOAT_Min (LONG) - The minimum allowed value for the gadget.
+                Default is -100 (-1.0).
+
+            ARFLOAT_Max (LONG) - The maximum allowed value for the gadget.
+                Default is 100 (1.0).
+
+            ARFLOAT_Default (LONG) - The startup value.  Default is 0.
+
+            ARFLOAT_FormatString (STRPTR) - How the string gadget's contents
+                should be formatted.  See printf(1) for more information.
+                Default is ".3f".
+
+            ARFLOAT_Divisor (LONG) - The divisor by which all values will
+                be divided.  Default is 100.
+
+            The float gadget uses long integers instead of floats because
+            the values are passed in a tag array.  To simplify casting
+            problems, I adopted this methodology.
+
+            The result is a long, which should be divided by the divisor
+            before acting on it.  Note that the divisor also defines
+            the minimum value by which the knob of the slider can be moved
+            and also the minimum resolution of the gadget.
+
+            NB: If you use too large values, you'll get into the roundoff
+            error hell.  Try to keep your numbers below 65535.
+
+        You may also specify these common attributes for any objects:
+
+            AROBJ_Label (STRPTR) - A label for this object.
+
+            AROBJ_Value (ULONG *) - This points to a location in which
+                the value from the gadget is written if the user
+                selected the positive answer.
+
+            AROBJ_HelpText (STRPTR) - Pointer to a nul-terminated string,
+                which will be shown in a simple requester when the user
+                presses the HELP key over the object.  Use this
+                for short help-texts.
+
+            AROBJ_HelpNode (STRPTR) - Pointer to a standard C string,
+                which contains the file and node of an AmigaGuide help
+                text.  For example, you could say something like:
+
+                AROBJ_HelpNode, "HELP:mymodule.guide/Twiddle",
+
+                and PPT would try to locate a guide called "mymodule.guide"
+                in directory "HELP:" and display the node called "Twiddle"
+                from it.
+
+                The node is displayed when the user presses the HELP key over
+                this gadget.
+
+   RESULT
+        error - Standard PPT error code. If the user chose Cancel,
+            this will be PERR_CANCELED. If everything went OK, then
+            this will be PERR_OK.
+
+            Ctrl-C signals are recognised correctly and a PERR_BREAK
+            is returned. If this happens, exit as soon as you can
+            from your module.
+
+   EXAMPLE
+        This opens up a simple window with two sliders.
+
+        void TestAR() {
+            LONG foo2, foo3;
+            struct TagItem myslider[] = { /* Use defaults for this slider */
+                AROBJ_Label, "%",
+                AROBJ_Value, &foo2,
+                TAG_END
+            };
+
+            struct TagItem myslider2[] = {
+                ARSLIDER_Min, -100,
+                ARSLIDER_Max, 100,
+                ARSLIDER_Default, 0,
+                AROBJ_Value, &foo3,
+                TAG_END
+            };
+
+            struct TagItem mywindow[] = {
+                AR_Title, "AR Test Window",
+                AR_Text, ISEQ_C"\nPlease do tamper around with\n"
+                               "the sliders...\n",
+                AR_Positive, "Cool",
+                AR_Negative, "Not Cool",
+                AR_SliderObject, myslider,
+                AR_SliderObject, myslider2,
+                TAG_END
+            };
+
+            if(AskReqA( NULL, mywindow ) == PERR_OK) {
+                /* User chose "Cool" */
+                PDebug("Slider 1 = %ld\n", foo2);
+                PDebug("Slider 2 = &ld\n", foo3);
+            }
+        }
+
+   NOTES
+        The varargs version AskReq() can be found in pptsupp.lib. Please
+        note that it really does require the PPTBase in stack, since the
+        pointer cannot be declared global.  Unless you're running SAS/C
+        of course, in which case the compiler uses the #pragma tagcall
+        and you can stop worrying.
+
+   BUGS
+
+   SEE ALSO
+
+pptsupport/AttachFrame                                    pptsupport/AttachFrame
+
+   NAME
+
+   SYNOPSIS
+        result = AttachFrame(  );
+        D0
+
+        PERROR AttachFrame();
+
+   FUNCTION
+   TBA
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry very incomplete.
+
+   SEE ALSO
+
+pptsupport/ClearProgress                                pptsupport/ClearProgress
+
+   NAME
+        ClearProgress -- Clear progress display.
+
+   SYNOPSIS
+        ClearProgress( frame )
+                       A0
+
+        VOID ClearProgress( FRAME * );
+
+   FUNCTION
+        Clears the progress display, resets variables and renders the
+        'idle' - text on the status display.
+
+   INPUTS
+        frame - as usual.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        There should not be any real reason for you to call this routine.
+        So, keep away from it.
+
+   BUGS
+
+   SEE ALSO
+        InitProgress(), Progress().
+
+pptsupport/CloseProgress                                pptsupport/CloseProgress
+
+   NAME
+        CloseProgress -- closes progress display (V5)
+
+   SYNOPSIS
+        CloseProgress( frame )
+                        A0
+
+        VOID CloseProgress( FRAME * );
+
+   FUNCTION
+   TBA
+
+   INPUTS
+        frame - As usual.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        InitProgress(), ClearProgress(), Progress().
+
+pptsupport/CopyFrame                                        pptsupport/CopyFrame
+
+   NAME
+        CopyFrame -- Copy a frame fully
+
+   SYNOPSIS
+        success = CopyFrame( source );
+        D0                   A0
+
+        PERROR MakeFrame( FRAME *, FRAME *);
+
+   FUNCTION
+        This function will copy the information from one frame to
+        an another frame.
+
+        The difference between this function and CopyFrameData()
+        is that this one does have error checking as well as it will
+        create the exactly correct frame.
+
+        The difference between this function and DupFrame() is a bit
+        more subtle one.  While they basically use the same function,
+        CopyFrame() will do things a bit more automatically and
+        it will ensure that the new frame is a completely independent
+        system.
+
+   INPUTS
+        source - the original frame.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Does not allocate info window, which means that any
+        progress display will not be done.
+
+   SEE ALSO
+        CopyFrameData()
+
+pptsupport/CopyFrameData                                pptsupport/CopyFrameData
+
+   NAME
+        CopyFrameData - copy the data from one frame to an another (V4)
+
+   SYNOPSIS
+        error = CopyFrameData( source, dest, flags )
+        D0                     A0      A1    D0
+
+        PERROR CopyFrameData( FRAME *, FRAME *, ULONG );
+
+   FUNCTION
+        This function copies all the image data from the source
+        frame to the dest frame.  The frames must have the same
+        size and the same colorspace.
+
+   INPUTS
+        source - the source frame
+        dest - the destination frame
+        flags - controls the copying procedure. Possible flags are:
+
+            CFDF_SHOWPROGRESS - Specifying this flag causes a
+                progress bar to be displayed during the copying
+                operation.  You will want to enable this if you
+                are copying a very large image.
+
+   RESULT
+        PERR_OK if everything went ok, otherwise this can fail in
+            numerous ways...
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        No error checking.
+
+   SEE ALSO
+        MakeFrame(), InitFrame()
+
+pptsupport/DupFrame                                          pptsupport/DupFrame
+
+   NAME
+        DupFrame -- Duplicate a frame.
+
+   SYNOPSIS
+        newframe = DupFrame( frame, flags )
+        D0                   A0,    D0
+
+        FRAME *DupFrame( FRAME *, ULONG );
+
+   FUNCTION
+        Makes a copy of the FRAME structure given - and if required -
+        also a copy of the image data.
+
+        You may get rid of the new frame by calling RemFrame().
+
+   INPUTS
+        frame - Frame you wish to duplicate.
+        flags - any of the following flags ORed together:
+            DFF_COPYDATA - Copies also the image data.
+            DFF_MAKENEWNAME - Generates a new name for the
+                image.
+
+   RESULT
+        newframe - A new frame that is an exact copy of the frame
+            you gave.
+
+   EXAMPLE
+
+   NOTES
+        If you don't want to copy the data, this routine just
+        calls MakeFrame() and InitFrame() to make a duplicate.
+
+        Most probably you will never require this routine, since the
+        frame passed to your external already is a copy. And if you
+        specify PPTX_NoNewFrame, you will probably want to modify the
+        sizes anyways, in which case this routine is not for you.
+
+   BUGS
+
+   SEE ALSO
+        MakeFrame(), RemFrame(), InitFrame()
+
+pptsupport/ExecA4                                              pptsupport/ExecA4
+
+   NAME
+        ExecA4 - provides custom data-areas for DICE
+
+   SYNOPSIS
+
+   FUNCTION
+        When PPT starts your external, the data areas (ie global)
+        variables are shared. This means that you cannot use global
+        library bases, for example.
+
+        ExecA4() provides a special startup stub, that will allocate
+        room for each task separately and allow you to use global
+        variables as if you were the only module in existence.
+
+        To take advantage of this feature,  point your module entry
+        point (PPTX_Exec, PPTX_Load, PPTX_Save, etc) to ExecA4() and
+        make sure your own entry point is called Exec().
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        Do NOT use __geta4 with your own Exec() routine.
+
+   BUGS
+        Needs some way to point the entry handler at, since there may
+        be several entry points in one module.
+        Currently saves only A0/A1, A6
+
+   SEE ALSO
+
+pptsupport/FindExtension                                pptsupport/FindExtension
+
+   NAME
+        FindExtension -- Finds an extension from a frame (V3)
+
+   SYNOPSIS
+        data = FindExtension( frame, name );
+
+        struct Extension *AddExtension( FRAME *, STRPTR )
+        D0                            A0       A1
+
+   FUNCTION
+        Finds a previously set extension from a frame.
+
+   INPUTS
+        frame - the frame handle.
+        name - a NUL-terminated string that is an unique identifier
+            for your option chunk.  The name is case-sensitive. PPT
+            understands and uses the following pre-defined names:
+
+            EXTNAME_AUTHOR - A string that contains author data.
+            EXTNAME_ANNO - An annotation string.
+            EXTNAME_DATE - A date string.
+
+   RESULT
+        data - pointer to the extension node.  Consider everything
+            read only!
+            The information you want is at data->en_Data.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        GetOptions(),PutOptions(),AddExtension()
+
+pptsupport/FindFrame                                        pptsupport/FindFrame
+
+   NAME
+        FindFrame -- Find a frame by its ID code
+
+   SYNOPSIS
+        frame = FindFrame( id )
+        D0                 D0
+
+        FRAME *MakeFrame( ID id );
+
+   FUNCTION
+   TBA
+
+   INPUTS
+        id - frame id code.
+
+   RESULT
+        frame - a frame handle. NULL if the id could not be found.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+
+pptsupport/FinishProgress                              pptsupport/FinishProgress
+
+   NAME
+        FinishProgress -- finish progress display.
+
+   SYNOPSIS
+        FinishProgress( frame )
+                        A0
+
+        VOID FinishProgress( FRAME * );
+
+   FUNCTION
+        Calling this function means that you are finished and you wish no
+        longer to use the progress display. If you still have something to do,
+        use InitProgress() again. Normally, you should call this function right
+        when you're finished. You may still do cleanups, etc., but nothing
+        slow, otherwise it might confuse the user.
+
+        Note that this routines does not actually close the progress display,
+        but renders it at 100% done.  PPT will close the window when you
+        return from the plugin.
+
+   INPUTS
+        frame - As usual.
+
+   RESULT
+
+   EXAMPLE
+        See autodoc for InitProgress().
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        InitProgress(), ClearProgress(), Progress().
+
+pptsupport/GetBackgroundColor                      pptsupport/GetBackgroundColor
+
+   NAME
+        GetBackgroundColor
+
+   SYNOPSIS
+        success = GetBackgroundColor( frame, pixel )
+        D0                            A0     A1
+
+        PERROR GetBackgroundColor( FRAME *, ROWPTR );
+
+   FUNCTION
+        Returns the background color of the given frame.  If no background
+        color has been designated, then will calculate a good guess
+        using an average of each of the corners.
+
+   INPUTS
+        frame - the frame handle
+        pixel - pointer to a location where the pixel should be
+            written.  Make sure you have enough space for one pixel!
+
+   RESULT
+        success - PPT error code.  PERR_OK, if everything went OK.
+
+   EXAMPLE
+
+   NOTES
+        The reason this is a function instead of a field in the PIXINFO
+        structure is that if needed, the background color can be
+        calculated on the fly.
+
+   BUGS
+
+   SEE ALSO
+
+pptsupport/GetBitMapRow                                  pptsupport/GetBitMapRow
+
+   NAME
+        GetBitMapRow -- get a pointer to a rendered image
+
+   SYNOPSIS
+        ptr = GetBitMapRow( frame, row );
+        D0                  A0     D0
+
+        UBYTE *GetBitMapRow( FRAME *, WORD );
+
+   FUNCTION
+
+   INPUTS
+        frame - easy.
+        row - The row you wish to have data from
+
+   RESULT
+        ptr - A pointer to bitmapped data or NULL, if something failed.
+            Don't forget to check it!
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This routine is currently under development, do not assume the
+        interface would stay the same.
+
+   SEE ALSO
+        GetPixelRow().
+
+pptsupport/GetNPixelRows                                pptsupport/GetNPixelRows
+
+   NAME
+        GetNPixelRows -- Get several rows at once.
+
+   SYNOPSIS
+        rows = GetNPixelRows( frame, buffer, startrow, nrows )
+        D0                    A0     A1      D0        D1
+
+        UWORD GetNPixelRows( FRAME *, ROWPTR *, WORD, UWORD );
+
+   FUNCTION
+
+   INPUTS
+        frame - as usual.
+        buffer - pointer to an array with nrows elements. PPT loads the
+            pointers to the image rows into this array, so that the pointer
+            to startrow goes into buffer[0], pointer to startrow+1 goes
+            to buffer[1], etc. If any of the rows are unfetchable for any
+            reason, the element will contain NULL. Remember to check for it!
+        startrow - the row you wish to start the lines for.
+        nrows - how many rows do you wish to fetch.
+
+   RESULT
+        rows - number of rows successfully loaded into buffer.
+            If zero, an error occurred or you were way out of
+            any reasonable limits.
+
+   EXAMPLE
+
+   NOTES
+        You may attempt to get negative rows, but then both the array and
+        the return value will reflect this. For example:
+            foo = GetNPixelRows(frame,buffer,-5,10);
+
+        In this case, foo will be 5 and buffer[0..4] will be NULL and
+        buffer[5..9] will be valid pointers.
+
+   BUGS
+
+   SEE ALSO
+        PutNPixelRows(), GetPixelRow(), GetPixel().
+
+pptsupport/GetOptions                                      pptsupport/GetOptions
+
+   NAME
+        GetOptions -- get an option chunk saved by PutOptions().
+
+   SYNOPSIS
+        data = GetOptions( name );
+
+        APTR GetOptions( STRPTR );
+        D0               A0
+
+   FUNCTION
+        Returns a data chunk saved using PutOptions() or NULL,
+        if no such name was found.
+
+   INPUTS
+        name - pointer to a NUL-terminated string containing the
+            (case-sensitive) name for the requested datachunk.
+
+   RESULT
+        data - pointer to a saved chunk or NULL, if not found.
+
+   EXAMPLE
+        struct IBox *ib;
+        struct NewWindow *newwin;
+
+        ib = (struct IBox *)GetOptions("my_external");
+        if( ib ) {
+            newwin->LeftEdge = ib->Left;
+            newwin->TopEdge  = ib->Top;
+            newwin->Height   = ib->Height;
+            newwin->Width    = ib->Width;
+        }
+
+   NOTES
+        This returns a pointer to the internal saved object.
+        Please do not tamper with it, consider it READ ONLY!
+
+   BUGS
+
+   SEE ALSO
+        PutOptions();
+
+pptsupport/GetPixel                                          pptsupport/GetPixel
+
+   NAME
+        GetPixel -- Get data for one pixel only.
+
+   SYNOPSIS
+        ptr = GetPixel( frame, row, column );
+        D0              A0     D0   D1
+
+   FUNCTION
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry still very incomplete.
+
+   SEE ALSO
+        PutPixel(), GetPixelRow().
+
+pptsupport/GetPixelRow                                    pptsupport/GetPixelRow
+
+   NAME
+        GetPixelRow -- get a pointer to chunky data
+
+   SYNOPSIS
+        ptr = GetPixelRow( frame, row )
+        D0                 A0     D0
+
+        ROWPTR GetPixelRow( FRAME *, WORD );
+
+   FUNCTION
+        Return a pointer to a row of data in either 24 bit chunky format
+        or 8 bit chunky graylevel data. In the former case, the data is
+        in RGB - order. You may check the amount of components in
+        frame->pix->components at any time.
+
+   INPUTS
+        frame - the frame handle
+        row - the pixel row you need info from
+
+   RESULT
+        ptr - A pointer to bitmapped data or NULL, if something failed.
+
+   EXAMPLE
+
+   NOTES
+        DO NOT reference a row which you have not GetPixelRow()ed first.
+
+   BUGS
+
+   SEE ALSO
+        PutPixelRow(), GetBitMapRow()
+
+pptsupport/GetStr                                              pptsupport/GetStr
+
+   NAME
+        GetStr - Get a localized message string
+
+   SYNOPSIS
+        string = GetStr( code )
+
+        STRPTR GetStr( struct LocaleString * )
+        D0             A0
+
+   FUNCTION
+
+   INPUTS
+
+   RESULT
+        string - Pointer to the localized string or the default string
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry is incomplete
+
+   SEE ALSO
+        locale.library/GetLocaleStr()
+
+pptsupport/InitFrame                                        pptsupport/InitFrame
+
+   NAME
+        InitFrame -- Initialize a frame.
+
+   SYNOPSIS
+        success = InitFrame( frame )
+        D0                   A0
+
+        PERROR InitFrame( FRAME * );
+
+   FUNCTION
+        This function will allocate all the necessary system resources
+        for PPT to operate, ie. Virtual Memory, screen data, etc. Use
+        AFTER MakeFrame().
+
+   INPUTS
+        frame - Frame you wish to initialize.
+
+   RESULT
+        PERR_OK, if everything went nicely, otherwise an error code
+        telling what went wrong. See ppt.h for error codes.
+
+   EXAMPLE
+
+   NOTES
+        Do not change any values inside the FRAME structure after calling
+        this function. You may still remove the handle with RemFrame().
+
+   BUGS
+
+   SEE ALSO
+        MakeFrame(), DupFrame(), RemFrame()
+
+pptsupport/InitProgress                                  pptsupport/InitProgress
+
+   NAME
+        InitProgress -- Initialize progress display
+
+   SYNOPSIS
+        InitProgress( frame, txt, min, max )
+                      A0     A1   D0   D1
+
+        VOID InitProgress( FRAME *, UBYTE *, ULONG, ULONG );
+
+   FUNCTION
+        Initialize progress display to use with Progress().
+
+   INPUTS
+        frame - as usual.
+        txt - a string to be displayed to the user while your algorithm
+            is running.
+        min - the minimum value of your counter
+        max - the maximum value of your counter
+
+        The counter is the value you pass to the Progress() - function.
+
+   RESULT
+
+   EXAMPLE
+        A normal loop in which you can process the data might look as
+        follows (frame is the FRAME * sent to you by ppt and tags is
+        the TagItem array:
+
+        ...
+
+        InitProgress( frame, "Mongering...",
+                      frame->selbox.MinY, frame->selbox.MaxY );
+        for( row = frame->selbox.MinY; row < frame->selbox.MaxY; row ++ ) {
+            ROWPTR cp;
+            cp = GetPixelRow( frame, row );
+            MongerARow( cp );
+            if(Progress( frame, row )) {
+                break;
+            }
+        }
+        FinishProgress( frame );
+        ...
+
+   NOTES
+        Use always before Progress() and do not forget to call
+        FinishProgress()!
+
+   BUGS
+
+   SEE ALSO
+        Progress(), ClearProgress(), FinishProgress().
+
+pptsupport/MakeFrame                                        pptsupport/MakeFrame
+
+   NAME
+        MakeFrame -- Creates a new frame.
+
+   SYNOPSIS
+        frame = MakeFrame( oldframe )
+        D0                 A0
+
+        FRAME *MakeFrame( FRAME * );
+
+   FUNCTION
+        This will allocate space for a new FRAME structure. The FRAME
+        is essential in any PPT image handling. After obtaining a handle
+        to the frame, you should edit any values you feel necessary
+        and then call InitFrame(). Do not pass the frame to any other PPT
+        routines before calling InitFrame()!
+
+   INPUTS
+        oldframe - if you wish to duplicate a frame, you can either specify
+            the frame here or just call DupFrame(). If you specify the
+            oldframe, you should still call InitFrame(), though.
+
+   RESULT
+        frame - new frame handle
+
+   EXAMPLE
+
+   NOTES
+        Remove handles using RemFrame().
+
+   BUGS
+        This assumes the old frame will not coexist with a new one.
+
+   SEE ALSO
+        InitFrame(), DupFrame(), RemFrame()
+
+pptsupport/NewFrame                                          pptsupport/NewFrame
+
+   NAME
+        NewFrame -- A quick way to build a frame.
+
+   SYNOPSIS
+        frame = NewFrame( width, height, components );
+        D0                D0     D1      D2
+
+        FRAME *NewFrame( ULONG, ULONG, UBYTE );
+
+   FUNCTION
+        A quick and easy way to create a frame if you don't bother
+        calling MakeFrame and InitFrame().
+
+   INPUTS
+        width, height - new frame dimensions.
+        components - number of components in this image.
+
+        If width OR height equal zero, then the VM buffers are not
+        allocated. In effect this is the same as just calling
+        MakeFrame(NULL).
+
+   RESULT
+        A new frame or NULL in case of failure.
+
+   EXAMPLE
+
+   NOTES
+        Obsolete, use MakeFrame() and InitFrame() instead.
+
+   BUGS
+
+   SEE ALSO
+        MakeFrame(), InitFrame(), RemFrame().
+
+pptsupport/ObtainFrame                                    pptsupport/ObtainFrame
+
+   NAME
+
+   SYNOPSIS
+        result = ObtainFrame( frame, method );
+        D0                    A0     D0
+
+        BOOL ObtainFrame( FRAME *, ULONG );
+
+   FUNCTION
+   TBA
+
+   INPUTS
+
+   RESULT
+        TRUE, if the frame could be obtained.
+
+   EXAMPLE
+
+   NOTES
+        DO NOT FORGET to call ReleaseFrame() after you are done with this
+        frame.
+
+   BUGS
+        This entry very incomplete.
+
+   SEE ALSO
+        ReleaseFrame()
+
+pptsupport/ObtainPreviewFrameA                    pptsupport/ObtainPreviewFrameA
+
+   NAME
+        ObtainPreviewFrameA - Create a preview frame for an external.
+        ObtainPreviewFrame - varargs version.
+
+   SYNOPSIS
+        preview = ObtainPreviewFrameA( frame, tags );
+        D0                             A0     A1
+
+        FRAME *ObtainPreviewFrameA( FRAME *, struct TagItem * );
+
+   FUNCTION
+        Obtains a preview frame (a small version of the original image,
+        also known as a thumbnail).
+
+        The size of the thumbnail depends on the preferences set
+        by the user.
+
+   INPUTS
+        Available tags are:
+
+        PREV_PreviewHook (struct Hook *) - Specifying this tag means
+            that the external module is prepared to handle the entire
+            drawing of the preview by itself.  Don't do this unless
+            you really know what you're doing.
+
+   RESULT
+        preview - the preview frame.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry incomplete.
+
+   SEE ALSO
+        ReleasePreviewFrame(), example code in externals/src/,
+        AskReqA()
+
+pptsupport/PlanarToChunky                              pptsupport/PlanarToChunky
+
+   NAME
+        PlanarToChunky -- Convert planar mode graphics to chunky
+
+   SYNOPSIS
+        PlanarToChunky( source, dest, width, depth )
+                        A0      A1    D0     D1
+
+        VOID PlanarToChunky( UBYTE **, ROWPTR, ULONG, UWORD );
+
+   FUNCTION
+        This is an optimized function for converting planar mode
+        graphics into chunky mode graphics. Useful if the data in
+        a file is in bitmapped format because you need to feed the
+        data into PPT in chunky pixel format.
+
+   INPUTS
+        source - A pointer to an array containing pointers to wherever
+            your planar data is.
+        dest - The chunky buffer where you wish the result to be put
+        width - Width of the row.
+        depth - Number of bitplanes and thus the number of entries in
+            the source array.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Supports only 1-8, 16, 24 and 32 planes at the moment. Do not
+        attempt to try to convert other types.
+        Could really be faster
+
+   SEE ALSO
+        GetPixelRow()
+
+pptsupport/Progress                                          pptsupport/Progress
+
+   NAME
+        Progress -- update Progress display.
+
+   SYNOPSIS
+        break = Progress( frame, done )
+        D0                A0     D0
+
+        BOOL Progress( FRAME *, ULONG );
+
+   FUNCTION
+        Updates progress display.
+
+   INPUTS
+        frame - As usual.
+        done - your progress indicator. PPT will transform this into
+            a display bar by heeding the values you stated in the
+            InitProgress() call. The value must be between those
+            values.
+
+   RESULT
+        break - TRUE, if the user wants you to quit. You should exit as
+            soon as possible.
+
+   EXAMPLE
+        See autodoc for InitProgress().
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        InitProgress(), FinishProgress(), ClearProgress().
+
+pptsupport/PutNPixelRows                                pptsupport/PutNPixelRows
+
+   NAME
+        PutNPixelRows -- Write several modified rows.
+
+   SYNOPSIS
+        PutNPixelRows( frame, buffer, startrow, nrows )
+                       A0     A1      D0        D1
+
+        VOID PutNPixelRows( FRAME *, ROWPTR *, WORD, UWORD );
+
+   FUNCTION
+        After doing a GetNPixelRows, you may use this routine to put
+        the rows back into the frame. You MUST do this if you make
+        any modifications.
+
+   INPUTS
+        frame - as usual.
+        buffer - A pointer to an array which is filled with pointers
+            to standard PPT pixel rows. See GetNPixels() autodoc for
+            more info.
+        startrow - where the rows where originally fetched from.
+        nrows - how many rows in total.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry is still very incomplete.
+
+   SEE ALSO
+        GetNPixelRows(), PutPixel(), PutPixelRow().
+
+pptsupport/PutOptions                                      pptsupport/PutOptions
+
+   NAME
+        PutOptions -- Saves options from an external (V3)
+
+   SYNOPSIS
+        success = PutOptions( name, data, len );
+
+        PERROR PutOptions( STRPTR, APTR, ULONG )
+        D0                 A0      A1    D0
+
+   FUNCTION
+        This function can be used to save a chunk of memory during
+        different invocations of your external.  For example, if
+        you wish to snapshot your window's location, you could
+        make it a structure, and then pass it to this function.
+        Then you can use GetOptions() to retrieve your data.
+
+        The data given is copied, so it is safe to release the
+        container after this call.
+
+        If a previous option chunk with the same name is found,
+        this chunk is replaced with the new one.  No warning
+        is given.
+
+        The data chunks are collectively removed during exiting
+        PPT.
+
+   INPUTS
+        name - a NUL-terminated string that is an unique identifier
+            for your option chunk.  The name is case-sensitive.
+        data - pointer to your data.
+        len  - length of your data chunk.
+
+   RESULT
+        success - PERR_OK if everything went OK and options were
+            successfully saved in memory, PERR_OUTOFMEMORY, if
+            there was not enough memory to save the options.
+
+   EXAMPLE
+        This describes how to save your window location.
+
+        struct IBox windim;
+
+        windim->Left = mywin->LeftEdge;
+        windim->Top  = mywin->TopEdge;
+        windim->Height = mywin->Height;
+        windim->Width = mywin->Width;
+
+        PutOptions("my_external", &windim, sizeof(struct IBox) );
+
+   NOTES
+        This function allocates new space for each data item and
+        copies your data to a safe location.  Please note that it is
+        quite unhealthy to save pointers to your own data.
+
+   BUGS
+        The options are not yet saved on disk.  In the future using
+        this function guarantees that your options are saved on disk
+        and you'll get the same data next time PPT is launched.
+
+   SEE ALSO
+        GetOptions()
+
+pptsupport/PutPixel                                          pptsupport/PutPixel
+
+   NAME
+        PutPixel -- Put one modified pixel only.
+
+   SYNOPSIS
+        PutPixel( frame, row, column, item );
+                  A0     D0   D1      A1
+
+   FUNCTION
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry still very incomplete.
+
+   SEE ALSO
+        GetPixel(), PutPixelRow().
+
+pptsupport/PutPixelRow                                    pptsupport/PutPixelRow
+
+   NAME
+        PutPixelRow -- put the pixel data back into buffer.
+
+   SYNOPSIS
+        PutPixelRow( frame, row, data )
+                     A0     D0   A1
+
+        VOID PutPixelRow( FRAME *, WORD, ROWPTR );
+
+   FUNCTION
+        Put back the data obtained by GetPixelRow().
+
+   INPUTS
+        frame - the frame handle
+        row - the pixel row you read the data from.
+        data - pointer to the buffer returned by GetPixelRow().
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        You MUST call this routine if you wish your changes to be visible.
+
+        Do not use this as a copy routine, in reality no data is copied
+        to make this routine faster. If you have a need to copy stuff from
+        one frame to another, use CopyMem(). In the future, the copying
+        may be possible.
+
+   BUGS
+
+   SEE ALSO
+        GetPixelRow(), GetBitMapRow()
+
+pptsupport/ReleaseFrame                                  pptsupport/ReleaseFrame
+
+   NAME
+
+   SYNOPSIS
+        ReleaseFrame( frame );
+                      A0
+
+        VOID ReleaseFrame( FRAME * );
+
+   FUNCTION
+   TBA
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        This entry very incomplete.
+
+   SEE ALSO
+        ObtainFrame()
+
+pptsupport/ReleasePreviewFrame                    pptsupport/ReleasePreviewFrame
+
+   NAME
+        ReleasePreviewFrame - releases a preview frame.
+
+   SYNOPSIS
+        ReleasePreviewFrame( preview );
+                             A0
+
+        VOID ReleasePreviewFrame( FRAME * );
+
+   FUNCTION
+        Releases the small image acquired by ObtainPreviewFrame().
+
+   INPUTS
+        preview - The preview frame.
+
+   RESULT
+        N/A
+
+   EXAMPLE
+
+   NOTES
+        The frame is freed completely after this call, so you'd better
+        not access the memory in any way.
+
+   BUGS
+
+   SEE ALSO
+        ObtainPreviewFrameA()
+
+pptsupport/RemFrame                                          pptsupport/RemFrame
+
+   NAME
+        RemFrame -- Remove a frame.
+
+   SYNOPSIS
+        RemFrame( frame )
+                  A0
+
+        VOID RemFrame( FRAME * );
+
+   FUNCTION
+        Use this function to remove the handle given to you by
+        MakeFrame() or DupFrame(). It does not matter if you call
+        this after InitFrame(). Of course, you should no longer use
+        the handle for anything after calling this function.
+
+   INPUTS
+        frame - Frame you wish to remove.
+
+   RESULT
+        A lot more free memory.
+
+   EXAMPLE
+
+   NOTES
+        Safe to call with NULL args.
+
+   BUGS
+
+   SEE ALSO
+        MakeFrame(), DupFrame(), InitFrame()
+
+pptsupport/RemoveExtension                            pptsupport/RemoveExtension
+
+   NAME
+        RemoveExtension -- Removes an extension from a frame (V3)
+
+   SYNOPSIS
+        success = RemoveExtension( frame, name );
+
+        PERROR RemoveExtension( FRAME *, STRPTR )
+        D0                      A0       A1
+
+   FUNCTION
+        Finds and removes previously set extension from a frame.
+
+   INPUTS
+        frame - the frame handle.
+        name - a NUL-terminated string that is an unique identifier
+            for your option chunk.  The name is case-sensitive. PPT
+            understands and uses the following pre-defined names:
+
+            EXTNAME_AUTHOR - A string that contains author data.
+            EXTNAME_ANNO - An annotation string.
+            EXTNAME_DATE - A date string.
+
+   RESULT
+        success - PERR_OK, if the extension was found and successfully
+            deleted; PERR_UNKNOWNTYPE, if the extension was not found.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        AddExtension(),FindExtension()
+
+pptsupport/RenderFrame                                    pptsupport/RenderFrame
+
+   NAME
+        RenderFrame - renders a frame to the specified rastport. (V4)
+
+   SYNOPSIS
+        error = RenderFrame( frame, rport, location, flags );
+        D0                   A0     A1     A2        D0
+
+        PERROR RenderFrame( FRAME *, struct RastPort *, struct IBox *, ULONG );
+
+   FUNCTION
+        Use this function to render the frame into a RastPort.  PPT will
+        automatically use the correct coloring routine.
+
+        This is the internal previewing routine, so the results may not be
+        very accurate.  Also, the current previewing preferences may
+        change the result.
+
+   INPUTS
+        frame - the usual.
+        rport - the RastPort of the window you want the frame to be rendered
+            into.
+        location - the location and size of the image.
+        flags - reserved for future use.
+
+   RESULT
+        Standard error code.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Does not do very extensive error checking at the moment.
+
+   SEE ALSO
+
+pptsupport/SPrintF                                            pptsupport/SPrintF
+
+   NAME
+        SPrintF -- Print characters into a buffer. (V6)
+
+   SYNOPSIS
+        n = SPrintF( buffer, format, ... )
+        D0           A0      A1
+
+        n = SPrintFA( buffer, format, args )
+        D0            A0      A1      A2
+
+        ULONG SPrintF( STRPTR, STRPTR, ... );
+
+        ULONG SPrintFA( STRPTR, STRPTR, APTR );
+
+   FUNCTION
+        Works like sprintf().  This uses ANSI functions, NOT
+        exec.library/RawDoFmt().  Floating point is also supported.
+
+   INPUTS
+        buffer - buffer to which characters are written.  Make sure
+            it is big enough.
+
+        format - string of formatting characters.
+
+        args - arguments for the format string.
+
+   RESULT
+        n - number of characters written.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        sprintf()
+
+pptsupport/SetErrorCode                                  pptsupport/SetErrorCode
+
+   NAME
+        SetErrorCode -- Set the error code for the frame.
+
+   SYNOPSIS
+        SetErrorCode( frame, error )
+                      A0     D0
+
+        VOID SetErrorCode( FRAME *, PERROR );
+
+   FUNCTION
+        Set the error code for the frame. Upon returning from the
+        external, PPT will display the proper error message.
+
+   INPUTS
+        frame - obvious
+        error - a PPT specific error code. For the definition
+            of the different PERR_* error codes, please see ppt.h.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        You cannot set the error code more than once.
+
+   BUGS
+
+   SEE ALSO
+        SetErrorMsg(), ppt.h
+
+pptsupport/SetErrorMsg                                    pptsupport/SetErrorMsg
+
+   NAME
+        SetErrorMsg -- Set an error message string
+
+   SYNOPSIS
+        SetErrorMsg( frame, msg )
+                     A0     A1
+
+        VOID SetErrorMsg( FRAME *, UBYTE * );
+
+   FUNCTION
+        Set up a custom error message for the frame.
+
+   INPUTS
+        frame - your frame handle
+        msg - pointer to a NUL-terminated string, which contains
+            the error message. It is copied to an internal buffer,
+            so you needn't guarantee it's validity after exiting
+            your external module.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        You cannot set the error code more than once.
+
+   BUGS
+
+   SEE ALSO
+        SetErrorCode()
+
+pptsupport/SetRexxVariable                            pptsupport/SetRexxVariable
+
+   NAME
+        SetRexxVariable -- sets a variable in the context of the frame. (V5)
+
+   SYNOPSIS
+        result = SetRexxVariable( frame, variable, value );
+
+        LONG SetRexxVariable( FRAME *, STRPTR, STRPTR )
+        D0                    A0       A1      A2
+
+   FUNCTION
+        This function sets an AREXX variable of the currently executing
+        script.  Use with care!  Do not meddle with variables such
+        as 'RC', 'RC2', or 'RESULT', since PPT uses them.
+
+   INPUTS
+        frame - the usual
+        variable - the name of the variable you wish to set
+        value - the string value
+
+   RESULT
+        Returns standard boolean values, that is, 0 for success,
+        and != 0 for failure.
+
+   EXAMPLE
+
+   NOTES
+        The SetRexxVar() parameter length is determined run-time
+        with strlen().
+
+   BUGS
+
+   SEE ALSO
+        amiga.lib/SetRexxVar
+
+pptsupport/StartInput                                      pptsupport/StartInput
+
+   NAME
+        StartInput - Start up notification
+
+   SYNOPSIS
+        error = StartInput( frame, method, initialmsg )
+        D0                  A0     D0      A1
+
+        PERROR StartInput( FRAME *, ULONG, struct PPTMessage * );
+
+   FUNCTION
+        This function starts up input handling for a frame. Its main
+        purpose is to provide interactivity for the external effect
+        modules.
+
+        When you call this function, PPT will temporarily unlock the
+        frame and allow resizing the image window, zooming, etc.
+
+        There are several methods at your disposal:
+
+        GINP_PICK_POINT - initialmsg is ignored and may be NULL.
+            Every time the user clicks the mouse within the image,
+            you'll get a gPointMessage with the x and y fields
+            containing image co-ordinates.
+
+        GINP_FIXED_RECT - initialmsg should be a pointer to
+            a struct gFixRextMessage, whose field dim should
+            be initialized to a sensible value.  When the user moves
+            the cursor in the frame, he'll see a rectangle moving around
+            and when he places it somewhere, you'll be notified.
+
+        You will be notified of input events until the StopInput()
+        function is called.
+
+   INPUTS
+        frame - as usual
+        method - Any of the following:
+            GINP_PICK_POINT
+            GINP_FIXED_RECT
+        area - Depends on the method. See above.
+
+   RESULT
+        error - Standard PPT error code. PERR_OK if the input
+            handler was started up OK.
+
+   EXAMPLE
+
+   NOTES
+        You MUST call StopInput() when you are ready to start up your own
+        processing on the frame.  Otherwise you'll keep getting messages
+        even when you don't want them and the user might get confused.
+
+   BUGS
+
+   SEE ALSO
+        StopInput()
+
+pptsupport/StopInput                                        pptsupport/StopInput
+
+   NAME
+        StopInput - Stop sending input messages.
+
+   SYNOPSIS
+        StopInput( frame )
+                   A0
+
+        VOID StopInput( FRAME * );
+
+   FUNCTION
+        This function stops the input handler started by StartInput()
+        and locks the frame, making it safe to process.
+
+        It is important to call this function before starting up your
+        own processing. If you call StartInput() and call GetPixelRow()
+        some conflicts will occur, which will cause undefined behaviour.
+        It might work. Or it might crash the system.
+
+   INPUTS
+        frame - the usual thing. Must be the same as in StartInput().
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Should provide protection against forgotten StopInputs().
+
+   SEE ALSO
+        StartInput()
+
+pptsupport/TagData                                            pptsupport/TagData
+
+   NAME
+        TagData -- Get Tag Data.
+
+   SYNOPSIS
+        data = TagData( value, list )
+        D0              D0     A0
+
+        ULONG TagData( Tag tag, struct TagList *list );
+
+   FUNCTION
+        This is a shortened version of utility.library's GetTagData().
+        Use this to read tags from the taglists passed to your external.
+
+   INPUTS
+        value - Tag value you seek.
+        list - A tag list terminated with TAG_DONE.
+
+   RESULT
+        data - Data associated with the tag. 0, if not found
+            for some reason.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+        utility.library/GetTagData().
+
+pptsupport/pgeta4                                              pptsupport/pgeta4
+
+   NAME
+        pgeta4 - Provides normal data areas for externals
+
+   SYNOPSIS
+        result = pgeta4()
+        D0
+
+        ULONG pgeta4(VOID);
+
+   FUNCTION
+        When PPT starts your external, the data areas (ie global)
+        variables are shared. This means that you cannot use global
+        library bases, for example.
+
+        You may use this routine to allocate a data-area, which will
+        be correctly initialized.
+
+        The data-areas are de-allocated with a call to the prela4()
+        routine.
+
+        You may not need to go through all this hassle. You might find
+        it easier to use the pptsupport/ExecA4() -stub.
+
+        Currently this function is implemented for DICE only.
+
+   INPUTS
+        None.
+
+   RESULT
+        result is zero, if the allocation of the data-areas failed.
+        You should always check for this and return PERR_OUTOFMEMORY,
+        if need be.
+
+   EXAMPLE
+        /* Your own routine */
+
+        REG(d0) FRAME *MyBeatifulExecRoutine( REG(a0) FRAME *frame,
+                                              REG(a1) struct TagItem *t,
+                                              REG(a6) EXTBASE *ExtBase )
+        {
+            FRAME *newframe;
+
+            if( !pgeta4() ) {
+                SetErrorCode(frame,PERR_OUTOFMEMORY);
+                return NULL;
+            }
+
+            /*
+             *  Do my effects stuff
+             */
+
+            prela4(); /* Dealloc data space */
+
+            return newframe;
+        }
+
+   NOTES
+        Do not forget to call prela4() before exiting. Otherwise the
+        allocated data-areas will eat away your memory.
+
+   BUGS
+
+   SEE ALSO
+        pptsupport/ExecA4()
+
+pptsupport/prela4                                              pptsupport/prela4
+
+   NAME
+        prela4 - Release resources allocated by pgeta4()
+
+   SYNOPSIS
+        prela4();
+
+        VOID prela4(VOID);
+
+   FUNCTION
+        Just releases the data-area allocated by the pgeta4()-routine.
+        After this routine has been called, do not reference your data
+        (except constant and stack items).
+
+        Currently this function is implemented for DICE only.
+
+   INPUTS
+        None.
+
+   RESULT
+        None.
+
+   EXAMPLE
+        See pptsupport/pgeta4()
+
+   NOTES
+
+   BUGS
+        Not safe to call after failed pgeta4().
+
+   SEE ALSO
+        pptsupport/pgeta4()
+

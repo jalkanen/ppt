@@ -1,0 +1,36 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = psionpic
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).iomod
+
+all : M000
+
+M000 :
+    sc buildprj OBJNAME=000/
+
+clean:
+    Delete \#?.o \#?.lnk \#?~
+
+clobber: clean
+    Delete $(EXE)
+
+
+install : M000
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+
+installdbg : M000
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+
+

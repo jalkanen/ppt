@@ -1,0 +1,1119 @@
+@database arexx.guide
+@author "Janne Jalkanen"
+@(c) "Janne Jalkanen 1996"
+@remark $Id: arexx.guide,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+@wordwrap
+
+@node Main "PPT Arexx interface"
+
+                   @{fg highlight}THE AREXX INTERFACE@{fg text}
+
+
+    No self-respecting Amiga program comes without Arexx port. So I've
+    included one, too. Currently, there are not very many commands
+    available, I'm afraid but the list is growing, day by day...
+
+    This list is currently in alphabetical order.  A good idea might
+    be to order them by context or something...  Tell me if you
+    have a suggestion!
+
+        @{" About AREXX and PPT " link About}
+
+        @{" Generic hints " link Hints} - Read this!
+
+        @{" ASKFILE     " link AskFile} - simple file requester
+        @{" ASKREQ      " link AskReq} - complex requester construction
+
+        @{" CLOSERENDER " link CloseRender} - closes a rendered image screen
+        @{" COPYFRAME   " link CopyFrame} - makes a duplicate from a frame
+        @{" CROP        " link Crop} - crops to the selected area
+
+        @{" DELETEFRAME " link DeleteFrame} - removes a frame from memory
+
+        @{" EFFECTINFO  " link EffectInfo} - information about an effect
+        @{" FRAMEINFO   " link FrameInfo} - information about a frame
+
+        @{" GETAREA     " link GetArea} - returns the selected area
+        @{" GETARGS     " link GetArgs} - fetch arguments from a plugin
+        @{" GETRENDERPREFS " link GetRenderPrefs} - gets rendering preferences
+
+        @{" HIDE        " link Hide} - hides the image
+
+        @{" LISTEFFECTS " link ListEffects} - returns a list of effects available
+        @{" LISTIOMODULES " link ListIOModules} - returns a list of I/O modules available
+        @{" IOMODULEINFO  " link IOModuleInfo} - returns info about an I/O module
+        @{" LOADFRAME   " link LoadFrame} - open a frame
+
+        @{" PPT_TO_BACK " link PPTToBack} - sends PPT screen to back
+        @{" PPT_TO_FRONT " link PPTToFront} - pops PPT screen to front
+        @{" PROCESS     " link Process} - starts an effect
+
+        @{" RENAMEFRAME " link RenameFrame} - renames a frame
+        @{" RENDER      " link Render} - renders using current preferences
+        @{" RENDER_TO_FRONT " link RenderToFront} - brings rendered image to front
+
+        @{" SAVEFRAMEAS " link SaveFrameAs} - saves frame under a different name
+        @{" SETAREA     " link SetArea} - set the selection area
+        @{" SETRENDERPREFS " link SetRenderPrefs} - sets render preferences
+        @{" SHOW        " link Show} - shows the image again
+        @{" SHOWERROR   " link ShowError} - show an error message
+
+        @{" VERSION     " link Version} - give version information
+
+        @{" QUIT        " link Quit} - quit PPT
+
+@endnode
+
+@node About "How PPT works with AREXX"
+
+@{b}How PPT works with AREXX@{ub}
+
+    When PPT starts, it will look at the PROGDIR:Rexx subdirectory to
+    find any files ending with '.prx'.  It compiles a list of these
+    which it then shows in the @{"scripts window" link ppt.guide/ScriptsWindow}.
+
+    At the moment, the AREXX dispatcher is not multi-threaded, even though
+    any effects it spawns are.  This means that you may see some lack
+    in responsiveness from PPT in general, but yes, it is still possible
+    to continue processing with other images while a script is churning
+    away in the background.  Just be careful with this =)
+
+@{b}How to write my own scripts@{ub}
+
+    A good idea is to look at the example scripts in the PROGDIR:Rexx
+    directory to see how things are done.  It is not really that difficult,
+    if you already know about AREXX.  See also some @{"hints" link Hints}.
+
+@endnode
+
+@node Hints "Generic hints on writing AREXX scripts for PPT"
+
+@{b}Generic hints on writing AREXX scripts for PPT@{ub}
+
+    Currently this section is a bit incomplete, but I suggest you still
+    keep the following things in mind:
+
+    � Some effects (Brightness, Contrast, and Gamma, for example) use
+      floating point values for input.  While this is OK by AREXX, you
+      might want to enclose numeric literals in quotes, when you send
+      them to PPT.
+
+    � Use the empty.prx script from the Rexx/ -directory as a template
+      for your own scripts.  It contains error handlers to ease your
+      job.
+
+    � Be easy on quotes and double-quotes.  If you use too many of them,
+      you'll probably start getting strange error messages from PPT.
+      A good example might be "REXX message of incorrect format" which
+      probably means you've overdosed on quotes.
+
+    � In general, boolean type variables return a number that is not
+      zero for TRUE and zero for FALSE.  So don't expect to find that
+      1 or -1 means TRUE.
+
+@endnode
+
+@node AskFile "AREXX: ASKFILE"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    TITLE/A,POSITIVE=POS,INITIALDRAWER=ID/K,INITIALFILE=IF/K,
+    INITIALPATTERN=IP/K,SAVE/S,DIRONLY/S
+
+@{b}INPUTS@{ub}
+    TITLE - The title for the requester
+    POSITIVE - Whatever the positive gadget should say. Default is
+        the default for the locale (English : "OK").
+    INITIALDRAWER - The contents of the Drawer gadget. Default
+        is to use the directory that the "Open..." file requester
+        uses.
+    INITIALFILE - The contents of the File gadget.
+    INITIALPATTERN - The contents of the Pattern gadget.  If not
+        specified, no pattern gadget will be displayed.
+    SAVE - If set, then the requester will be a save requester
+        (white text on black background).
+    DIRONLY - Shows only directories, not files. (V6)
+
+@{b}OUTPUTS@{ub}
+    RESULT = filename.
+    RC ~= 0 on error, RC2 contains error message.
+
+    If the user cancels, RC = 5.
+
+@{b}DESCRIPTION@{ub}
+    This is a multi-purpose interface to the  ASL  file  requester.  Its
+    good side is that it actually remembers what you did last, so you do
+    not have to specify all of the options each time.
+
+    NB: The SAVE  and  INITIALPATTERN  are  not  remember  between  each
+    invocation of this call. If you can convince me otherwise, do so...
+
+@{b}EXAMPLE@{ub}
+
+    ASKFILE '"Open file"'
+
+    This asks the user for a file.  Nothing fancy there.
+
+    ASKFILE '"Save file"' POS "Save!" ID="T:" SAVE
+
+    Asks the user for a filename for  saving.  Default  directory  shown
+    will be T:.
+
+@{b}BUGS@{ub}
+    This is not multithreaded, so the main interface will block if you
+    use it.
+
+    Maybe more options?  Do you need more?  Write me, I will help!
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+@node AskReq "REXX: ASKREQ - build complex requesters"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    ASKREQ TEXT/A,POSITIVE=POS/K,NEGATIVE=NEG/K,GAD1,...
+
+@{b}INPUTS@{ub}
+    TEXT - A string to be shown in the text box at the top of the
+        window.
+    POSITIVE - Positive gadget (bottom left).  English default is "Ok".
+    NEGATIVE - Negative gadget (bottom right). English default is "Cancel".
+    GAD1 - The first of stems describing other gadgets on this requester.
+        See below.
+
+@{b}OUTPUTS@{ub}
+    RESULT = 0, if the user OK'ed the requester, ~= 0 otherwise.
+    RC ~= 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    This is a command that allows building multiple-gadget requesters.
+    The idea is that each of the gadgets on the requester is described
+    by a stem, which contains the necessary details for the gadget
+    to be displayed.  This is how you would create a simple gadget that
+    would ask for values between -128 and +128:
+
+    MYGAD.TYPE=SLIDER /* Because we want a slider gadget */
+    MYGAD.MIN=-128    /* Minimum value that the slider should accept */
+    MYGAD.MAX=128     /* Maximum value that the slider should accept */
+    MYGAD.LABEL='"Slide me"' /* Label to appear on the left side of the slider */
+    MYGAD.DEFAULT=0   /* Default value is zero */
+
+    ASKREQ '"Select the new value for mygadget"' MYGAD
+
+    IF result = 0 THEN DO
+        ... /* Whatever you like */
+    DONE
+    ELSE DO
+        ... /* Cancelled */
+    DONE
+
+    (Note the single and double quotes ('"..."') that are required for
+    the text with spaces in it to pass the REXX parser without being
+    chopped to pieces.)
+
+    When ASKREQ is done, the value for each of the gadgets can be found
+    in the stem variable .VALUE, ie. in the previous example the
+    result could be read from MYGAD.VALUE.
+
+    Common attributes for different gadgets are:
+
+        .LABEL - this sets the label to be seen on the left side of the
+            gadget.
+
+    Different gadgets that ASKREQ recognizes are:
+
+    .TYPE = SLIDER
+        This produces a slider gadget that has an integer gadget  placed
+        next to it. Possible attributes are:
+
+        .MIN - The minimum value that is possible to be entered into
+            this gadget.  Default is zero (0).
+        .MAX - The maximum value.  Default is 100.
+        .DEFAULT - The value the slider should start from. Default is 50.
+
+        The result is returned in .VALUE, which contains the position of
+        the slider (between .MIN and .MAX).
+
+    .TYPE = CHECKBOX
+        This  produces  a  simple  checkbox  (on/off  gadget).  Possible
+        attributes are:
+
+        .SELECTED - Set this to 1, if you want the gadget to be selected
+            (ie. have a checkmark in it) initially. Default is zero.
+
+        The result returned in the .VALUE is 0, if the  gadget  was  not
+        checked or ~= 0, if the gadget was checked.
+
+    .TYPE = STRING
+        This produces a string (text entry) gadget. Possible  attributes
+        are:
+
+        .MAXCHARS - Maximum length of the string allowed.  Default is 80.
+        .INITIALSTRING - A string that is used as the initial value for
+            the gadget.  Default is "" (empty string).
+
+        The result returned in the .VALUE-attribute is the  string  that
+        the user entered into the gadget.
+
+    .TYPE = CYCLE
+        This produces a cycle gadget (or popup-menu, if  so  requested.)
+        Possible attributes are:
+
+        .ACTIVE - The initial active choice.  Zero (which is the default)
+            means the first choice.
+        .POPUP - Set this to 1, if you want a popup-menu style gadget.
+            Default is 0 (a plain cycle gadget).
+        .LABELS - A string of bar-separated words, that are the different
+            choices available to the user.  For example:
+
+            MYGAD.TYPE=CYCLE
+            MYGAD.LABELS="One|Two|Three"
+
+            would produce a cycle  gadget  that  has  three  choices  to
+            choose from.
+
+            Note that this attribute MUST  BE  SPECIFIED,  otherwise  an
+            error will be returned.
+
+        The result returned in .VALUE is the currently active choice  (0
+        means the first choice).
+
+    .TYPE = FLOAT
+        This produces a floating point gadget with a slider attached.
+        Possible attributes are:
+
+        .MIN - The minimum value.  Default is 0.0.
+        .MAX - The maximum value.  Default is 100.0.
+        .DEFAULT - The initial value.  Default is 0.0.
+        .FORMATSTRING - A standard C printf() format string for the
+            gadget.  Default is "%.3f", i.e. show three decimals.
+
+    Note that these names are case-insensitive as the rest of the AREXX.
+
+@{b}BUGS@{ub}
+    This is not multi-threaded, so the main interface will block when
+    you use it.
+
+@{b}SEE ALSO@{ub}
+    Example code in PROGDIR:rexx/
+
+@endnode
+
+
+@node CloseRender "AREXX: CLOSERENDER"
+
+@{b}MENU@{ub}
+    @{"Render/Close Render" link ppt.guide/CloseRender}
+
+@{b}AREXX Command Template@{ub}
+    CLOSERENDER FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME - frame id.
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    This command closes a rendered image and frees the memory
+    back to system use.  Note that it is safe to call this even
+    when there is no rendered image.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"RENDER" link Render}
+
+@endnode
+
+
+
+@node CopyFrame "AREXX: COPYFRAME"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    COPYFRAME FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME = frame to be duplicated.
+
+@{b}OUTPUTS@{ub}
+    RC = 0, if succeeded
+    RESULT = new frame id.
+
+@{b}DESCRIPTION@{ub}
+    Use this command to make a complete duplicate of a frame.  The only
+    thing differing from the original frame is the name.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+
+@node Crop "AREXX: CROP"
+
+@{b}MENU@{ub}
+    Edit/Crop
+
+@{b}AREXX Command Template@{ub}
+    CROP FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME = frame
+
+@{b}OUTPUTS@{ub}
+    A smaller frame
+
+@{b}DESCRIPTION@{ub}
+    Crops away the area outside the selected area.
+
+    Use the SETAREA command to first set the area to be cropped!    
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node LoadFrame "AREXX: LOADFRAME"
+
+@{b}MENU@{ub}
+    Project/Load
+
+@{b}AREXX Command Template@{ub}
+    LOADFRAME FILE/A
+
+@{b}INPUTS@{ub}
+    FILE = the file to be loaded.
+
+@{b}OUTPUTS@{ub}
+    rc = 0, if succeeded.
+    RESULT = new frame id.
+
+@{b}DESCRIPTION@{ub}
+    Loads a new frame to the PPT.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"SAVEFRAMEAS" link SaveFrameAs}
+
+@endnode
+
+
+
+@node DeleteFrame "AREXX: DELETEFRAME"
+
+@{b}MENU@{ub}
+    Project/Delete
+
+@{b}AREXX Command Template@{ub}
+    DELETEFRAME FRAME/A/N,FORCE/S
+
+@{b}INPUTS@{ub}
+    FRAME - the frame ID.
+    FORCE - If not specified, a confirmation requestor
+        is shown.
+
+@{b}OUTPUTS@{ub}
+    A lot more free memory.
+
+@{b}DESCRIPTION@{ub}
+    Deletes the frame completely. No traces. You will be asked
+    for a confirmation first, of course.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+@remark ---------------------------------------------------------
+@remark         AREXX Commands
+@remark ---------------------------------------------------------
+
+@node RenameFrame "AREXX: RENAMEFRAME"
+
+@{b}MENU@{ub}
+    Edit/Rename
+
+@{b}AREXX Command Template@{ub}
+    RENAMEFRAME FRAME/A/N NAME/A
+
+@{b}INPUTS@{ub}
+    FRAME - as usual
+    NAME - The new name for this frame.
+
+@{b}OUTPUTS@{ub}
+    N/A
+
+@{b}DESCRIPTION@{ub}
+    Gives the frame a new name.  This is the name that
+    is shown on the screen.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node ListIOModules "AREXX: LISTIOMODULES"
+
+@{b}MENU@{ub}
+    Windows/Loaders
+
+@{b}AREXX Command Template@{ub}
+    LISTIOMODULES STEM/A,ONLYLOADERS/S,ONLYSAVERS/S
+
+@{b}INPUTS@{ub}
+    STEM - a variable to be filled with data.
+        STEM.0 - amount of loaders
+        STEM.1 - first loader name,
+        STEM.2 - second loader name
+        ...
+    ONLYLOADERS - specify if you do not want to see any savers
+    ONLYSAVERS - specify if you do not want to see any loaders
+
+@{b}OUTPUTS@{ub}
+    RC = 0, if no error. Otherwise RC2 will contain a string
+    describing the error.
+
+@{b}DESCRIPTION@{ub}
+    Returns available IO modules in the system. By  using  the  switches
+    you may specify which kind of modules you want to see.
+
+@{b}BUGS@{ub}
+    The switches are not very clear.
+
+@{b}SEE ALSO@{ub}
+    @{ "LISTEFFECTS" link ListEffects }, @{"IOMODULEINFO" link IOModuleinfo}
+
+@endnode
+
+@node IOModuleInfo "AREXX: IOMODULEINFO"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    IOMODULEINFO IOMODULE/A,STEM/A
+
+@{b}INPUTS@{ub}
+    IOMODULE - The IO module name you wish info on.
+    STEM - A stem variable telling where the info should be put.
+
+@{b}OUTPUTS@{ub}
+    RC = 0, if no error. Otherwise RC2 will contain a string
+    describing the error.
+
+@{b}DESCRIPTION@{ub}
+    Gets information on a given module. The stem is filled out as follows:
+        STEM.VERSION - Version number
+        STEM.REVISION - Revision number
+        STEM.AUTHOR - The author of this module
+        STEM.INFOTXT - A short blurb describing this module.
+        STEM.LOAD - 1, if this module is capable of loading
+        STEM.REXXTEMPLATE - String containing the AREXX command template
+            for this module.
+        STEM.SAVEFORMATS - A string displaying which image @{"colorspaces" link PPT.guide/Colorspaces}
+            this module supports.  The string contains the supported
+            names separated by a bar '|', so it is ready for inclusion
+            in an @{"ASKREQ" link AskReq} cycle gadget, for example.
+
+            The current colorspace names are
+            "RGB","ARGB","Greyscale", and "Colormapped".
+
+            If this module cannot save, this string will be empty.
+
+        STEM.PREFERREDPOSTFIX - If this is a saver module, this
+            postfix is preferred for any files saved with it.  For
+            example, for JPEG files this is .jpg. (Added in v4.62)
+        STEM.GETARGS - ~= 0, if this module supports the GETARGS AREXX
+            command.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{ "EFFECTINFO" link EffectInfo}, @{ "LISTIOMODULES" link ListIOModules}.
+
+@endnode
+
+
+@node EffectInfo "AREXX: EFFECTINFO"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    EFFECTINFO EFFECT/A,STEM/A
+
+@{b}INPUTS@{ub}
+    EFFECT - The effect name you wish info on.
+    STEM - A stem variable telling where the info should be put.
+
+@{b}OUTPUTS@{ub}
+    RC = 0, if no error. Otherwise RC2 will contain a string
+    describing the error.
+
+@{b}DESCRIPTION@{ub}
+    Gets information on a given effect. The stem is filled out as follows:
+        STEM.VERSION - Version number
+        STEM.REVISION - Revision number
+        STEM.AUTHOR - The author of this module
+        STEM.INFOTXT - A short blurb describing this module.
+        STEM.REXXTEMPLATE - String containing the AREXX command template
+            for this effect.
+        STEM.GETARGS - ~= 0, if this module supports the GETARGS AREXX
+            command.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{ "IOMODULEINFO" link IOModuleInfo}, @{ "LISTEFFECTS" link ListEffects}.
+
+@endnode
+
+
+@node ListEffects "AREXX: LISTEFFECTS"
+
+@{b}MENU@{ub}
+    Project/Modules/Filters
+
+@{b}AREXX Command Template@{ub}
+    LISTEFFECTS STEM/A
+
+@{b}INPUTS@{ub}
+    STEM - specifies a stem variable to be affected. Hereforth
+        referenced to as stem.
+
+@{b}OUTPUTS@{ub}
+    The stem.0 - compound symbol contains the number of possible
+    effects. The names of the effects will be from compound
+    symbol stem.1 onward.
+
+@{b}DESCRIPTION@{ub}
+    Use this to get a listing of all possible effects at your
+    disposal.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"EFFECTINFO" link EffectInfo}, @{"LISTIOMODULES" link ListIOModules}.
+
+@endnode
+
+
+@node FrameInfo "AREXX: FRAMEINFO"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    FRAMEINFO FRAME/A/N,STEM/A
+
+@{b}INPUTS@{ub}
+    FRAME - frame ID
+    STEM - a stem variable where the information is put.
+
+@{b}OUTPUTS@{ub}
+    RC = 0, if no error. Otherwise RC2 will contain a string
+    describing the error.
+
+@{b}DESCRIPTION@{ub}
+    The stem variable is filled as follows:
+        STEM.NAME - The name for this frame
+        STEM.PATH - The actual path for the file on disk.
+        STEM.HEIGHT - Height of the image
+        STEM.WIDTH - Width of the image
+        STEM.COLORSPACE - A name describing the colorspace.  Possible
+            results are "RGB", "Greyscale" and "ARGB".
+        STEM.COMPONENTS - # of components / pixel.
+        STEM.DPIX, STEM.DPIY - The Dots-Per-Inch figures for X
+            and Y axis.  Also tells you the image aspect ratio.
+        STEM.BYTESPERROW - How many bytes does one row occupy
+        STEM.HIDDEN - TRUE, if the image has been hidden; FALSE otherwise.
+            In this case, TRUE is any number ~= 0, FALSE == 0.
+
+@{b}EXAMPLE@{ub}
+    The following example will toggle the hidden state of the image.
+
+    ...
+    FRAMEINFO frame STEM foo
+
+    IF FOO.HIDDEN == 0 THEN DO
+        HIDE frame
+    END
+    ELSE DO
+        SHOW frame
+    END
+    ...
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"HIDE" link Hide}, @{"SHOW" link Show}
+
+@endnode
+
+
+@node SetArea "AREXX: SETAREA"
+
+@{b}MENU@{ub}
+    NA
+
+@{b}AREXX Command Template@{ub}
+    SETAREA FRAME/A,X0/N,Y0/N,X1/N,Y1/N,ALL/S
+
+@{b}INPUTS@{ub}
+    FRAME  = frame name
+    X0, Y0 = Co-ordinates of the upper left-hand corner
+    X1, Y1 = Co-ordinates of the lower right-hand corner
+    ALL    = Specify if you wish to select the whole picture
+
+    If ALL is specified on the command line, the co-ordinates
+    are ignored.
+
+@{b}OUTPUTS@{ub}
+    RC = 5, if the co-ordinates were out of bounds or there
+    were not enough of them.
+
+@{b}DESCRIPTION@{ub}
+    Set the area to be used with processing applications.
+
+@endnode
+
+
+@node Quit "AREXX: QUIT"
+
+@{b}MENU@{ub}
+    @{"Project/Quit" link ppt.guide/quit} (Q)
+
+@{b}AREXX Command Template@{ub}
+    QUIT FORCE/S
+
+@{b}INPUTS@{ub}
+    Specify FORCE on the command line if you don't wish the selection
+    to be confirmed.
+
+@{b}OUTPUTS@{ub}
+    RC = 5, if the user cancelled, 0 otherwise.
+
+@{b}DESCRIPTION@{ub}
+    You may quit the program by selecting this. You will be asked first for
+    confirmation, of course, unless the FORCE - keyword is specified.
+
+@endnode
+
+@node PPTToFront "AREXX: PPT_TO_FRONT"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    PPT_TO_FRONT
+
+@{b}INPUTS@{ub}
+    N/A
+
+@{b}OUTPUTS@{ub}
+    N/A
+
+@{b}DESCRIPTION@{ub}
+    Brings the PPT screen to the front.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"PPT_TO_BACK" link PPTToBack},intuition.library/ScreenToFront()
+
+@endnode
+
+
+@node PPTToBack "AREXX: PPT_TO_BACK"
+
+@{b}MENU@{ub}
+    N/A, except for the little knob at the top of the screen.
+
+@{b}AREXX Command Template@{ub}
+    PPT_TO_BACK
+
+@{b}INPUTS@{ub}
+    N/A
+
+@{b}OUTPUTS@{ub}
+    N/A
+
+@{b}DESCRIPTION@{ub}
+    Pushes the PPT screen to be the backmost screen.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"PPT_TO_FRONT" link PPTToFront},intuition.library/ScreenToBack()
+
+@endnode
+
+
+@node Process "AREXX: PROCESS"
+
+@{b}MENU@{ub}
+    @{"Process/Process..." link ppt.guide/process}
+
+@{b}AREXX Command Template@{ub}
+    PROCESS FRAME/A/N EFFECT/A ARGS/F
+
+@{b}INPUTS@{ub}
+    FRAME  - frame id
+    EFFECT - the name of the effect you wish to perform
+    ARGS   - all the rest of the command line is understood as
+             arguments for the effect. See @{"effects" link effects.guide/Main} for more
+             information.
+
+@{b}OUTPUTS@{ub}
+    RC != 0 on error.
+    RC2 = a textual description of the error.
+
+@{b}DESCRIPTION@{ub}
+    Start up a new process.  Note that this command is blocking, ie.
+    even though a new process is started this command does not return
+    until it has completed.  However, it does not block PPT and you
+    may still run other Arexx scripts or use the program manually
+    while this command is executing.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+@node SaveFrameAs "AREXX: SAVEFRAMEAS"
+
+@{b}MENU@{ub}
+    @{"Project/Save As..." link ppt.guide/SaveAs}
+
+@{b}AREXX Command Template@{ub}
+    SAVEFRAMEAS FRAME/A/N FILENAME/A FORMAT/A/K COLORMAPPED/S ARGS/F
+
+@{b}INPUTS@{ub}
+    FRAME - frame id
+    FILENAME - the new filename to save this frame as.
+    FORMAT - the file format
+    COLORMAPPED - if specified, will save the rendered image
+        (you must use @{"RENDER" link Render} first!)
+    ARGS - the rest of the line is used as parameters to be
+        sent to the IO module.
+
+@{b}OUTPUTS@{ub}
+    RC != 0 on error.
+    RC2 = a textual description of the error.
+
+@{b}DESCRIPTION@{ub}
+    Use this command to save a frame that has been loaded into PPT.
+    I think it's easiest just to give an example:
+
+    @{"LOADFRAME" link LoadFrame} "t:foo.ilbm"
+    myframe = result
+    SAVEFRAMEAS myframe "t:foo.jpg" FORMAT=JPEG COMPRESSIONLEVEL=50 PROGRESSIVE
+
+    This command loads image "t:foo.ilbm" into PPT and saves it back
+    as a JPEG image.
+
+    Note that everything that has not been identified as a parameter
+    to this command is passed to the IO module and thus you should look
+    at the @{"loaders.guide" link loaders.guide/main} to see what parameters
+    different modules accept.
+
+@{b}BUGS@{ub}
+    May be a bit shaky at the moment.
+
+@{b}SEE ALSO@{ub}
+    @{"LOADFRAME" link LoadFrame}
+
+@endnode
+
+@node ShowError "REXX: SHOWERROR"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    SHOWERROR ERROR/A,LINE/N
+
+@{b}INPUTS@{ub}
+    ERROR - Error text.
+    LINE - Optional line on which the error occurred.
+
+@{b}OUTPUTS@{ub}
+    N/A
+
+@{b}DESCRIPTION@{ub}
+    Shows a simple requester on the PPT screen informing the user
+    that an error has occurred within the REXX script.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+
+@node Render "AREXX: RENDER"
+
+@{b}MENU@{ub}
+    @{"Render/Render" link ppt.guide/Render}
+
+@{b}AREXX Command Template@{ub}
+    RENDER FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME - Frame id
+
+@{b}OUTPUTS@{ub}
+    RC != 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    Renders the frame using the current preferences.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"SETRENDERPREFS" link SetRenderPrefs}
+
+@endnode
+
+@node RenderToFront "AREXX: RENDER_TO_FRONT"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    RENDER_TO_FRONT FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME - frame id
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error
+
+@{b}DESCRIPTION@{ub}
+    If a rendered image on a separate screen exists, this will
+    bring it to the front.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+
+
+@node SetRenderPrefs "AREXX: SETRENDERPREFS"
+
+@{b}MENU@{ub}
+    @{"Render/Settings..." link ppt.guide/RenderSettings}
+
+@{b}AREXX Command Template@{ub}
+    SETRENDERPREFS FRAME/A/N NCOLORS/K/N MODE/K DITHER/K MODEID/K/N
+                   FORCEBW/S
+
+@{b}INPUTS@{ub}
+    FRAME - frame id
+    NCOLORS - maximum number of colors that PPT is allowed to use
+        (this also affects the number of base colors available in
+        the HAM modes)
+    MODE - The display mode: Color,EHB,HAM6 or HAM8
+    DITHER - The dither to be used.  Available options are:
+        None and Floyd-Steinberg
+    MODEID - Standard Amiga ModeID for the screen.  In decimal, please.
+    FORCEBW - Forces the background color to zero (black) and the
+        foreground color (one) to white.
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error
+
+@{b}DESCRIPTION@{ub}
+    Set the render preferences for a frame.  Here's an example:
+
+    SETRENDERPREFS myframe MODE HAM8 DITHER Floyd-Steinberg
+
+    This makes the next render to use HAM8 with FS dithering.
+
+@{b}BUGS@{ub}
+    Modeid should be usable in hexadecimal and text too.
+    DITHER should really understand about abbreviated names, too.
+
+@{b}SEE ALSO@{ub}
+    @{"GETRENDERPREFS" link GetRenderPrefs},
+    @{"Render/Settings..." link ppt.guide/RenderSettings}
+
+@endnode
+
+@node GetRenderPrefs "AREXX: GETRENDERPREFS"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    GETRENDERPREFS FRAME/A/N PREFS/A
+
+@{b}INPUTS@{ub}
+    PREFS - a stem into which the preferences are put.
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    The PREFS stem consists of following elements after the command
+    has returned:
+
+    MODEID  = current mode id
+    DEPTH   = display depth
+    NCOLORS = number of colors
+    DITHER  = string telling the current dithering method
+    MODE    = render mode (Normal, EHB, HAM6, HAM8)
+    FORCEBW = 0, if Black/White color scheme for the two first
+              colors is not used, ~= 0 otherwise.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"SETRENDERPREFS" link SetRenderPrefs},
+    @{"Render/Settings..." link ppt.guide/RenderSettings}
+
+@endnode
+
+
+@node Hide  "AREXX: HIDE"
+
+@{b}MENU@{ub}
+    Project/Hide/Show
+
+@{b}AREXX Command Template@{ub}
+    HIDE FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME - the frame handle.
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    This AREXX command hides the image.  You may find this useful
+    if you're doing a long script, since the image won't be redrawn
+    each time.
+
+    If you wish to know if an image is hidden or not, see the
+    HIDDEN attribute of the @{"FRAMEINFO" link FrameInfo} command.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"SHOW" link Show}, @{"PPT.guide/Hide" link ppt.guide/Hide}, @{"FRAMEINFO" link FrameInfo}
+
+@endnode
+
+
+@node Show "AREXX: SHOW"
+
+@{b}MENU@{ub}
+    Project/Hide/Show
+
+@{b}AREXX Command Template@{ub}
+    SHOW FRAME/A/N
+
+@{b}INPUTS@{ub}
+    FRAME - the frame handle.
+
+@{b}OUTPUTS@{ub}
+    RC ~= 0 on error.
+
+@{b}DESCRIPTION@{ub}
+    This command displays the image again after it has been hidden
+    with the @{"HIDE" link Hide} command.
+
+    If you wish to know if an image is hidden or not, see the
+    HIDDEN attribute of the @{"FRAMEINFO" link FrameInfo} command.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"HIDE" link Hide}, @{"PPT.guide/Show" link ppt.guide/Hide}, @{"FRAMEINFO" link FrameInfo}
+
+@endnode
+
+@node GetArgs "AREXX: GETARGS"
+
+@{b}MENU@{ub}
+    N/A
+
+@{b}AREXX Command Template@{ub}
+    GETARGS FRAME/N PLUGIN/A ARGS/F
+
+@{b}INPUTS@{ub}
+    FRAME - frame handle.  You may not need this.
+    PLUGIN - the plugin module name.  You may use either effects
+        or I/O modules.
+    ARGS - a default argument string.
+
+@{b}OUTPUTS@{ub}
+    RESULT will be an command string, that may be directly fed to
+    the @{"PROCESS" link Process} command.
+
+@{b}DESCRIPTION@{ub}
+    Use this command to retrieve arguments for future use (such
+    as in batch processing scripts) from a plugin module.
+
+    Note that you need to check with IOMODULEINFO or EFFECTINFO
+    if the plugin in question supports the GETARGS command - most
+    plugins do.  If you use this command on a plugin that does
+    not support the command, you will get an error message.
+
+    GETARGS appeared first in PPT V6.
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"PROCESS" link Process}, @{"IOMODULEINFO" link IOModuleInfo}, @{"EFFECTINFO" link EffectInfo}
+
+@endnode
+
+
+@node empty
+
+@{b}MENU@{ub}
+
+@{b}AREXX Command Template@{ub}
+
+@{b}INPUTS@{ub}
+
+@{b}OUTPUTS@{ub}
+
+@{b}DESCRIPTION@{ub}
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+
+@endnode
+
+
+
+
+

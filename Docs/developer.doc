@@ -1,0 +1,351 @@
+
+
+                        PPT DEVELOPER DOCUMENTATION
+                        ===========================
+          $Id: developer.doc,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+
+This document describes briefly how to write  plugins  for  the  PPT  image
+processing system.
+
+NOTE: Consider this API a beta. If you write your own module, don't get mad
+if I change something. The API will stabilize when it's good.  Please do
+not distribute this, but always get the most fresh version from the PPT
+web site at
+
+http://www.iki.fi/%7ejalkanen/PPT.html
+
+If you have any comments, I'd like to hear about them.  This document is
+definitely too short, but I am not quite sure what I should write about. So,
+send me your comments and I will upgrade this manual as needed.
+
+What is a plugin?
+-----------------
+
+PPT plugins are just standard Amiga shared  libraries.  They  contain  some
+functions that the PPT main program calls whenever it wants the plugin (or,
+"module") to do something. If  you're  familiar  with  developing  standard
+Amiga  libraries,  you  should have no problem with this concept. If you're
+not familiar, please consult the Amiga ROM Kernel  Reference  Manuals,  the
+Amiga  Developer CD, and your compiler documentation on how to write shared
+libraries.  From now on, I will assume you're somewhat experienced in writing
+Amiga libraries and Amiga software in general.
+
+There are two basic types of modules: Effects and  I/O  modules.  They  are
+very  similar  to  each  other,  and their differences are briefly outlined
+below:
+
+Effect:  - file suffix is .effect
+         - contains two functions: EffectInquire() and EffectExec()
+         - is used to process an image, either in place or by producing
+           a new image.
+
+I/O mod: - file suffix is .iomod
+         - contains three functions: IOInquire(), IOLoad(), and IOSave()
+         - IOSave() is not expected to modify the image, IOLoad() is.
+
+
+Rules on PPT modules:
+---------------------
+
+There are some rules that you should always follow when writing a PPT
+shared module:
+
+- Always make sure that you do not use global variables that could
+  be shared between instances.  The user may suddenly decide to spawn
+  several copies of the effect, and thus it is very important that
+  your code is re-entrant.  If you're using SAS/C use the libinitr.o
+  startup code.                                                  ^
+
+  Of course, it's okay to use global constants or to protect the
+  variables with a semaphore.
+
+- Never, ever use Forbid() and Permit().  Enuff said.
+
+- Try to provide an AREXX interface to your module.  It makes things
+  a lot easier.
+
+Provided examples:
+------------------
+
+I have included example code for a few effects. The source can  be  located
+from <PPT>/pluginsrc/<effect's name>. Here's a brief description on each:
+
+sample_effect: This is a simple skeleton which you can copy and write your
+    own effect on.  It has enough stuff to get you going.
+
+sample_loader: Ditto with a loader.
+
+gray: The grayscale.effect.  I've included it to show how to make a very
+    simple effect which makes a new frame and returns it to the main
+    program.  Notice that if the entire frame is NOT selected, it will
+    convert just the selected area.
+
+contrast: The contrast.effect.  This is a basic, simple effect which
+    achieves it's goal by a simple in-place modification.  It shows
+    how to use AskReq() and how to make the previews with it.
+
+transparency: The transparency.effect.  I've included this as an example
+    on how to use BGUI to make your own effect and interface it with
+    the PPT main program.  It is rather complex, as it also incorporates
+    the PPT messaging scheme and the previews.
+
+ppm: The basic PPM code loader.
+
+The sources have been compiled with SAS/C 6.58.  I have implemented
+some new macros (see pptplugin.h) which make a lot of your work
+for GCC (all examples can also be compiled with GCC, now, provided
+that you have correct inline/bgui.h file).  Please use the macros...
+
+NOTE: you will have to change the MAINDIR variable in the SMakefiles
+provided, if you want to use 'smake install'.
+
+EFFECTS:
+========
+
+When writing an effect, you have to make one decision: does your effect
+need to modify the size, shape, or colorspace of the image, or can you get
+away with just a simple in-place modification of the image?
+
+When PPT launches the effect, it will query the value of the
+PPTX_NoNewFrame tag.  If this tag is set to FALSE, it will create a new
+copy of the frame, which you can then safely edit and do whatever you want
+with it.  However, if you set it to TRUE, then PPT will not make a new copy
+and expects YOU to make a new frame and return it.  You will need this, for
+example if you wish to change the color space of the image, or basically
+poke at any variable in the frame structure.
+
+If all you wish to do is to just read the image (for example to produce
+information, like the ColorCount.effect) you should set the
+PPTX_NoChangeFrame tag to TRUE.  This allows PPT to skip some
+initializations and not allocate space for a new frame.  In effect,
+the old image is not put on the undo stack.
+
+IOMODULES:
+==========
+
+These work very similarly to the effects.  Read more from the
+sample_loader.
+
+AREXX:
+======
+
+You should immediately check for presence of the PPTX_RexxArgs tag in the
+tag array you are given.  If it exists, it was an AREXX script who
+initiated the processing command, and thus you should not open the GUI to
+allow batch processing.  Read the dos.library/ReadArgs() Autodoc to
+understand the format of the ti_Data field of the tag.
+
+A NOTE ON IMAGE DATA:
+=====================
+
+By this time, you should know how the different colorspaces are implemented.
+PPT currently knows three different colorspaces (you can identify the
+colorspace of an image by looking at the frame->pix->colorspace):
+
+- CS_GRAYSCALE : One byte for each pixel, noting the grayscale value of
+    the image.
+
+- CS_RGB: An RGB triplet, one byte for each channel.
+
+- CS_ARGB: As RGB, but it contains the transparency information as well.
+    I chose to implement this using the ARGB byte order, because I figured
+    it might be easier to use if someone used assembly language to get
+    the fastest way.  A pixel in this colorspace consists of four bytes,
+    guaranteed to start at a long word alignment.  So, if you want to read
+    the data one ULONG at a time, be my guest.
+
+Actually, if you really want, you could use your own image format.  Just use
+CS_UNKNOWN and PPT will still cope with it.  You will lose stuff such as previews,
+but hey, you get to keep area selections, undo buffers and other stuff.  I
+recommend you use Extensions to save any image related data, such as
+the format of your own colorspace for this frame.
+
+USER INTERFACE:
+===============
+
+There are basically three ways to make an effect (or a loader) to have a GUI
+under PPT.  First of all, you can use AskReq() if you have a very simple
+need (a couple of sliders, maybe).  If you wish to do anything more complex,
+you should use BGUI, and thus get yourself familiarized with BOOPSI.
+
+However, PPT does not require you to use BGUI.  You are free to use any UI toolkit
+you like - even MUI.  Of course, I could plug here for the excellent ClassAct
+toolkit, which I almost chose as the main development toolkit for PPT ;-)
+
+If you use BGUI, though, you will ensure a consistent look with other PPT
+modules.
+
+Note that PPT uses the CTRL-F signal as a wakeup call to your window, so
+you should listen to it.  If you get a CTRL-F signal, you should bring your
+window to the front and activate it.  On the other hand, if you get a CTRL-C
+signal, you must quit immediately.
+
+EXTENSIONS:
+===========
+
+Extensions are a PPT way of keeping your own data attached to the image.  For
+example, if you have your own file format called 'GIZMO' and it contains some
+special information that PPT is not equipped to handle, you could use something
+like this:
+
+...
+    struct GizmoData {
+        ULONG   foo;
+        WORD    bar;
+    }
+...
+
+    struct GizmoData mydata;
+
+    mydata.foo = 1701;
+    mydata.bar = 0xB5;
+
+    AddExtension( frame, "GIZMODATA", &mydata, sizeof(mydata), EXTF_PRIVATE );
+...
+
+And later, you could say the following to retrieve your information:
+
+...
+    struct GizmoData *mydata, defaults = {0};
+    struct Extension *ext;
+
+    if( ext = FindExtension( frame, "GIZMODATA" ) ) {
+        mydata = (struct GizmoData *)ext->en_Data );
+    } else {
+        mydata = &defaults;
+    }
+...
+
+Note that the data is always copied by AddExtension(), so it is not a good
+idea to put pointers into it.
+
+TAGS
+====
+
+Here is a short recap of all the tags that you can use to tell how your
+external plugin works.  Whenever PPT requests one of these tags with
+the Inquire() routine, you should give a meaningful answer.
+
+Common tags:
+-----------
+
+PPTX_Name (STRPTR) - Must contain a pointer to this module's name. This is
+    the one that is visible to the user. THIS TAG MUST EXIST AND POINT TO A
+    VALID STRING, otherwise your module will be ignored completely in the
+    startup phase.
+
+PPTX_CPU (ULONG) - The ti_Data value should be one of the AFF_* flags
+    as defined in the exec/execbase.h include file.  For example, if
+    your external module has 68020 optimized code that won't run on a
+    68000, you should set the AFF_68020 flag.
+
+PPTX_InfoTxt (STRPTR) - This text is shown to the user if asked. May
+    contain any BGUI ISEQ_* sequence. Default: NULL. (no text)
+
+PPTX_Author (STRPTR) - Creator name. Default: "Unknown". We all want to be
+    famous, don't we?
+
+PPTX_ReqKickVersion (UWORD) - If the current OS version is less than this,
+    the external will not be added to the system list. Default: 0. (any)
+
+PPTX_ReqPPTVersion (UWORD) - If the current PPT version is less than this,
+    the external is not added to the system list. Default: 0. (any)
+
+PPTX_ColorSpaces (ULONG) - This contains the CSF_#? - flags ORred together
+    to describe what colorspaces your external can handle. For example,
+    if you can handle gray and RGB colorspaces, say CSF_RGB|CSF_GRAYSCALE.
+    If you are absolutely certain your external can handle all possible
+    colorspaces, then you can specify ~0. But only if you are really certain.
+    Default is CSF_RGB. See ppt.h for the flag definitions.
+
+    If this is an IO module, then this means the image formats the IOSave
+    method supports.
+
+PPTX_RexxTemplate (STRPTR) - The REXX command template. (See dos.library/
+    ReadArgs() for more information on templates.) PPT checks this string
+    against the string it received from REXX and won't call your external
+    if it failed. See PPTX_RexxArgs, below.
+
+PPTX_Priority (BYTE) - The externals are sorted in memory so that the ones
+    with a larger priority are always searched first. Currently, there's not
+    much use for this for filters, but loaders are another matter. For
+    instance, a datatypes loader should have a low priority (like -120)
+    so that all other possibilities are tried first. Default is 0.
+
+PPTX_SupportsGetArgs(BOOL) - TRUE, if this module supports the AREXX
+    GETARGS command by providing a GetArgs (EffectGetArgs or IOGetArgs)
+    entry point.  First appeared in V6.
+
+IOModule specific tags
+----------------------
+
+PPTX_Load (BOOL) - TRUE, if the IOLoad vector exists and your IO module
+    can load stuff.
+
+PPTX_NoFile (BOOL) - If set to TRUE, it means that the loader does not need
+    a file to function, ie it is a creator of sorts. Use it if you don't
+    want PPT to query for a file when the user selects Load As... Default
+    is FALSE.
+
+PPTX_PreferredPostFix (STRPTR) - Pointer to the preferred postfix of the
+    image type your IOmodule likes.  For example, the JPEG.iomod sets
+    this to ".jpg".  Default is NULL (no postfix).
+
+PPTX_PostFixPattern (STRPTR) - Pointer to a standard AmigaDOS pattern that
+    is used in the first stage to check for image types.  Using this
+    tag speeds up the recognition a lot, even though the postfix-based
+    recognition is not very fast.  However, if there is a match, your
+    IOmodule will be queried if this really is a file you can handle?
+    Default is NULL (no pattern).
+
+Effect specific tags
+--------------------
+
+PPTX_NoNewFrame (BOOL) - If true, PPT won't allocate a new frame for this
+    external's behalf before it executes it. This is a must for those
+    effects that wish to change frame size. Default is FALSE.
+
+PPTX_NoChangeFrame (BOOL) - If TRUE, PPT assumes you will not change the
+    image, and will skip a lot of initializations.  It will not put the
+    previous image on the undo stack either.  A good example is the
+    ColorCount.effect, which sets this flag, and just counts the number
+    of colors in the image.  Setting this flag to TRUE also implies
+    that PPTX_NoNewFrame is set to TRUE.  Default is FALSE.
+
+Other tags
+----------
+These tags are passed to you when the EffectExec() or IOSave() or IOLoad()
+routines are called.
+
+PPTX_RexxArgs (ULONG *) - A standard array from ReadArgs() which matches
+    your PPTX_RexxTemplate specification. Won't exist if PPTX_RexxTemplate
+    was not specified.
+
+PPTX_FileName (STRPTR) - IOCheck() gets this in the tag array.  It points
+    to the name of the file to be checked so that you don't have to
+    NameFromLock() the filehandle.
+
+PPTX_ArgBuffer (STRPTR) - Pointer to a buffer (at least 256 characters wide)
+    where you should return a AREXX-digestible form of arguments.  For
+    example, the JPEG.iomod returns a string of format
+    "COMPRESSIONLEVEL 95 PROGRESSIVE OPTIMIZE", which can be directly
+    used as an AREXX command argument to the same I/O module.  Only given
+    to the GetArgs()-routine.  First appeared in V6.
+
+LOG OF CHANGES:
+===============
+
+$Log: developer.doc,v $
+Revision 1.1  2001/10/25 16:26:35  jalkanen
+*** empty log message ***
+
+Revision 6.0  2000/02/06 21:27:21  jj
+Added documentaiton for PPTX_SupportsGetArgs and PPTX_ArgBuffer.
+
+Revision 5.0  1998/12/15 23:14:46  jj
+Added documentation about PPTX_NoChangeFrame
+
+Revision 1.3  1998/11/08 00:27:33  jj
+Added log.
+

@@ -1,0 +1,57 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = histeq
+VER  = 1
+REV  = 6
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE020=$(NAME)_020.effect
+EXEPPC=$(NAME)_PPC.effect
+VERSION=libversion $(VER) librevision $(REV)
+
+all : M000 M020 MPPC
+
+M000 :
+    sc buildprj OBJNAME=000/
+
+M020 :
+    sc buildprj CPU=68020 NOUTILLIB PROGNAME=$(EXE020) OBJNAME=020/
+
+MPPC:
+    scppc buildprj OBJNAME=PPC/ $(VERSION) NOLINK HUNKOBJ NODEBUG
+    slinkppc PPC with <<
+    LIBFD $(MAINDIR)/include/fd/effect_lib.fd
+    to $(EXEPPC)
+    FROM lib:libent.o lib:ppc1_libinitr.o PPC/histeq.o /dummy68k.o /boopsi.o LIB:dispatch68k.o LIB:dispatchppc.o
+    LIB lib:scppc.lib LIB:sc.lib
+    $(VERSION)
+    noicons
+    map $(NAME).map
+    nodebug
+    <
+
+clean:
+    Delete \#?.lnk \#?~ 020/\#?.o 000/\#?.o PPC/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE020)
+
+install : M000 M020
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    slink $(EXE020) TO $(MAINDIR)/$(INSTDIR)/$(EXE020) STRIPDEBUG NOICONS
+
+installdbg : M000
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE020)
+

@@ -1,0 +1,1777 @@
+@database PPT.guide
+@author "Janne Jalkanen"
+@(c) "Janne Jalkanen 1995-1998"
+@remark $Id: ppt.guide,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+@wordwrap
+
+@node Main "Welcome to PPT"
+
+                         @{fg highlight}WELCOME TO PPT@{fg text}
+
+                      Release: @{"Descartes" link Descartes}
+
+    @{b}PPT@{ub} is an interactive image manipulation package. PPT has been
+    written by @{"Janne Jalkanen" link Support}, who would very much like to hear
+    your comments.
+
+    @{b}Preface@{ub}
+        @{" Introduction " link Introduction}
+        @{" Requirements " link Requirements}
+        @{" Installation " link Installation}
+        @{" Notes        " link Notes} @{fg highlight}<-- Read this!@{fg text}
+        @{" Warranty     " link Warranty}
+        @{" Thanks       " link Thanks}
+
+        @{" Support      " link Support}
+        @{" Distribution " link Distribution}
+
+    @{b}User Manual@{ub}
+        @{" Menus           " link Menus}
+        @{" Windows         " link Windows}
+        @{" ARexx           " link arexx.guide/Main}
+        @{" Effects Modules " link effects.guide/main}
+        @{" IO Modules      " link loaders.guide/Main}
+
+        @{" Tutorials       " link tutorials.guide/Main}
+
+    @{b}Stuff For Techno Geeks@{ub}
+        @{" Known Bugs     " link Bugs}
+        @{" Reporting Bugs " link BugReport}
+        @{" Release Notes  " link /ReleaseNotes/main}
+
+    For those who were born with an inquisitive mind, here you can visit
+    PPT's @{"past" link /HISTORY/main}, @{"present" link /README/main} and (a possible) @{"future" link Future}.
+
+    PPT is a modular package, ie. you may write your own effect
+    modules, loaders and savers using a compiled language.  The developer
+    stuff is separately downloadable from the @{"Web site" link Support}.
+
+    @{b}@{fg highlight}DISCLAIMER@{ub}@{fg text}
+
+    Any errors in code, spelling, tact or fact are transmission
+    errors. So don't hold me responsible.
+
+    While PPT has been tested in multiple Amiga systems, it is quite
+    possible that it is @{b}your@{ub} hardware combination that makes it
+    go haywire and destroy everything.  This non-deterministic property
+    of computer software makes it impossible for me to take any responsibility
+    for any damage your computer might take during installation or
+    other stuff.
+
+    @{b}Localization@{ub}
+
+    I am sorry, but at the moment there are no localized version of PPT.
+    But there will be.
+
+    Tut mir leid, aber es gibt kein deutsches Version von PPT.  Aber
+    vielleicht schon im einigen Monaten...
+
+    Olen pahoillani, mutta PPT:stä ei ole olemassa vielä suomenkielistä
+    versiota.  Ehkä joskus...
+
+    Je suis desolée, mais il n'ya existe pas une version françaises de PPT.
+
+    Sumimasen ga, Nihon-go no PPT gozaimasen.
+
+    Apologies to people whose languages I have mishandled =)
+
+@endnode
+
+
+@node Introduction
+
+    @{i}Any nitwit can understand computers. Many do.
+                                                       -- Ted Nelson@{ui}
+
+    The Amiga has always been a graphics-oriented computer and there has
+    been  a  lot  of  commercial  image  manipulation  software  for it.
+    However, I've often wondered why  there  are  no  good  24bit  image
+    processing programs released as PD/Freeware or Shareware. Now I know
+    why. It is a gargantuan job :)
+
+    Anyway, recently some new programs  have  emerged  which  show  good
+    promise  and nice programming skills. (Hello there, you know who you
+    are :) So, I decided to add my own experience  in  the  ever-growing
+    Amiga Software Pool and here it is.
+
+    @{i}Another one megabytes the dust.@{ui}
+
+    You might say: "Oh no, another image processing program. What do  we
+    need these all for?" That is true. This @{i}is@{ui} an another image
+    processing program and you might never need it.  I  just  happen  to
+    think  that  it  is better to have many programs to choose from than
+    have just one "Market Standard". Just  look  what  happened  in  the
+    PC-world...
+
+    So, try this one out and if you don't like it, throw it away. If you
+    don't  like  it  but would like it to become better, write to @{"me" link Support}
+    and let me hear your suggestions.
+
+
+@endnode
+
+
+
+@node Requirements "Requirements"
+
+    @{i}Hardware: The parts of a computer system that can be kicked.@{ui}
+
+    You will need the following things in order to run PPT:
+
+        - OS 2.0 or higher (V36+)
+        - 1 Megabyte of main memory
+        - several Megabytes of free hard disk space for @{"virtual memory." link VM}
+        - @{"bgui.library" link BGUI} V41+.
+
+    To run PPT comfortably, I'd suggest however the following setup:
+
+        - OS 3.0+ (V39+)
+        - AGA Amiga (for many colors...)
+        - 68020 CPU or better.
+        - many Megabytes of true FAST RAM.
+        - @{b}lots@{ub} of hard disk space.
+
+    PPT was written on a Amiga 4000 with 68060/50 MHz, 2+12 Megabytes of
+    RAM and very little hard disk space which suddenly became a lot when
+    I got a brand new IBM 1.7 GB disk drive :-)
+
+    Software used includes SAS/C 6.58,  XDME  and  lots  of  other  tiny
+    programs.
+
+@endnode
+
+@node Installation "Installing PPT"
+
+    PPT does not require  much  to  be  installed.  Just  click  on  the
+    "Install"  -  icon and a standard Installer will take care of things
+    for you. If you do not have this  magnificent  package,  check  your
+    local   Aminet   site  (or  BBS  or  whatever)  for  a  file  called
+    Installer_43.3.lha or something similar.
+
+    It is possible to install PPT manually.  Here's how:
+
+    You can  run  PPT  from  the  directory  you  extracted  it  to,  no
+    assignments  or  anything  are  necessary. What you have to do is to
+    copy the contents of the  'libs'  subdirectory  to  the  appropriate
+    places.
+
+    a)  Copy libs/bgui.library to LIBS: (or wherever you keep your
+        libraries).  The bgui.library_e is the 68020 version that
+        requires OS3.0.  You may use that if you meet the specs.
+
+    b)  Copy libs/bgui_palette.gadget, libs/bgui_float.gadget,
+        and libs/bgui_bitmap.image to SYS:Classes/Gadgets (or wherever
+        you keep your gadgets).
+
+    c)  Add an assignment to JPEGTMP: to your User-Startup (or wherever
+        you keep your assignments).  It should point to a place where
+        you have plenty of space (a hard drive is preferable).
+
+    Other than that, just copy the PPT directory to wherever  you  like.
+    Just  don't  mess  with  the directory structure... (See @{"Modules" link Modularity}
+    for additional info.)
+
+@endnode
+
+@node Laws "Laws"
+
+    I would like to take this opportunity to remind you about the
+    simple and basic laws of computer programming:
+
+                 @{u}Troutman's Laws of Computer Programming@{uu}
+
+     1.   Any running program is obsolete.
+     2.   Any planned program costs more and takes longer.
+     3.   Any useful program will have to be changed.
+     4.   Any useless program will have to be documented.
+     5.   The size of a program expands to fill all available memory.
+     6.   The value of a program is inversely proportional to the weight
+          of output
+     7.   The complexity of a program grows until it exceeds the capability
+          of the maintainers.
+     8.   Information necessitating a change in design is always conveyed
+          to the implementors after the code is written.
+          Corollary:  Given a simple choice between one obviously right
+          way and one obviously wrong way, it is often wiser to choose
+          the wrong way, so as to expedite subsequent revision.
+     9.   The more innocuous a modification appears, the more code it will
+          require rewriting.
+    10.   If a test installation functions perfectly, all subsequent
+          systems will malfunction.
+    11.   Not until a program has been in production for at least six months
+          will the most harmful error be discovered.
+    12.   Interchangeable modules won't.
+    13.   Any system that relies on computer reliability is unreliable.
+    14.   Any system that relies on human reliability is unreliable.
+    15.   Investment in reliability increases until it exceeds the probable
+          cost of errors, or until someone insists on getting some useful
+          work done.
+    16.   Adding manpower to a late software project makes it later.
+    17.   There's always one more bug.
+.
+
+
+@endnode
+
+@node Thanks "Thanks, guys"
+
+    I'd like to use this opportunity to  thank  the  following  persons,
+    without  whom  PPT  would  either  not  exist  or  be  at least very
+    different:
+
+        - Jan van den Baard for @{"BGUI" link BGUI}, the coolest GUI
+          designer around.
+        - Ian J. Einman and Manuel Lemos for @{"BGUI" link BGUI} also.
+        - Simon P. Bullen for Fortify, which proved to be a very effective
+          tool when tracking down memory leaks.
+        - Commodore-Amiga design team for the Amiga.
+        - J. Michael Straczynski, who has proven that you can actually
+          make good TV shows, if you're convincing enough.
+        - SAS/C guys for continuing the support of THE Amiga C compiler.
+        - my @{"betatesters" link betatest}.
+        - A. Tolonen for the great-looking icons.
+
+    I would also like to extend my gratitude to Heli,  who  has  endured
+    these  long  hours  of  coding with patience I don't believe I would
+    have had.
+
+@endnode
+
+
+@node BGUI "The BGUI package"
+
+    @{i}Software is to computers as yeast is to dough.
+                                        -- Chuck Bradshaw
+    @{ui}
+
+    PPT uses BGUI for the graphical user interface. This is a very  nice
+    package  from  Jan van den Baard, that allows one to write scalable,
+    font-independent code with OO methods very easily. I extend my  warm
+    thanks to you, Jan, for releasing this great program.
+
+    During 1996, Ian J. Einman (ie@az.com) took  over  BGUI  development
+    and  has been pouring sweat and effort into it. Thanks, Ian, for not
+    letting BGUI die.
+
+    And, when Ian's Amiga died, Manuel Lemos (mlemos@acm.org) started
+    taking care of it.  Geez, this package has died as many times
+    as the Amiga, now =)
+
+    Now BGUI has moved to AROS development team and become truly free
+    software.
+
+    PPT requires bgui.library V41.10 or later (included).
+
+    This is the current BGUI license.
+
+    @{i}
+    BGUI - BOOPSI Graphical User Interface
+    (C) Copyright 1997-2000 BGUI Developers Team
+    (C) Copyright 1996-1997 Ian Einman
+    (C) Copyright 1993-1995 Jan van den Baard
+
+    @(#) $Id: ppt.guide,v 1.1 2001/10/25 16:26:35 jalkanen Exp $
+
+    Permission to use and copy this software and its documentation for any
+    purpose is hereby granted without fee, provided, however, that the above
+    copyright notice appear in all copies, that both that copyright notice and
+    this permission notice appear in supporting documentation.  The authors
+    make no representations about the suitability of this software for any
+    purpose.  It is provided ``as is'', without express or implied warranty.
+    @{ui}
+
+    BGUI is available at http://www.bgui.e-na.net/
+
+@endnode
+
+@node Future "Future of PPT"
+
+    @{i}Nobody needs more than 640K of memory, ever
+                                            -- Bill Gates
+    @{ui}
+
+    I have some thoughts about how PPT will change in the future:
+
+    - Add PPC support.  (This actually is already in.  Since I don't
+      have a PPC card at the moment, I would like to welcome people
+      who could test PPC effects for me.)
+
+    - Add more color spaces.  Specifically I'd like to support
+      complex number spaces for FFT and IFFT effects.  This is gonna
+      be slow without an FPU, and could really benefit from a fast
+      CPU, such as the PPC.
+
+    - Animation support.  Basically, the hooks are there, but I haven't
+      yet got a clue how to support such matters.
+
+    - Better AREXX scripts, especially better batch processing scripts.
+      This is really a priority.
+
+    If you feel you could contribute to this list, write up a suggestion
+    and @{"mail it" link Support} to me!
+
+@endnode
+
+@remark ------------------------------------------------------------
+@remark                     CONCEPTS
+@remark ------------------------------------------------------------
+
+@node VM "Virtual Memory"
+
+    @{i}'Virtual' means never knowing where your next byte is coming from.@{ui}
+
+    Virtual Memory is a way to utilize  the  computer's  disk  space  as
+    memory.  That is, data which is currently unused is @{i}swapped@{ui}
+    onto the hard disk and fetched from there whenever the need arises.
+
+    The Amiga does not contain built-in virtual memory,  but  there  are
+    several  programs  like GigaMem and VMM that allow you to have extra
+    memory on disk. However, all these programs require a device  called
+    Memory Management Unit - or MMU for short - which is not standard in
+    most Amiga models. Only those machines with a true 68030, 68040  and
+    68060  processors  (NOT  the  EC  versions,  thus A4000/030 does not
+    qualify) have a MMU.
+
+    PPT circumvents this problem by utilizing it's  own  Virtual  Memory
+    scheme,  thus  allowing  even owners of 68000-based Amigas to handle
+    large images. Only thing required is a reasonably  fast  hard  drive
+    and LOTS of space.
+
+    @{i}One picture is worth 128K words.@{ui}
+
+    You can easily calculate how much free hard  drive  space  you  will
+    require:  Take  the image size and then multiply the height with the
+    width and the multiply the result by three to get how  much  a  full
+    @{"RGB" link ColorSpaces} picture takes memory.
+
+    For example, a standard 320 X 200 image  would  take  (320*200*3  ==
+    192000  bytes (187 kBytes) of memory. A 640 X 480 picture would take
+    900 kBytes. And of course, if you wish to retain any  undo  buffers,
+    you  will  soon  notice  that  your  main memory would be completely
+    depleted, if you wouldn't use virtual memory.
+
+    PPT will always use virtual memory. It is not possible  to  turn  it
+    off,   but   if   you   define  a  big  enough  VM  page  size  (see
+    @{"Preferences/VM Settings" link  VMSettings),  PPT  won't  probably
+    NEED  the disk space, but retain everything in memory. The disk file
+    is created, anyways, so that undo buffers can be used.
+
+    NB: PPT is not compatible with the Shareware  program  VMM,  because
+    the  data  PPT  uses is shared between different tasks all the time,
+    which means PPT makes its memory allocations using  the  MEMF_PUBLIC
+    flag.  However, you can use RAM: as the PPT virtual memory directory
+    and set RAM to use VMM.
+
+@endnode
+
+@node Modularity
+
+    @{i}Every program is a part of some other program, and rarely fits.@{ui}
+
+    PPT - unlike many other programs - cannot do very  much  by  itself.
+    The    functionality   for   the   program   comes   from   external
+    @{i}modules@{ui}, which contain executable code.
+
+    Currently PPT understands about two types of external modules: Loaders
+    and Filters.
+
+    @{"IOModules" link loaders.guide/Main} are modules, which contain code to either save or load
+    pictures.
+
+    @{"Effects" link effects.guide/Main} are modules, which take one image as input and produce an
+    another image. They are the basis for PPT's image manipulation.
+
+    This modularity means that you can easily extend PPT's functionality
+    by  adding more external modules, which will appear to the user just
+    like the ready-made ones.
+
+    By default, PPT will search for its modules in the PROGDIR:modules¹
+    subdirectory.
+
+    Since V3 PPT modules contain information about for  which  CPU  type
+    the  module  has  been  compiled  for. When PPT is starting, it will
+    check the CPU of your machine and use the best possible  effects  it
+    can  find. You can figure out which effect is compiled for which CPU
+    by looking at its name. An effect compiled for the  68020  CPU  will
+    have a _020 - postfix or something similar to its name.
+
+    It is quite safe to keep several versions of the same effect in  the
+    modules  -  directory. PPT will figure out which one is the best for
+    your machine.
+
+-----
+¹ PROGDIR: is the directory from which PPT was started.
+
+    (Now, why the hell is there a @{i}footnote@{ui} in a hypertext document?
+     I must be going mental or something...)
+
+@endnode
+
+@node ColorSpaces "Color Spaces"
+
+    @{i}Wow... Look at all the colors...
+                                                         -- Dirac@{ui}
+
+    Images can be represented in many ways. Probably the most common two
+    are  RGB  and  grayscale,  but  there  are  many others as well. PPT
+    supports the two aforementioned formats:
+
+    RGB - Each pixel of the image is represented as a combination of three
+          main colors: Red, Green and Blue. Every component may have up to
+          256 values (8 bits or one byte) which yields 16 million different
+          color combinations. This is the standard presentation in almost
+          everywhere for true color images.
+
+    Greyscale - Every pixel is represented by one byte, giving the
+          effective range of 256 different gray levels. This has the
+          advantage of taking only one third of memory versus RGB, but
+          unfortunately, all color information is lost.
+
+    ARGB - This format is like the RGB format, but it contains an extra
+          channel for transparency.  It is thus possible to specify a
+          transparency value between 0 and 255 for each pixel separately,
+          at the cost of some extra memory consumption.  0 means no
+          transparency and 255 means fully transparent.  Check out the
+          @{"Transparency" link effects.guide/Transparency} effect.
+
+          The extra memory cost compared to an RGB image is 1 byte/pixel.
+
+          For more information, see @{"Alpha Channels" link AlphaChannel}.
+
+    In the future, PPT may well support more color space formats, as  it
+    has been designed to be as extensible as possible.
+
+@endnode
+
+@remark ------------------------------------------------------------
+@remark                 Menus and Windows
+@remark ------------------------------------------------------------
+
+@node Menus "Menu selections"
+
+    By clicking the right mouse button you will get a bunch of menus,
+    from which you can choose the following items:
+
+    @{b}Project Menu:@{ub}
+        - @{" New...        " link New}
+        - @{" Open...       " link Load}
+        - @{" Open As...    " link LoadAs}
+        - @{" Save As...    " link SaveAs}
+        - @{" Rename...     " link Rename}
+        - @{" Hide/Show     " link Hide}
+        - @{" Close         " link Close}
+
+        - @{" Preferences..." link Preferences}
+
+        - @{" About PPT     " link AboutPPT}
+
+        - @{" Quit          " link Quit}
+        - @{" Quit, lose changes " link Quit}
+
+    @{b}Edit Menu:@{ub}
+        - @{" Undo          " link Undo}
+        - @{" Cut           " link CopyPaste}
+        - @{" Copy To New   " link Crop}
+
+        - @{" Copy          " link CopyPaste}
+        - @{" Paste         " link CopyPaste}
+
+        - @{" Zoom In       " link Zoom}
+        - @{" Zoom Out      " link Zoom}
+
+        - @{" Select All    " link Select}
+
+        - @{" Edit Info...  " link EditInfo}
+
+    @{b}Display Menu:@{ub}
+        - @{" Settings...   " link RenderSettings}
+        - @{" Render        " link Render}
+        - @{" Close Render  " link CloseRender}
+
+        - @{" Correct Aspect " link CorrectAspect}
+
+        - @{" Palette     >>" link Palette}
+
+    @{b}Process Menu:@{ub}
+        - @{" Process...    " link Process}
+        - @{" Break         " link Break}
+
+    @{b}@{"Window Menu" link Windows}:@{ub}
+        - @{" Frames        " link MainWindow}
+        - @{" Toolbar       " link Toolbar}
+        - @{" Select        " link Select}
+        - @{" Effects       " link EffectsWindow}
+        - @{" Loaders       " link LoadersWindow}
+        - @{" Scripts       " link ScriptsWindow}
+
+
+@endnode
+
+@node Windows "Windows"
+
+    There are many windows to look about.
+
+        - @{" Images  " link ImageWindow}
+        - @{" Frames  " link MainWindow}
+        - @{" Toolbar " link Toolbar}
+        - @{" Select  " link Select}
+        - @{" Effects " link EffectsWindow}
+        - @{" Loaders " link LoadersWindow}
+        - @{" Scripts " link ScriptsWindow}
+
+    You can toggle the existence of these windows by using  the  Windows
+    menu and selecting the item. A checkmark tells you if this window is
+    currently open.
+
+@endnode
+
+@node New "Making up a new project from scratch"
+
+    You can use this menu item to create a new, empty image.  Note that
+    what this actually does is that it calls the external I/O module
+    called 'Plain', so the effect is the same as if you had used the
+    "Open As..." menu item and opened the 'Plain' loader.
+
+    For more information on how this one works, see @{"here" link loaders.guide/Plain}.
+
+@endnode
+
+@node Load "Loading a new project"
+
+    When you choose to open a new project, a standard ASL requester will
+    pop  up  and  ask  for the file name. When you've chosen a file, PPT
+    will automatically attempt to recognize the file type  and  load  it
+    in.  You may also choose several files, but not directories.
+
+    The last selected path is saved along with other  preferences,  when
+    you select "Save" in the @{"Preferences" link Preferences} requester.
+
+@endnode
+
+@node LoadAs "Loading a new project"
+
+    This will proceed exactly as a standard @{"Open" link Load}, but you will be
+    asked for a file type first.  This may be useful if a loader
+    cannot recognize a file, so you can try to feed the file directly
+    to it.
+
+    Some loaders do not need a file, but  they  create  the  frame  with
+    algorithms. This is the only way to access those loaders.  One such
+    loader is called @{"Plain" link loaders.guide/Plain}.
+
+@endnode
+
+@node SaveAs "Saving a project"
+
+    Save As... : Saves the current frame onto the disk, asking for
+        the format and filename first. You will be presented a requester,
+        in which you can select the filename (click on the gadget at the
+        top right corner to select the file using ASL File Requester).
+
+        You can also choose the format to save the image as by  clicking
+        on  the  listview  requester  at the left. If the saver supports
+        other  image  formats  than  24  bit,  you  may  click  on   the
+        multiple-choice  gadgets on the right to select the more precise
+        format.
+
+        There are currently two choices: 24 bit and colormapped. To save
+        a   colormapped   image,  you  must  first  render  the  picture
+        separately. (See @{"Render/Settings" link RenderSettings}).
+
+        Finally, click "OK" to save the image on the  disk.  Should  the
+        saver  require any additional parameters, you will be asked them
+        before the save is commenced.
+
+        See here for a @{"list of the savers" link loaders.guide/main}.
+
+    NB: At the moment I have not implemented a pure 'save'.  This is
+    because I haven't figured out how it should work in the terms of
+    options, such as if you have a JPEG image, should it automatically
+    remember the compression options, etc?  @{"Send me" link Support} some feedback,
+    if you have any ideas...
+
+@endnode
+
+@node Rename
+
+    Renames the current frame. Just use the keyboard to edit a new  name
+    for  the  frame.  Note  that  if  a frame with the same name already
+    exists, a number in brackets will be added to the name.
+
+@endnode
+
+@node Hide "Hide/Show"
+
+    This menu item will hide the image, or if the image  is  hidden,  it
+    will re-open the window.
+
+    An another possibility to reopen the window is  to  double-click  on
+    the name of the image in the @{"Frames" link MainWindow} window.
+
+    Also, you can use the gadget in the image window top border to  hide
+    the image. Sorry for the imagery, it sucks.
+
+@endnode
+
+@node Close "Closing a project"
+
+    When you get bored with a frame use this  menu  item  to  delete  it
+    away. Poof, it says and goes away. Asks you first, though. It does.
+
+    This does not delete the image file from the disk, only from memory.
+
+@endnode
+
+@node Preferences "Preferences Settings"
+
+    @{i}Reality is nothing but 80 million polygons per second.
+                                        -- Alvy Ray Smith, 1960s
+
+    We can do that now.
+                                        -- Silicon Graphics, 1997,
+                                           when releasing the Onyx2.
+    @{ui}
+
+
+    You can configure several program related preferences here. They are
+    divided on four pages:
+
+    @{b}System@{ub}
+        @{"VM Directory" link VMSettings}
+        @{"Page Size" link VMSettings}
+        @{"External Stack" link VMSettings}
+        @{"External Nice" link VMSettings}
+
+    @{b}GUI@{ub}
+        @{"Main Font" link Fonts}
+        @{"List Font" link Fonts}
+        @{"Screen Mode" link MainScreen}
+        @{"Color preview" link MainScreen}
+        @{"Preview Mode" link MainScreen}
+        @{"Dither preview" link MainScreen}
+
+    @{b}Misc@{ub}
+        @{"Max. Undo Levels" link MiscSettings}
+        @{"Flush Modules" link MiscSettings}
+        @{"Enable Tips" link MiscSettings}
+        @{"Show splash screen" link MiscSettings}
+
+    @{b}Toolbar@{ub}
+        @{"Available Buttons" link ToolbarSettings}
+        @{"Toolbar" link ToolbarSettings}
+        @{"Toolbar Item Type" link ToolbarSettings}
+
+    At the bottom of the window, you have three  choices  for  different
+    actions after you've changed the settings:
+
+    @{b}Use@{ub}
+        The preferences will be acted upon  immediately.  However,  some
+        settings  cannot  be  used  until the next restart of PPT and if
+        you've made any such modifications you'll be told about it.
+
+        (When you quit, preferences are automatically saved.)
+
+    @{b}Cancel@{ub}
+        Discards changes and reverts back to old settings.
+
+@endnode
+
+@node VMSettings "System Settings"
+
+    There are two variables PPT cares about when  dealing  with  virtual
+    memory:
+
+    @{b}VM Directory@{ub}
+        This variable tells where PPT should  keep  its  virtual  memory
+        files.  I suggest you choose a fast hard drive with lots of free
+        space. It is quite possible to have it in RAM: or T:, if you can
+        afford  the  memory. Then the overhead of reading and writing to
+        the VM file is quite small.
+
+        PPT is uses T: by default for its VM directory.
+
+    @{b}Page Size@{ub}
+        The size of the 'chunk' PPT reserves from the main  memory  pool
+        for  each  frame.  If  the  image is smaller, then PPT will only
+        reserve as much memory as it needs.
+
+        The larger this value is, the faster PPT gets, because  it  does
+        not  have to do as many page swaps per image. It basically tells
+        how much memory PPT is allowed to use per frame and if  you  set
+        it  to something like 2 Megabytes (2000 kbytes) only the largest
+        images will then use virtual memory and the  smaller  ones  will
+        just use the RAM.
+
+        The size is in KBytes. The minimum possible value is 96 Kbytes.
+
+        Note that PPT won't allocate more memory than is needed for  the
+        image.  Also, undo images require very little memory, as they're
+        kept almost completely in the VM directory.
+
+    There are also settings concerning the externals:
+
+    @{b}External Stack Size@{ub}
+        You can use this to set the stack size of the external processes
+        that  are launched for different processes. You may not go below
+        5000 bytes and the recommended setting is 10000 bytes.  If  you
+        start  to  see really strange crashes, try increasing this value
+        and see if the problems go away.
+
+    @{b}Priority@{ub}
+        You can set the priority of any subprocess started by  PPT  with
+        this  gadget.  I  recommend  you keep it below zero, as then any
+        processing you do should not affect your other  duties.  If  you
+        don't know about processes, don't touch this knob ;-)
+
+    @{b}External Nice Value@{ub}
+        If  you  have  Petri  Nordlund's  excellent  Executive   package
+        installed, you can use this slider to set the nice value for all
+        external processing. The larger the nice value is, the easier it
+        is for other tasks to take the CPU from the external process.
+
+        The default value is 10, a good  value  if  you  run  a  lot  of
+        processing. You can set it to anywhere between -20 and 20 (but I
+        really don't recommend setting it smaller than zero!)
+
+    By the way, did you know that a polar bear is just a cartesian  bear
+    undergoing a coordinate transformation?
+
+@endnode
+
+@node Fonts "PPT Fonts"
+
+    PPT uses two fonts:
+
+    @{b}Main Font@{ub}
+        This is the font which is used for the screen,  gadgets,  window
+        titles, etc. I suggest this font is a large and readable one.
+
+    @{b}List Font@{ub}
+        This font is used in any list  PPT  creates.  For  example,  the
+        loaders and effects lists use this font. I suggest you keep this
+        font a bit smaller and more condensed, which allows you to  have
+        smaller windows but still see things.
+
+@endnode
+
+@node MainScreen "Setting the Main Screen"
+
+    @{b}Screen Mode@{ub}
+        This tells which screen mode you are currently using.  Click  on
+        the  button  gagdet  on  the  right to get a standard ASL screen
+        requester (ASL.library V38+ required!) in which you can set  the
+        screen depth, size, resolution and mode.
+
+    @{b}Color Preview@{ub}
+        If this is toggled, then all PPT  preview  windows  will  be  in
+        color.  Note  that you need at least a 32 color (depth 5) screen
+        for this to work.
+
+        If a color screen cannot be opened or this item is not set, then
+        PPT will use a grayscale screen.
+
+        PPT supports OS 3.0 color sharing schemes. All  the  colors  PPT
+        uses  have been locked using shared mode and some colors may not
+        be locked at all.
+
+    @{b}Dither Preview@{ub}
+        If you check this option, the displays are dithered.  Unfortunately
+        this will somewhat slow down the display, though this should
+        be quite unnoticeable.  Dithering is done with a very simple
+        ordered dither technique, but the pictures look a lot better.
+
+        Note that this does in no way effect how the image really looks
+        in memory.  It just helps to show more colors if your display
+        cannot display all the colors in the picture.
+
+        This setting is ignored for hi- and truecolor displays.
+
+    @{b}Preview Mode@{ub}
+        Some effects can show a real-time preview. You can use  this  to
+        control  the  size  of the preview images. You should do this to
+        reflect the speed of your machine: on a 060 the 'Large'  setting
+        should be your choice.  The Huge setting is for those with both
+        graphics and CPU power to spare.
+
+        You can also turn the previews off completely.
+
+@endnode
+
+@node MiscSettings "Miscallaneous Settings"
+
+    @{b}Max. Undo Levels@{ub}
+        You can only have this many undo levels.  Note that this means
+        that for every undo frame, a copy is held in the @{"VM directory" link VMSettings}
+        and thus will eat away your RAM or hard drive space (depending
+        on where the @{"VM directory" link VMSettings} is placed.)
+
+        The default is 4 undo levels.  There is no practical limit to
+        this value.
+
+    @{b}Flush modules when they're not needed?@{ub}
+        If you check in this box, PPT will attempt to reduce its  memory
+        consumption by flushing all unused external modules from memory.
+        Depending on the situation, this can free a lot  of  memory.  On
+        the downside, this slows down operation a bit, since any modules
+        must still be loaded from disk when it is used.
+
+        The default is to keep all modules in memory.
+
+        NB: Since PPT modules are standard Amiga shared  libraries,  you
+        can  use  any  suitable  tool  to  flush  them  from memory. For
+        example,  saying  "Avail  FLUSH" in a CLI window will flush away
+        all unused libraries, including PPT modules.
+
+    @{b}Confirm Requesters?@{ub}
+        Sometimes saying 'OK' to all kinds of boring requesters can be
+        dull.  If you think that this is the case, then uncheck this
+        box and PPT won't ask you to confirm your choices.  For example,
+        if this box is unchecked and you decide to delete a frame,
+        you won't be asked if this is what you really want to do.
+
+        Also, some of the more obvious error messages are replaced with
+        a sound signal and a flashing screen (DisplayBeep() for those who
+        care.)
+
+        This option is for power users and thus should be used sparingly
+        if you're not quite sure what you're doing.
+
+    @{b}Enable Tips?@{ub}
+        If you want to see tips when PPT starts, then check this box.
+
+        If you find tips annoying, uncheck this box.
+
+    @{b}Show splash screen?@{ub}
+        If you don't like the nice PPT startup splash screen, then
+        uncheck this box to speed up starting.
+
+        Note that one an Amiga with OS3.x the splash screen contains
+        a banner image.  You may exchange your own banner by putting
+        it into the PROGDIR:GUI directory under the name "Banner".
+        The image is loaded using datatypes, and should contain
+        at most 256 colors.
+
+@endnode
+
+@node ToolbarSettings "Toolbar Settings"
+
+    Here you may configure the toolbar.  The left-hand listview
+    shows which items you have available and the middle listview
+    displays the current toolbar configuration.  Use the arrows
+    in the middle to move things back and from the toolbar.  You
+    may also use drag & drop.
+
+    It's possible to use either images or text as the labels for
+    the buttons, though in order to use images, you must be running
+    AmigaOS 3.0 or later.  Sorry, this may change in the future.
+
+    In order to use a button image, just load in any bitmap image
+    you'd like.  There are no color/size restrictions, though some
+    combinations will look funny.
+
+    A default button set is in the GUI/toolbar/standard directory.  If
+    you make a good-looking button set, why don't you send me yours.
+    The standard icon set was kindly provided by A. Tolonen and is
+    is a 22x17 pixels, 4-color set.
+
+@endnode
+
+@node AboutPPT "About PPT"
+
+    This menu selection will show you some information on the
+    current status of PPT, as well as the @{"Author's" link Support} name
+    and address.
+
+@endnode
+
+@node Quit "Quitting PPT"
+
+     Quits the program.  You'll be asked if you really want to do this
+     or not, unless you have set @{"Confirm Requesters" link MiscSettings} to off.
+
+     Preferences are saved automatically on exit, unless you choose
+     @{b}Quit, lose changes@{ub}.  The preferences file resides in
+     ENVARC: and is called PPT.prefs.  It's in ASCII, so the more
+     technically minded may get a kick by checking it out.
+
+@endnode
+
+@rem ------------------------------------------------------------------
+
+@node Crop "Cropping an image"
+
+    @{b}Copy To New@{ub}
+        Creates a new frame and puts the cropped  area  into  that  one,
+        leaving the original one unscatched.
+
+@endnode
+
+@node CopyPaste "Copying and pasting"
+
+    You may @{"select" link Select} an area of an image and  then  copy  it  to  the  PPT
+    clipboard.   Then,  when  you  select  Paste,  it  will  launch  the
+    @{"Compositing module" link effects.guide/Composite}, which allows you to place the image  within  the
+    target image.
+
+    If you choose 'Cut' instead of 'Copy', the area you have cut will
+    be cleared to black.
+
+    This is almost the same as dragging an image from the list of frames
+    into a frame, but this allows more flexibility.
+
+@endnode
+
+@node RenderSettings "Render Settings"
+
+
+    In this window you can select how your  project  will  be  rendered.
+    Following options are available:
+
+    @{b}Screen Mode@{ub}
+
+    Use this to set the rendering screen mode. The field will  show  the
+    display id and next to it is a button from which you can call up the
+    ASL screenmode requester. This function requires asl.library V38  or
+    newer.
+
+    @{b}Render Mode@{ub}
+
+    This is a cycle gadget, from which you can select how your render is
+    to  be made. Here you can specify if you want it to be normal color,
+    Extra Halfbrite, HAM or HAM8.
+
+    PPT uses a specialized algorithm for HAM images to provide  a  great
+    image  quality.  Which  is why it takes a bit longer to generate the
+    palette for a HAM/HAM8 image. Just sit tight :-)
+
+    @{b}Dither@{ub}
+
+    There are several dithering options available. The  least  effective
+    and  also  least computationally intensive (read: faster) are on top
+    and the slower but better ones are nearer the bottom.  You  can,  if
+    you  really want to, use dithering while in HAM modes, but it is not
+    recommended, however.
+
+    @{b}Colors@{ub}
+
+    If you're using Normal Color - option in the Render Mode-gadget, you
+    can specify the amount of colors here.
+
+    @{b}Force B/W?@{ub}
+
+    Normally after PPT places the darkest color (ie the most  black)  at
+    color  table  position 0 and the brightest color (ie the most white)
+    at color table position 1. If you want the color table entries 0 and
+    1  to  actually  be  black  and white, respectively, then check this
+    option. It can sometimes enhance the image quality if you're using a
+    very small number of colors.
+
+    @{b}Palette@{ub}
+
+    Tells how the palette should be  chosen.  There  are  three  methods
+    available:
+
+    Median Cut : An optimized Heckbert median cut algorithm, which
+                 often produces the best results.
+
+    Popularity : A simple algorithm that uses the most popular colors
+                 in an image.
+
+    Force      : This forces the palette from an other image onto this
+                 image.  You may enter the filename into the string
+                 gadget next to this or by clicking the button to the
+                 right of the gadget, use the ASL file requester.
+
+                 The palette must be in IFF format, so you can use
+                 any colormapped ILBM image to get the palette from.
+
+    @{b}Draw Alpha?@{ub}
+
+    If the checkbox is selected, then the image alpha channel  will  be
+    rendered  as  well.  This  means that if there are some areas which
+    have been marked as totally transparent, you will not see  anything
+    on them. However, this is quite useful if you're planning to save a
+    transparent image.
+
+    @{b}OK@{ub}
+
+    Click this to accept the current settings and start rendering.
+
+    @{b}Cancel@{ub}
+
+    This will forget your changes and close the window.
+
+@endnode
+
+@node Render "Rendering"
+
+    PPT  handles  images  internally  in  full  @{"24bit  format" link ColorSpaces}
+    (or 8bit, if the image is a grayscale image). Sometimes  it  may  be
+    necessary  however  to  reduce  the colors of an image or view it in
+    color (if you happen to use the grayscale preview...)
+
+    Rendering will take the  @{"existing  preferences" link RenderSettings}
+
+    and attempts to render your image according to them.  You  may  then
+    save this rendered image to disk as a colormapped image.
+
+    Rendering will be done in a separate process yet again, so  you  can
+    always do something else while the system chews on your image.
+
+@endnode
+
+@node CloseRender "Close a Rendered Image"
+
+    Select this menu item to close a rendered image. Until you do  this,
+    the image will be out there, eating away your precious RAM.
+
+@endnode
+
+@node CorrectAspect "Correct Aspect Ratio"
+
+    Since PPT allows you to resize the image at will,  you'll  get  very
+    easily  distorted  images.  This  operation  allows you to instantly
+    resize your image window so that it has the correct aspect ratio.
+
+@endnode
+
+@node Palette "Palette editing"
+
+    If you have a rendered image, you can use this menu item to further
+    edit it.
+
+    This menu item has three sub-menus:
+
+    @{b}Edit...@{ub}
+
+    Opens up a palette editor in the screen that contains the image.  It
+    is quite a normal palette editor with R, G and B components, but you
+    can also use it to set the Alpha channel information on each color.
+
+    When you save a rendered  image  in  a  file  format  that  supports
+    transparent  colors, the transparency information is now saved along
+    with the colormap. PNG images support full transparency  information
+    for  each  color,  whereas  GIF  images support only one transparent
+    color. If only one transparent color can be saved,  the  color  with
+    the highest transparency value is marked as transparent *or* the one
+    that is the first to have a transparency value of 255.
+
+    @{b}Load...@{ub}
+
+    Loads a palette on the image. It was better if you  used  the  Force
+    Palette  on  the Rendering settings, as it can cope with some things
+    better than this.
+
+    @{b}Save...@{ub}
+
+    Use this to save the current palette on disk. The palette  is  saved
+    in  IFF  format  and  can be read in by almost any software package.
+    Note that PPT saves the alpha channel information in a separate hunk
+    called  "ALFA".  Unfortunately, this is an unregistered hunk and can
+    cause confusion with some software. Let me know if this happens.
+
+@endnode
+
+@node Process "Processing images"
+
+    After selecting  this  item,  you  can  choose  an  @{"effect" link effects.guide/Main}
+    through which your @{"selected area" link Select} will be  run.  You
+    must  first click on the name of the filter and then choose Execute.
+    Some filters will require you to set some additional options  before
+    actually executing. You will then see a progress display in a window
+    while the filter does its job.
+
+    The processing is done as a  separate  process,  so  you  can  still
+    continue to work on other images, but you cannot work on this image,
+    until the processing has completed. It  is  possible  to  resize  or
+    close  the  image  window,  but you will only see a busy text if you
+    attempt to redraw the window.
+
+    You may break the process any time by clicking on the @{"Break" link break}
+    - button on the progress window or by choosing the @{"Break" link break} Menu item.
+
+@endnode
+
+@node Break "Break"
+
+    Clicking on this button or choosing the menu item  causes  a  CTRL-C
+    signal to be sent to the external process (ie. Load, Save, Effect or
+    Render) that is  currently  processing  this  frame.  The  execution
+    should stop.
+
+    Note: Due to the multitasking nature of  the  software,  it  may  be
+    possible  that  it takes a short while for the signal to get through
+    to the external process. Do not get alarmed, if nothing  happens  at
+    first.
+
+@endnode
+
+@node AlphaChannel "Alpha channels"
+
+    @{b}NB: This changed completely in v4.3!@{ub}
+
+    Alpha channels define the @{i}transparency@{ui} of a pixel. If  the
+    transparency  value  (also  called  alpha) of a pixel is zero, then
+    that pixel is completely opaque. If it is 255, then the pixel would
+    be completely transparent, regardless of what color the image might
+    be. A value of 128 would mean that the pixel is half-transparent.
+
+    You can add an alpha channel to the image at any time  by  dragging
+    the  alpha channel image you want from the main frame list into the
+    target image. This will produce a requester window from  which  you
+    can  choose  to add the alpha channel. (The other possibility would
+    be to @{"Composite" link effects.guide/Composite} the images together.)
+
+    When you add the alpha channel, the target image will become an ARGB
+    type image, with the alpha values taken from the alpha image.  Also,
+    if there was a previous alpha channel, the values will be replaced
+    by the new alpha values.
+
+    If the alpha image is an RGB image, the alpha values will be  based
+    on  the  intensity  of  each  image.  White  color  will  produce a
+    transparent pixel, and black color will produce an opaque pixel.
+
+    If the alpha image is an  ARGB  image,  you  will  be  presented  a
+    requester,  from  which  you  can  choose whether to copy the alpha
+    channel of the alpha image to  the  target  image  or  to  use  the
+    intensity values of the alpha image to build the alpha values.
+
+    @{b}Displaying alpha channels@{ub}
+
+    When an image contains an alpha channel, you will notice this by  a
+    checkerboard  pattern  in  the  image.  You  can  think  of it as a
+    background pattern, which can be seen through when the transparency
+    value of the image allows it.
+
+    When you @{"render" link Render} an image, you can choose, whether  you'd  like  the
+    transparency to be taken into account. See @{"Render Settings" link RenderSettings}.
+
+    ---
+
+    Why use alpha channels?  Because they're cool.  And they make your
+    web page look a lot better ;-)
+
+@endnode
+
+@node Undo "Undo"
+
+    Sometimes even the  wisest  make  mistakes.  That  is  why  an  undo
+    -function is a necessity.
+
+    Whenever you modify an image, PPT will keep a copy of  the  original
+    one, so that when you choose this menu item, you'll get the previous
+    version back.
+
+    You can set how many copies PPT keeps from the @{"Preferences" link Preferences} menu.
+
+    Note that if you keep very many  copies  your  disk  space  will  be
+    seriously depleted, however main memory is not used almost at all.
+
+@endnode
+
+@node Zoom "Zooming"
+
+    Use  these  two  menu  items  to  control  zooming   in   and   out,
+    respectively.
+
+    Zoom In takes the currently @{"selected area" link Select} and enlarges it to fill
+    the entire window.
+
+    Zoom out currently zooms back to the entire image.
+
+    You can move around in the image while zoomed by  using  the  slider
+    gadgets in the window borders.
+
+@endnode
+
+@node Select "Selecting an area"
+
+    It is not necessary to apply your effects to the entire  image.  You
+    can  use  the  PPT selection tool to limit the area you are going to
+    edit. This can happen in several ways.
+
+    @{b}The Mouse@{ub}
+        Use the mouse to select an area.  That's right, just click
+        anywhere on the image and drag the mouse around and keep the
+        left mouse button pressed down.
+
+        If you are not happy with the area you selected, you can grab
+        the corners of the area (use the small squares) and resize it
+        again.  If you wish to move the area you have selected, press
+        down CONTROL and grab the area with the left mouse button.
+
+    @{b}The Edit Menu/Select All@{ub}
+        Use the Edit menu and select "Select All".  This selects the
+        entire image to be your select area.
+
+    @{b}The Selection Window@{ub}
+        Open up the Selection window (from the Window menu).  In this
+        window you will see the selected area in real-time.  You can also
+        write the exact values into the string gadgets of this window.
+
+    If you do not select anything, the entire image will be affected.
+
+    Note that some effects may well reset the selected area, because  it
+    may  be  difficult  to  predict  what  the  area  should  be after a
+    modification.
+
+@endnode
+
+Hi!  This is a secret message!  Mail me, if you've noticed it!
+
+@node Extensions "Editing interesting tidbits"
+
+    Extensions could  be  almost  anything:  some  image  types  use  an
+    extension  to  save  image-specific data like compression options or
+    something else; some use it to save textual  information  about  the
+    image or its creator. Extensions can be edited using the "Edit" menu
+    item "Edit Info".
+
+    PPT understands three standard Extension names:
+
+    "@{fg highlight}Author@{fg text}" - this is basically your own name.
+
+    "@{fg highlight}Annotation@{fg text}" - this is an annotation string, for example image
+        copyright, what software was used and so on.  Basically any
+        information you might want that the user sees.
+
+    "@{fg highlight}Date@{fg text}" - A string containing the creation date for this image.
+
+    You are not restricted to these, of course. You can invent your  own
+    and  some  image  formats  can  retain most of them when saving your
+    image. However, you should see the descriptions of the IO modules to
+    see which loaders save which Extensions.
+
+    Another possible use for this screen  is  that  you  might  want  to
+    remove  an existing Extension from a saved image. This you can do by
+    selecting the Extension name using the left-hand listview  and  then
+    clicking  on  "Remove".  You will, of course, asked for confirmation
+    before the item is removed.
+
+    Note that the Extension names are case specific,  i.e.  "Author"  is
+    different  from  "AUTHOR" or "auThoR". PPT understands only when the
+    extension is written @{b}verbatim@{ub}.
+
+@endnode
+
+@node MainWindow "The frames window"
+
+    @{i}If a train station is where the train stops, what is work station?@{ui}
+
+
+    This window contains the master list of different  images  you  have
+    opened.  It will also inform you about the status of the images, by
+    showing the letter 'B' next to the image if the image is busy at the
+    moment and 'R' if it has a currently open rendered image.
+
+    On the bottom line, you can actually see some attributes  valid  for
+    this image.
+
+    If the image is hidden, (see @{"Project/Hide" link Hide}) you can also reopen
+    the image by double-clicking on the image name.
+
+    If you wish to @{"composite images"  link  effects.guide/Composite},
+    you  can  grab a frame in this window and drag&drop it to an another
+    window. Just click on a name, keep the mouse button pressed and move
+    the  cursor  onto  the image you wish to composit this image on. You
+    will be presented with three choices:
+
+    Alpha Channel
+        See @{"Alpha Channels" link AlphaChannel}
+
+    Composite
+        See @{"Composite" link effects.guide/Composite}.
+
+    Cancel
+        Selbstverständlich.
+
+
+@endnode
+
+@node Toolbar "Toolbar"
+
+    The toolbar is a small window located initially to the  bottom  left
+    corner of the display. It has a couple of useful buttons and it also
+    can tell you the co-ordinates of your mouse cursor relative  to  the
+    current image.
+
+    This window will, in the future contain a lot more functionality.
+
+    You can close the window by clicking on the close gadget or by using
+    the  'Windows'  -  menu  to toggle it off. You can get it back on by
+    using the Windows - menu.
+
+@endnode
+
+@node EffectsWindow "Effects Window"
+
+    This window is lists all of the @{"effects" link effects.guide/main} at your disposal.  You can
+    get information on any effect module by selecting it (click once
+    over the name) and then clicking on the 'Info' gadget.
+
+    You can execute an effect on the current image by double-clicking
+    the name or by selecting it and then selecting 'Go!'.
+
+    This window can be toggled on and off by the Windows - menu.
+
+    See the chapter about @{"Processing" link Process}.
+
+@endnode
+
+@node LoadersWindow "Loaders window"
+
+    This window will list all of the @{"loaders" link loaders.guide/main} at your disposal.  You
+    can use this window to get information on a loader, just click on
+    the name and then on "Info".
+
+    The other main use of this window is  to  force  to  run  a  certain
+    loader.  Normally,  when  you  tell  PPT  to load a file, it will go
+    through all loaders until it can find one which can  understand  the
+    file  in  question.  However,  some  loaders  may  not be capable of
+    recognizing file types (for example, if the data is in a raw format)
+    and you may need this option then.
+
+    Also, some loaders do not do disk loading,  but  they  generate  the
+    image  by  some algorithmic means. This window is the only way (save
+    @{"AREXX" link arexx.guide/main}) to use those loaders.
+
+@endnode
+
+@node ScriptsWindow "Scripts window"
+
+    The script window shows all @{"AREXX" link arexx.guide/main} scripts available to you.  Or to
+    be more precise, those scripts PPT knows about.
+
+    You can run a script by double-clicking on it's name or selecting it
+    and clicking on "Go!".  "Info" will show you what the script looks
+    like.
+
+    NB: "Info" uses MultiView on systems that have Workbench 3.0 installed.
+    If you have 2.x, then PPT will check your "PAGER" environment variable.
+    If that does not exist, it uses "More".  Note that More is not able
+    to open on the right screen, so you'll have to look it up in your
+    Workbench screen.  One more reason to upgrade to 3.x.
+
+    The program specified in PAGER should support the "PUBSCREEN"
+    command line argument.
+
+    You can close this window by clicking on  the  close  gadget  or  by
+    toggling the "Scripts" - menu item from Window menu.
+
+@endnode
+
+@node ImageWindow "The image itself"
+
+    This window will show you a quick preview of an image.  Depending
+    on the current @{"settings" link MainScreen} it may be in 
+    @{"black and white" link Colorspaces} or in @{"color" link
+    Colorspaces}.  Of course, a black and white image cannot be
+    rendered in color, even if the window was in color.
+
+    You may resize this image at will and you can choose 
+    @{"Correct Aspect" link CorrectAspect} in the Display Menu to
+    restore the original aspect ratio.
+
+    Also, after @{"zooming" link Zoom} in, you can use the slider gadgets in the
+    window borders to center more accurately to the area you wish to
+    see.  
+
+    Lastly, there's an extra gadget at the top of the window in
+    addition to the standard Intuition gadgets.  Use this gadget to
+    @{"iconify" link Hide} the image.
+
+    SEE ALSO: @{"Selecting an area." link Select}
+
+@endnode
+
+@remark -------------------------------------------------------------------------
+@remark         Here starteth the miscallaneous stuff
+@remark -------------------------------------------------------------------------
+
+
+@node Notes "Technical notes"
+
+    @{i}People who deal with bits should expect to get bitten
+
+                                            -- Jon Bentley
+    @{ui}
+
+
+    There are some ... quirks in how PPT handles things.  Here's a short
+    list of them:
+
+    - You may notice, that after the installation procedure PPT has many
+      external  modules  in  the modules-subdirectory, and some of these
+      seem to be the same module, except that some  have  been  compiled
+      for  different  processors.  This  is  not an error, since PPT can
+      recognise the different versions during run-time. You  can  safely
+      keep  the different versions in the directory, PPT will figure out
+      by itself, which one to use.
+
+    - PPT has a rudimentary form of memory protection built  inside.  It
+      checks its internal pointers from time to time and will notify you
+      if it finds something wrong with them. If you see a  message  that
+      claims  an "Illegal Memory Access" has happened, it means that the
+      machine is an unpredictable state. You should quit PPT immediately
+      in order to minimize the damage.
+
+    - You may also see a "Soft Error"  message.  This  is  PPTs  way  of
+      telling  you  that  it  has  noticed a bug in itself. If this ever
+      happens, please @{"send me a message" link BugReport} and describe
+      which message you got and how did you get it.
+
+    - Lastly, if things go @{b}real@{ub} bad, PPT will tell  you  it  is
+      panicking and will attempt to quit. It will attempt to kill all of
+      its threads and if it cannot succeed, it'll notify you.
+
+    - PPT cleans out the VM directory when it starts. This behaviour may
+      later be changed, but at the moment it makes sense.
+
+    - If a window refuses to open, there are two possible reasons:
+        a) you have run out of memory, or
+        b) the screen is too small for the window to open.  There should
+           be none of these...
+
+    - DO NOT RENAME FILES IN THE MODULES -directory.  AmigaOS seems to
+      get confused, if the library name within the library is different
+      from the actual file name!  If you don't want the 000-versions
+      of the libraries hanging around on your hard drive, just
+      delete them.  PPT knows automatically which version is the
+      fastest for you.
+
+@endnode
+
+@node Bugs "Known bugs"
+
+    @{i}Any program that runs right, is obsolete@{ui}
+
+    This is a list of  well-known,  bigger  bugs  in  the  software.  Of
+    course,  by  the  time  you  read this, I probably know of lots more
+    bugs, but since you are reading this, I cannot add anything  to  it.
+    Clear?
+
+    However, if you find any new ones, please submit @{"a bug report" link BugReport}.  OK?
+
+    - PPT does not work with VMM.  There are some quite big problems
+      with this...  In the mean time, you *can* utilize VM by using a
+      relatively small buffer size and setting the RAM: device to use
+      VMM.  Do not forget to set the VMM prefs as N N for PPT.
+
+    - It would seem that PPT does not live well together with the V43
+      FFS and large blocks.  I really can't figure out why...
+
+    - If you get a lot of Enforcer hits when you use a file requester,
+      then get a newer version of bgui.library.  The v41.8 filerequester
+      class is buggy...
+
+    - PPT seems quite slow with CyberGFX.  This is not actually so,
+      the culprit is BGUI.  The newer versions of BGUI *fly* on my
+      CV/3D, so you don't need to worry about this, just get the newest
+      BGUI library when it comes out (Manuel keeps promising this RSN.)
+
+    - PPT crashes if you select Palette/Edit...  OK, this is really
+      BGUI's fault: it crashes, if it cannot locate the bgui_palette.gadget
+      in SYS:Classes/Gadgets/
+
+    - PPT sometimes hangs input.device when using Drag&Drop.  This is
+      BGUI's fault and will be fixed in a future version.  In the
+      meantime, just use Cut/Copy/Paste in the Edit window.
+
+@endnode
+
+@node BugReport "Reporting bugs"
+
+    @{i}One night debugging multi-threaded code makes a hard man humble
+    Not much between despair and ecstacy.
+                                                      -- Chess @{ui}
+
+
+    OK, so you've found a bug in PPT.  Cool.  What should you do?
+
+    a)  Write down what you did.  Useful bits of information would be:
+        - The image you were trying to process (format, type and size)
+        - The exact sequence of commands that caused the bug to emerge
+          (the bug may well manifest only when several commands are used
+           in a certain order!)
+        - If it was a script, then write down the script as well.
+
+    b)  Try to repeat what you just did.  If you can repeat the bug
+        every time, good.  If you can send me any Enforcer output,
+        even better!  (Don't forget to run SegTracker also, otherwise
+        the Enforcer output has almost zero value...)
+
+    c)  Write down your hardware configuration.  Useful information is:
+        - Your machine (A500, A4000, etc.)
+        - Main processor (68000, 68010, 68020, 68030, 68040, 68060, PPC)
+        - Operating system version (2.0, 2.1, 3.0, 3.1, etc.)
+        - If you're using CyberGraphics, EGS or Picasso96 (or something
+          similar) please tell me your graphics configuration.
+        - Amount of CHIP and FAST RAM and an estimate of how much was
+          in use at the time of the bug appearance.  If you're using
+          virtual memory, please tell which program you use (VMM,
+          GigaMem) and how much of it is allocated.
+        - Any Commodities you are using (like MCP, MultiCX, Yak,
+          PatchPointers, etc.)
+        - Any non-standard hacks you're using (FastIPrefs, SysIHack,
+          etc.)  Try to run PPT without them, as well...
+        - If you get Software Failures (or Enforcer hits), please
+          check the task name that crashed!  It may have been one
+          of the subtasks instead of the main program.  (BTW: you should
+          be able to quit PPT if one of the subtasks crashed.  Neat, huh?)
+        - And last, but not least, which version of PPT you were
+          running at the time the bug happened.
+
+    d)  Send everything you wrote down to @{"me" link Support}.
+
+@endnode
+
+
+@node Warranty "There's no warranty"
+
+    The headline says it all. I will not be  held  responsible  for  any
+    damage that might happen to anyone through the use of this program.
+
+    @{i}The next generation of computers will have a "Warranty Expired"
+    interrupt.@{ui}
+
+@endnode
+
+@node Distribution "Distribution conditions"
+
+    The PPT main archive is Freely Distributable - you may copy and
+    use it as much as you want, provided that all copyright notices
+    are left intact and that the archive is distributed as whole.
+
+    However, I ask you that you @{"drop me a little e-mail" link Support} saying that
+    you use PPT - and what you think of it.  Though if the only thing
+    you can say is 'it sucks', you can leave that unsaid.  I know
+    better than anyone exactly which parts of it suck - I could tell
+    you several...
+
+    @{b}Note To Magazine Editors@{ub}
+
+    You may freely distribute PPT also in unarchived form on your
+    Coverdisks, as long as you send me e-mail telling that you're
+    going to do so.  Also, if you want to send me a copy of your
+    magazine, I would be very happy =)   You can find my contact
+    information @{"here" link Support}.
+
+    @{b}Note To BBS Sysops And Other People Who Hoard Stuff And
+    Let Others Benefit From It Such As Shareware Libraries@{ub}
+
+    You may also freely distribute PPT, but I ask you that you keep
+    the archive intact, and that you check Aminet or my WWW site
+    once a month to see if a new version has been released and
+    download it to your system for free uploading.  I just don't
+    like the idea that there are a billion old versions floating
+    around in the World ;-)
+
+@endnode
+
+@node Support "Yes, there is even support"
+
+    Hi!  I'm Janne Jalkanen.
+
+    After this rather bad nod towards the 'Fast Show', I'd like to
+    come to the matter of @{i}support@{ui}.  PPT is a free program,
+    and thus cannot sport the same amount of support as good shareware
+    or commercial programs - hey, I have a day job, too ;-)
+
+    But it would be quite irresponsible (not to mention odd) to
+    write 100,000 lines of code and then just put it out to the Web
+    and forget about it.  So yes, I like to talk to people who use
+    PPT and give me ideas how to make it better.
+
+    There are several ways to contact me or get new information about
+    PPT.  I've listed them here, and wish that anyone who uses PPT
+    would drop me a line.
+
+    @{b}Aminet@{ub}
+
+    I will release the stable releases to Aminet, to gfx/conv.  This is
+    probably the method most of you will use.  However, if bugs annoy
+    you, check the Web page.
+
+    @{b}World Wide Web@{ub}
+
+    This best thing since sliced bread (which isn't that great an idea)
+    allows me to keep an up-to-date version of PPT at your instant
+    disposal.  I will upload the newest releases there, so check
+    it to see what's new.  The site address is:
+
+        http://www.iki.fi/%7ejalkanen/PPT.html
+
+    @{b}E-mail@{ub}
+
+    I can also try to answer your questions if you send me e-mail.  I
+    check my mail every day, unless I am traveling or something...
+
+        My e-mail is: Janne.Jalkanen@iki.fi
+
+    If you use PPT more, and you use e-mail anyway, why don't you
+    join the mailing list?
+
+    @{b}PPT Mailing List@{ub}
+
+    Yes, there is now even a mailing list for general discussion about
+    all matters PPT.  There you will meet like-minded users and of
+    course, receive the latest information on how development is going.
+
+    Subscribe by sending an e-mail to ppt-list-request@egroups.com, and
+    you should get more instructions to your reply address.  If you wish
+    to just browse the list archives, point your WWW browser at
+    http://www.egroups.com/list/ppt-list
+
+    (Sorry about the commercials EGroups adds to the messages.  But they
+    do offer a free, fast, and very well run service!)
+
+    @{b}Snail Mail@{ub}
+
+    Lastly, if you're not very internet-enabled, you can try writing
+    regular mail to me to:
+
+        Janne Jalkanen
+        Tavaststjernankatu 1A23
+        FIN-00250 Helsinki
+        Finland
+
+    But don't expect a speedy reply - I am very lazy at writing letters
+    by hand.  Anything between 1-3 weeks is normal...
+
+@endnode
+
+@node Alphatest "What Does Alpha Mean?"
+
+    Alpha is the first letter in Greek alphabet. When used  in  software
+    development, it means that the program is still inherently unstable,
+    crashes without any serious  reason  and  is  generally  more  of  a
+    nuisance than of actual use. See @{"beta" link Betatest}.
+
+@endnode
+
+@node Betatest "What Does Beta Mean?"
+
+    Beta is the second letter in Greek alphabet. In software development
+    it means that the program is in much better condition than @{"Alpha" link Alphatest}
+    but you definately don't want to spread  it  around, except  to some
+    brave  individuals who are called @{"beta-testers" link  Betatesters}.
+    These  men  and   women   boldly   risk   their hard-drives, machines
+    and sanities to try out the program and submit their bug reports to
+    the @{"Author" link Support}, who, in turn, will create more beta-test
+    versions for them to test.
+
+    Sometimes there are  even  additional  phases  (surprisingly  called
+    Gamma,  etc.), but most of the time the next phase after Beta is the
+    real release, which should be bugfree.
+
+@endnode
+
+@node Betatesters "Betatesters"
+
+    Thanks go to the brave betatesters of PPT, who have sacrificed their
+    mental  health  and  their  hard  drives (no kidding) in the valiant
+    search for yet  another  bug.  Here's  a  Hall  of  Fame.  (Or  more
+    accurately,  the  names  of  those people who have found an alarming
+    number of bugs...)
+
+        - Peter Bornhall
+        - Gary T. Nelson
+        - Patrik Nydensten
+        - Brian Jones
+        - Ivo Kroone
+
+
+
+
+                    And don't forget: @{fg highlight}Faith Manages@{fg text}
+
+@endnode
+
+@node Archimedes "Archimedes"
+
+    Archimedes (c. 287-212 BC)
+
+    Archimedes was a Greek mathematician, physicist, and inventor. He is
+    generally  regarded  as the greatest mathematician of antiquity. His
+    rigorous geometrical technique of measuring curved lines, areas, and
+    surfaces  anticipated  modern  calculus,  and he laid foundations of
+    mechanics, statistics and hydrostatics.
+
+                                      @{i}Dictionary of Mathematics@{ui}
+                                      (used without permission)
+
+@endnode
+
+@node Bessel "Bessel"
+
+    Friedrich Wilhelm Bessel (1784 - 1846)
+
+    A German Astronomer, who calculated  the  orbit  of  Halley's  comet
+    while  a  20-year-old warehouseman. He later made the first accurate
+    measurements of stellar positions and became Professor of  Astronomy
+    at Königsberg.
+
+                                      @{i}Dictionary of Mathematics@{ui}
+                                      (used without permission)
+
+    See also @{"Archimedes" link Archimedes}
+
+@endnode
+
+@node Cauchy "Baron Augustin Louis Cauchy"
+
+    Augustin Louis Cauchy (1789 - 1857)
+
+    French mathematician and physicist whose work had great  impact  on,
+    and  introduced rigour to, virtually all branches of mathematics. In
+    particular, he laid the foundations of modern analysis in  terms  of
+    limits  and  continuity,  and  developed  the theory of functions of
+    complex variables.  After  serving  as  an  engineer  in  the  force
+    preparing Napoleon's abortive invasion of Britain, he was encouraged
+    to pursue a mathematical career by Laplace (whom he had met when his
+    family  fled  from  the  Reign of Terror) and by Lagrange. He became
+    Professor at the École Polytechnique, the Sorbonne, and the  Collège
+    de  France. Because of his political and religious views, he refused
+    to take the  oath  of  allegiance  to  Louis-Philippe  on  1830  and
+    followed Charles X into exile; the University of Turin appointed him
+    to a specially created Char, but the left to tutor the  grandson  of
+    Charles  X.  He published a total of 789 works, including monographs
+    on definite  integrals  and  on  wave  propagation,  and  papers  on
+    geometry, number theory, elasticity, the theory of error, astronomy,
+    and optics.
+
+                                      @{i}Dictionary of Mathematics@{ui}
+                                      (used without permission)
+
+    See also @{"Archimedes" link Archimedes},
+             @{"Bessel" link Bessel}
+
+@endnode
+
+@node Descartes "René Descartes"
+
+    René Descartes (1596-1650)
+
+    French  scientist,  philosopher,  and  mathematician,  who   founded
+    analytic  geometry,  and  introduced exponential notation, cartesian
+    coordinates,  and  methods  of  solving  polynomial   equations   to
+    mathematics.  His  work  as  a  whole  was  ruled  by  the desire to
+    systematize all  knowledge  as  resting  only  on  what  is  clearly
+    self-evident,  on  the  axiomatic  model  of  Euclid's geometry, and
+    thereby to achieve certainty. His method involved the suspension  of
+    belief  in  anything  that could conceivably be doubted, and he then
+    founded his edifice on the  argument,  while  doubting,  one  cannot
+    doubt  that  one  doubts,  and  therefore  thinks; he expressed this
+    single  self-justifying  proposition  in  his  famous  Latin  phrase
+    "Cogito,  ergo  sum"  ("I  think,  therefore  I  am"). The adjective
+    Cartesian is derived from the archaic spelling @{i}Des Cartes@{ui}.
+
+                                      @{i}Dictionary of Mathematics@{ui}
+                                      (used without permission)
+
+    See also @{"Archimedes" link Archimedes},
+             @{"Bessel" link Bessel},
+             @{"Cauchy" link Cauchy}.
+
+@endnode

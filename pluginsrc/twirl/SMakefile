@@ -1,0 +1,45 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+# $Id: SMakefile,v 1.1 2001/10/25 16:23:03 jalkanen Exp $
+#
+
+NAME = twirl
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+# The MAINDIR directive tells where your PPT main directory
+# is, so you should set it up before you try to install.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE881=$(NAME)_881.effect
+
+all : M000 M881
+
+M000 :
+    sc buildprj OBJNAME=000/ MATH=IEEE PROGNAME=$(EXE)
+
+M881 :
+    sc buildprj CPU=68030 MATH=68881 NOUTILLIB PROGNAME=$(EXE881) OBJNAME=881/
+
+clean:
+    Delete \#?.lnk \#?~ 881/\#?.o 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE881)
+
+install : M000 M881
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    slink $(EXE881) TO $(MAINDIR)/$(INSTDIR)/$(EXE881) STRIPDEBUG NOICONS
+
+installdbg : clean
+    sc buildprj OBJNAME=000/ MATH=IEEE PROGNAME=$(EXE) NOOPT DEBUG=SF DEF=DEBUG_MODE
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE881)
+

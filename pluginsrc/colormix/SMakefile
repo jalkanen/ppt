@@ -1,0 +1,41 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = colormix
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE020=$(NAME)_020.effect
+
+all : M000 M020
+
+M000 :
+    sc buildprj OBJNAME=000/
+
+M020 :
+    sc buildprj CPU=68020 NOUTILLIB PROGNAME=$(EXE020) OBJNAME=020/
+
+clean:
+    Delete \#?.lnk \#?~
+    Delete 020/\#?.o 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE020)
+
+install : M000 M020
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    slink $(EXE020) TO $(MAINDIR)/$(INSTDIR)/$(EXE020) STRIPDEBUG NOICONS
+
+installdbg : M000
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE020)
+

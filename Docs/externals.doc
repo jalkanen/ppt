@@ -1,0 +1,255 @@
+TABLE OF CONTENTS
+
+effects/EffectExec
+effects/EffectGetArgs
+effects/EffectInquire
+iomodule/IOCheck
+iomodule/IOGetArgs
+iomodule/IOLoad
+iomodule/IOSave
+effects/EffectExec                                            effects/EffectExec
+
+   NAME
+        EffectExec -- The actual execution routine.
+
+   SYNOPSIS
+        newframe = EffectExec( frame, tags, PPTBase )
+        D0                     A0     A1    A3
+
+        FRAME *EffectExec( FRAME *, struct TagItem *, struct PPTBase * );
+
+   FUNCTION
+        This function performs the actual effect.  During the execution,
+        you should utilize the InitProgress()/Progress()/FinishProgress()
+        calls so that the user knows that something is happening.
+
+        You should note that this function may be called several times
+        from different tasks, so that it definately should be re-entrant
+        (ie use no global variables but allocate everything from the stack).
+
+   INPUTS
+        frame - The source frame for the effect. If the PPTX_NoNewFrame
+            was set to FALSE (which is the default) in the module tag
+            array, this is actually also the destination frame. You can
+            modify the data in it any way you like. If the tag was set to
+            TRUE, then you will get the original frame to which you should
+            not make modifications, but you should use MakeFrame(),
+            InitFrame() or DupFrame() to create the new frame.
+        tags - Optional arguments (like the REXX message) can
+            be found from this array. See the documentation on the REXX
+            interface for more documentation.
+
+   RESULT
+        newframe - The frame which contains the modified data. If you made
+            a new frame using the MakeFrame() / DupFrame() calls, you should
+            return a pointer to that frame. If you just modified the
+            existing data, you should return the frame pointer you got
+            from PPT in the first place.
+
+            If an error occurred, you should set the appropriate error code
+            with SetErrorCode/Msg() and return NULL. Of course, in this case
+            any frames allocated by you must be released with RemFrame().
+
+   EXAMPLE
+        See the examples directory.
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+
+effects/EffectGetArgs                                      effects/EffectGetArgs
+
+   NAME
+        EffectGetArgs (added in PPT v6)
+
+   SYNOPSIS
+        result = EffectGetArgs( frame, tags, PPTBase )
+        D0                      A0     A1    A3
+
+        PERROR EffectGetArgs( FRAME *, struct TagItem *, struct PPTBase * );
+
+   FUNCTION
+        This function should query the user for the options and
+        then print it to a string buffer.  The format should be
+        exactly the same as for the REXX message, so that PPT can
+        then call this effect multiple times using the same
+        argument string.
+
+   INPUTS
+        frame - The source frame for the effect. If the PPTX_NoNewFrame
+            was set to FALSE (which is the default) in the module tag
+            array, this is actually also the destination frame. You can
+            modify the data in it any way you like. If the tag was set to
+            TRUE, then you will get the original frame to which you should
+            not make modifications, but you should use MakeFrame(),
+            InitFrame() or DupFrame() to create the new frame.
+        tags - Optional arguments (like the REXX message) can
+            be found from this array. See the documentation on the REXX
+            interface for more documentation.
+
+   RESULT
+        Returns standard PPT error code.
+
+   EXAMPLE
+        See the example effect source codes.
+
+   NOTES
+        Effect version should be over 3 or over.  It is not actually checked
+        but it makes life slightly easier.
+
+   BUGS
+
+   SEE ALSO
+
+effects/EffectInquire                                      effects/EffectInquire
+
+   NAME
+        EffectInquire -- Inform about an effect
+
+   SYNOPSIS
+        data = EffectInquire( attribute, PPTBase )
+        D0                    D0         A3
+
+        ULONG EffectInquire( ULONG, struct PPTBase * );
+
+   FUNCTION
+        Return an attribute concerning this effect.
+
+   INPUTS
+        attribute - The attribute PPT wishes information on.
+
+   RESULT
+        data - The data concerning this attribute.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+
+iomodule/IOCheck                                                iomodule/IOCheck
+
+   NAME
+        IOCheck - Checks if this module can handle files of this type.
+
+   SYNOPSIS
+        success = IOCheck( fh, len, buf, PPTBase )
+        D0                 D0  D1   A0   A3
+
+        BOOL IOCheck( BPTR, ULONG, UBYTE *, struct PPTBase * );
+
+   FUNCTION
+        Checks if the given file is in a correct format.
+
+   INPUTS
+        fh - open filehandle to the file to be checked.
+        len - how many bytes are in buf
+        buf - len bytes from the beginning of the file
+
+   RESULT
+        Returns TRUE, if this IO module can handle this file,
+        otherwise FALSE.
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+
+   SEE ALSO
+
+iomodule/IOGetArgs                                            iomodule/IOGetArgs
+
+   NAME
+        IOGetArgs (added in PPT v6)
+
+   SYNOPSIS
+        result = IOGetArgs( type, frame, tags, PPTBase )
+        D0                  D1    A0     A1    A3
+
+        PERROR IOGetArgs( ULONG, FRAME *, struct TagItem *, struct PPTBase * );
+
+   FUNCTION
+        Gets an argument string from the user for later use in AREXX.
+
+   INPUTS
+        tags - This array contains a special PPTX_ArgBuffer tag,
+            whose ti_Data points to a string where you should
+            then print your argument array.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+        IO module version should be over 3 or over.  It is not actually checked
+        but it makes life slightly easier.
+
+   BUGS
+        Entry incomplete
+
+   SEE ALSO
+        effect/EffectGetArgs
+
+iomodule/IOLoad                                                  iomodule/IOLoad
+
+   NAME
+        IOLoad - Loads an image from the disk.
+
+   SYNOPSIS
+        result = IOLoad( fh, frame, tags, PPTBase )
+        D0               D0  A0     A1    A3
+
+        PERROR IOLoad( BPTR, FRAME *, struct TagItem *, struct PPTBase * );
+
+   FUNCTION
+        This function should perform the actual loading.
+        Please see the actual example code.
+
+   INPUTS
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Entry incomplete
+
+   SEE ALSO
+
+iomodule/IOSave                                                  iomodule/IOSave
+
+   NAME
+        IOSave - Saves the frame.
+
+   SYNOPSIS
+        result = IOSave( fh, type, frame, tags, PPTBase )
+        D0               D0  D1    A0     A1    A3
+
+        PERROR IOSave( BPTR, ULONG, FRAME *, struct TagItem *, struct PPTBase * );
+
+   FUNCTION
+        This function should save the frame.
+
+   INPUTS
+        type - Tells the type of the file.  If CSF_LUT, then
+            you should use GetBitmapRow() to read the data from the
+            frame, as it is in bitmapped format.
+
+   RESULT
+
+   EXAMPLE
+
+   NOTES
+
+   BUGS
+        Entry incomplete
+
+   SEE ALSO
+

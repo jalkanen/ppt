@@ -1,0 +1,42 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = rotate
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE881=$(NAME)_881.effect
+
+all : M000 M881
+
+M000 :
+    sc buildprj OBJNAME=000/
+
+M881 :
+    sc buildprj CPU=68030 MATH=881 NOUTILLIB PROGNAME=$(EXE881) OBJNAME=881/
+
+clean:
+    Delete \#?.lnk \#?~
+    Delete 881/\#?.o
+    Delete 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE881)
+
+install : M000 M881
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    slink $(EXE881) TO $(MAINDIR)/$(INSTDIR)/$(EXE881) STRIPDEBUG NOICONS
+
+installdbg : M000
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE881)
+

@@ -1,0 +1,54 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = sample_effect
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXEPPC=$(NAME)_PPC.effect
+PPCDIR=sc:examples/samplelib1
+
+all : $(EXEPPC)
+
+$(EXEPPC) : PPC/$(NAME).o PPC/dummy68k.o
+    slinkppc PPC with <<
+    LIBFD $(MAINDIR)/include/fd/effect_lib.fd
+    to $(EXEPPC)
+    FROM lib:libent.o $(PPCDIR)/libinitr.o PPC/$(NAME).o /dummy68k.o $(PPCDIR)/dispatch68k.o $(PPCDIR)/dispatchppc.o
+    LIB lib:scppc.lib
+    libversion 1 librevision 0
+    noicons
+    verbose
+    map $(NAME).map
+    <
+
+PPC/dummy68k.o : dummy68k.c
+    sc $< OBJNAME=PPC/ IDIR=$(PPCDIR)
+
+$(EXE) : $(NAME).c ppt_ppcstartup.c
+    sc buildprj LINK OBJNAME=000/ PROGNAME=$(EXE)
+
+PPC/$(NAME).o : $(NAME).c
+    scppc $(NAME).c OBJNAME=PPC/ HUNKOBJ
+
+clean:
+    Delete \#?.lnk \#?~ PPC/\#?.o 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXEPPC)
+
+install : PPC
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+
+installdbg : PPC
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+

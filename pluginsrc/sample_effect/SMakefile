@@ -1,0 +1,45 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+# $Id: SMakefile,v 1.1 2001/10/25 16:23:01 jalkanen Exp $
+#
+
+NAME = sample_effect
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+# The MAINDIR directive tells where your PPT main directory
+# is, so you should set it up before you try to install.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+EXE020=$(NAME)_020.effect
+
+all : M000 M020
+
+M000 :
+    sc buildprj OBJNAME=000/ PROGNAME=$(EXE)
+
+M020 :
+    sc buildprj CPU=68020 NOUTILLIB PROGNAME=$(EXE020) OBJNAME=020/
+
+clean:
+    Delete \#?.lnk \#?~ 020/\#?.o 000/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE020)
+
+install : M000 M020
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    slink $(EXE020) TO $(MAINDIR)/$(INSTDIR)/$(EXE020) STRIPDEBUG NOICONS
+
+installdbg : clean
+    sc buildprj OBJNAME=000/ PROGNAME=$(EXE) DEBUG=SF NOOPT DEF=DEBUG_MODE
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE020)
+

@@ -1,0 +1,38 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = composite
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).effect
+BRIAN=9
+BRIANSTR="9"
+
+all :
+    sc buildprj
+
+clean:
+    Delete \#?.o \#?.lnk \#?~
+
+clobber:
+    Delete \#?.o \#?.lnk \#?~ $(EXE)
+
+install : all
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+
+installdbg : all
+    copy $(EXE) $(MAINDIR)/$(INSTDIR)/$(EXE)
+
+brian : clean
+    sc BUILDPRJ DEF=BRIAN=$(BRIAN) DEF=BRIANSTR=$(BRIANSTR)  NOERRORREXX
+    SLINK SD NOICONS FROM $(EXE) TO $(NAME)$(BRIAN).effect
+

@@ -1,0 +1,51 @@
+#
+# This is a generic effect makefile for SAS/C
+#
+#
+
+NAME = tiff
+
+# Tell here which libraries you wish to link too
+
+LINKLIBS=
+
+# Other stuff. Nothing of major importance.
+
+MAINDIR=work:source/c/ppt
+INSTDIR=modules
+EXE=$(NAME).iomod
+EXE020=$(NAME)_020.iomod
+EXE881=$(NAME)_881.iomod
+TIFFDIR=work:source/c/tiff-v3.4beta037
+
+CFLAGS= IDIR=$(TIFFDIR)
+
+all : M000 M881
+
+M000 :
+    sc buildprj OBJNAME=000/ MATH=IEEE $(CFLAGS) LIB=$(TIFFDIR)/libtiff/tiffrnb_000.lib
+
+M020 :
+    sc buildprj CPU=68020 NOUTILLIB PROGNAME=$(EXE020) OBJNAME=020/ $(CFLAGS)
+
+M881 :
+    sc buildprj CPU=68030 MATH=881 NOUTILLIB PROGNAME=$(EXE881) \
+    OBJNAME=881/ $(CFLAGS) LIB=$(TIFFDIR)/libtiff/tiffrnb_881.lib
+
+clean:
+    Delete \#?.o \#?.lnk \#?~
+    Delete 000/\#?.o 020/\#?.o 881/\#?.o
+
+clobber: clean
+    Delete $(EXE) $(EXE020) $(EXE881)
+
+
+install : M881 M000
+    slink $(EXE881) TO $(MAINDIR)/$(INSTDIR)/$(EXE881) STRIPDEBUG NOICONS
+    slink $(EXE) TO $(MAINDIR)/$(INSTDIR)/$(EXE) STRIPDEBUG NOICONS
+    # slink $(EXE020) TO $(MAINDIR)/$(INSTDIR)/$(EXE020) STRIPDEBUG NOICONS
+
+installdbg : M881
+    copy $(EXE) TO $(MAINDIR)/$(INSTDIR) CLONE
+    Delete $(MAINDIR)/$(INSTDIR)/$(EXE020)
+
