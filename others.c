@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.27 1999/10/02 16:33:07 jj Exp $
+    $Id: others.c,v 6.0 1999/10/04 00:01:52 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -40,13 +40,13 @@
 
 /*-------------------------------------------------------------------------*/
 
-Prototype ULONG         XSetGadgetAttrs( EXTBASE *, struct Gadget *, struct Window *, struct Requester *, ULONG, ... );
+Prototype ULONG         XSetGadgetAttrs( struct PPTBase *, struct Gadget *, struct Window *, struct Requester *, ULONG, ... );
 Prototype ULONG         Req( struct Window *, UBYTE *, UBYTE *, ... );
 Prototype ULONG         ReqA( struct Window *, UBYTE *, UBYTE *, ULONG * );
 Prototype ULONG         XReq( struct Window *win, UBYTE *gadgets, UBYTE *body, ... );
-Prototype VOID          FreeDOSArgs( ULONG *optarray, EXTBASE *xd );
-Prototype void          BusyAllWindows( EXTBASE * );
-Prototype void          AwakenAllWindows( EXTBASE * );
+Prototype VOID          FreeDOSArgs( ULONG *optarray, struct PPTBase *xd );
+Prototype void          BusyAllWindows( struct PPTBase * );
+Prototype void          AwakenAllWindows( struct PPTBase * );
 Prototype int           HowManyThreads(void);
 
 /*-------------------------------------------------------------------------*/
@@ -107,11 +107,11 @@ VOID ExitHelp( VOID )
     }
 }
 
-Prototype ULONG ASM CallForHelp( REG(a0) struct Hook *, REG(a2) APTR, REG(a1) APTR );
+Prototype ULONG ASM CallForHelp( REGDECL(a0,struct Hook *), REGDECL(a2,APTR), REGDECL(a1,APTR) );
 
-ULONG SAVEDS ASM CallForHelp( REG(a0) struct Hook *hook,
-                              REG(a2) APTR object,
-                              REG(a1) APTR message )
+ULONG SAVEDS ASM CallForHelp( REGPARAM(a0,struct Hook *,hook),
+                              REGPARAM(a2,APTR,object),
+                              REGPARAM(a1,APTR,message) )
 {
     STRPTR node;
     ULONG res = BMHELP_OK;
@@ -195,6 +195,7 @@ struct Node *FindIName( const struct List *list, const UBYTE *name )
     return NULL;
 }
 
+/// ParseDOSArgs()
 /*
     Front end to DOS ReadArgs(). Used in many places within PPT.
 
@@ -205,9 +206,9 @@ struct Node *FindIName( const struct List *list, const UBYTE *name )
     Returns a pointer to the argument array or NULL, if failed.
 */
 
-Prototype ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, EXTBASE *xd );
+Prototype ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, struct PPTBase *xd );
 
-ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, EXTBASE *xd )
+ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, struct PPTBase *xd )
 {
     struct RDArgs *rda;
     UBYTE *buf;
@@ -269,12 +270,13 @@ ULONG *ParseDOSArgs( const UBYTE *line, const UBYTE *template, EXTBASE *xd )
     }
     return NULL;
 }
-
+///
+/// FreeDOSArgs()
 /*
     Counterpart to the previous one. Safe to call with NULL args.
 */
 
-VOID FreeDOSArgs( ULONG *optarray, EXTBASE *xd )
+VOID FreeDOSArgs( ULONG *optarray, struct PPTBase *xd )
 {
     APTR DOSBase = xd->lb_DOS;
 
@@ -287,14 +289,14 @@ VOID FreeDOSArgs( ULONG *optarray, EXTBASE *xd )
         pfree( optarray );
     }
 }
-
+///
 
 /*
-    This is a simple varargs stub for SetGadgetAttrsA(), that uses the EXTBASE.
+    This is a simple varargs stub for SetGadgetAttrsA(), that uses the struct PPTBase.
     Needed by DICE, since it does not recognize #pragma tagcall.
 */
 
-ULONG XSetGadgetAttrs( EXTBASE *xd, struct Gadget *gad, struct Window *win, struct Requester *req, ULONG tag1, ... )
+ULONG XSetGadgetAttrs( struct PPTBase *xd, struct Gadget *gad, struct Window *win, struct Requester *req, ULONG tag1, ... )
 {
     APTR IntuitionBase = xd->lb_Intuition;
 
@@ -319,7 +321,7 @@ SAVEDS ULONG ReqA( struct Window *win, UBYTE *gadgets, UBYTE *body, ULONG *args 
     struct IntuitionBase    *IntuitionBase;
     struct bguiRequest      req = { 0L };
     ULONG                   res;
-    EXTBASE *               PPTBase;
+    struct PPTBase          *PPTBase;
     struct Screen           *wscr = NULL;
 
     D(bug("ReqA()..."));
@@ -406,13 +408,13 @@ SAVEDS ULONG XReq( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
     Currently there are no flags defined.
 */
 
-Prototype VOID DoAllWindows( void (* ASM)(REG(a0) Object *, REG(a1) APTR, REG(a6) EXTBASE *), APTR, const ULONG, EXTBASE *);
+Prototype VOID DoAllWindows( void (* ASM)(REGDECL(a0,Object *), REGDECL(a1,APTR), REGDECL(a6,struct PPTBase *)), APTR, const ULONG, struct PPTBase *);
 
 SAVEDS
-VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data, REG(a6) EXTBASE *PPTBase),
+VOID DoAllWindows( VOID (* ASM hookfunc)(REGPARAM(a0,Object *,Win), REGPARAM(a1,APTR,data), REGPARAM(a6,struct PPTBase *,PPTBase)),
                    APTR  hookdata,
                    const ULONG flags,
-                   EXTBASE *PPTBase )
+                   struct PPTBase *PPTBase )
 {
     struct Node *cn;
 
@@ -464,14 +466,16 @@ VOID DoAllWindows( VOID (* ASM hookfunc)(REG(a0) Object *Win, REG(a1) APTR data,
 
 /*--------------------------------------------------------------------------*/
 
-ASM
-VOID Hook_BusyWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *PPTBase )
+VOID ASM Hook_BusyWindow( REGPARAM(a0,Object *,Win),
+                          REGPARAM(a1,APTR,foo),
+                          REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     WindowBusy( Win ); // Is really DoMethod() - safe to call
 }
 
-ASM
-VOID Hook_AwakenWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *PPTBase )
+VOID ASM Hook_AwakenWindow( REGPARAM(a0,Object *,Win),
+                            REGPARAM(a1,APTR,foo),
+                            REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     WindowReady( Win ); // Is really DoMethod() - safe to call
 }
@@ -482,7 +486,7 @@ VOID Hook_AwakenWindow( REG(a0) Object *Win, REG(a1) APTR foo, REG(a6) EXTBASE *
     BUG: Maybe it should use correct way to set the quick dispwin.
 */
 
-SAVEDS VOID BusyAllWindows( EXTBASE *xd )
+SAVEDS VOID BusyAllWindows( struct PPTBase *xd )
 {
     // D(bug("\tBusyAllWindows( %08X )\n",xd ));
 
@@ -491,7 +495,7 @@ SAVEDS VOID BusyAllWindows( EXTBASE *xd )
 }
 
 
-SAVEDS VOID AwakenAllWindows( EXTBASE *xd )
+SAVEDS VOID AwakenAllWindows( struct PPTBase *xd )
 {
     // D(bug("\tAwakenAllWindows()\n"));
 
@@ -507,10 +511,9 @@ struct dmi_data {
     BOOL            disable;
 };
 
-ASM
-VOID Hook_DisableMenuItem( REG(a0) Object *Win,
-                           REG(a1) APTR foo,
-                           REG(a6) EXTBASE *PPTBase )
+VOID ASM Hook_DisableMenuItem( REGPARAM(a0,Object *,Win),
+                               REGPARAM(a1,APTR,foo),
+                               REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     struct dmi_data *d = (struct dmi_data *)foo;
 
@@ -551,10 +554,9 @@ VOID EnableMenuItem( ULONG item )
 
 /*--------------------------------------------------------------------------*/
 
-ASM
-VOID Hook_CheckMenuItem( REG(a0) Object *Win,
-                         REG(a1) APTR foo,
-                         REG(a6) EXTBASE *PPTBase )
+VOID ASM Hook_CheckMenuItem( REGPARAM(a0,Object *,Win),
+                             REGPARAM(a1,APTR,foo),
+                             REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     struct dmi_data *d = (struct dmi_data *)foo;
 
