@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.8 1997/05/06 00:08:52 jj Exp $
+    $Id: frame.c,v 2.9 1997/06/07 21:20:36 jj Exp $
 
     This contains frame handling routines
 
@@ -503,6 +503,7 @@ PERROR DoReplaceFrame( FRAME *old, FRAME *new )
     new->pw             = old->pw;
     new->zoombox        = old->zoombox;
     new->editwin        = old->editwin;
+    new->attached       = old->attached;
 
     if( old->pix->height != new->pix->height || old->pix->width != new->pix->width ) {
         new->zoombox.Height = new->pix->height;
@@ -1109,7 +1110,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         p->bits_per_component = 8;
         p->origdepth          = 1;
         p->DPIX = p->DPIY     = 72; /* A reasonable assumption */
-        p->XAspect = p->YAspect = 1;
+        p->private1           = 0;
         p->bytes_per_row      = 0;  /* Will be filled in by InitFrame() */
         p->origmodeid         = INVALID_ID;
     } else {
@@ -1754,8 +1755,10 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
             LOCK(src);
             cur->attached = src->ID;
             src->attached = 0L;
-            ChangeBusyStatus( src, cur->busy );
-            src->busycount = cur->busycount;
+            ObtainFrame( src, cur->busy );
+//            ChangeBusyStatus( src, cur->busy );
+//            src->busycount = cur->busycount;
+
             UNLOCK(src);
             UNLOCK(cur);
             break;
@@ -1777,10 +1780,13 @@ VOID RemoveSimpleAttachments(REG(a0) FRAME *frame)
 {
     FRAME *next, *cur;
 
+    D(bug("Removing attachments from frame %08X\n",frame));
+
     cur = frame;
     while( (next = FindFrame(cur->attached)) ) {
 
         LOCK(cur);
+        ReleaseFrame(next);
         cur->attached = 0L;
         UNLOCK(cur);
 
