@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.4 1996/09/17 01:01:15 jj Exp $
+    $Id: external.c,v 1.5 1996/09/17 20:32:12 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -25,9 +25,7 @@
 #include <pragmas/intuition_pragmas.h>
 #endif
 
-#ifndef PRAGMAS_LOCALE_PRAGMAS_H
-#include <pragmas/locale_pragmas.h>
-#endif
+#include <proto/locale.h>
 
 #include "proto/module.h"
 #include "proto/effect.h"
@@ -64,7 +62,11 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
 
     // BUG:  should use globals->userprefs->modulepath
 
+#ifndef DEBUG_MODE
     strcpy( buf, "PROGDIR:modules" );
+#else
+    strcpy( buf, "modules" );
+#endif
 
     SHLOCKGLOB();
     AddPart( buf, x->diskname, 255 );
