@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.50 1997/12/18 22:56:02 jj Exp $
+    $Id: display.c,v 1.51 1998/01/04 16:33:09 jj Exp $
 
     Contains display routines.
 
@@ -1377,8 +1377,10 @@ struct Screen *OpenMainScreen( DISPLAY *d )
         WINDOW_ShowTitle,   TRUE,
         WINDOW_Font,        globals->userprefs->mainfont,
         WINDOW_SmartRefresh,FALSE, /* No need */
-        WINDOW_NoBufferRP,  TRUE,
+        WINDOW_NoBufferRP,  TRUE,  /* Saves memory */
         WINDOW_Activate,    FALSE,
+        WINDOW_ScaleHeight, 100,
+        WINDOW_ScaleWidth,  100,
         WINDOW_MasterGroup,
             VGroupObject,
                 BT_HelpHook, &HelpHook,
