@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.112 1999/07/11 23:21:32 jj Exp $
+    $Id: main.c,v 1.113 1999/08/01 16:47:32 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -2939,7 +2939,7 @@ FRAME *HandleSpecialIDCMP( struct PPTMessage *mymsg )
 
             ra = FindRexxWaitItem( mymsg );
 
-            ClearFrameInput( mymsg->frame );
+            // ClearFrameInput( mymsg->frame );
 
             /*
              *  Did we succeed?
