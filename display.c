@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.52 1998/06/28 23:12:32 jj Exp $
+    $Id: display.c,v 1.53 1998/06/30 19:59:35 jj Exp $
 
     Contains display routines.
 
@@ -11,7 +11,7 @@
 /*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
-/* Includes */
+/// Includes
 
 #include "defs.h"
 #include "misc.h"
@@ -42,6 +42,7 @@
 #ifndef CLIB_ALIB_PROTOS_H
 #include <clib/alib_protos.h>
 #endif
+///
 
 /*----------------------------------------------------------------------*/
 /* Defines */
@@ -56,7 +57,7 @@
 UWORD textpen;
 
 /*----------------------------------------------------------------------*/
-/* Internal prototypes */
+/// Internal prototypes
 
 Prototype VOID      CloseWindowSafely( struct Window * );
 Prototype PERROR    DisplayFrame( FRAME * );
@@ -69,6 +70,7 @@ Prototype UWORD     GetMinimumDepth( ULONG );
 Prototype VOID      ShowText( FRAME *, UBYTE *, EXTBASE * );
 
 Local VOID BuildQuickColormap( struct Screen *, UBYTE, COLORMAP * );
+///
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -99,6 +101,7 @@ VOID FreeDisplay( DISPLAY *d, EXTBASE *ExtBase )
 }
 ///
 
+/// CopyDisplay()
 /*
     Copies everything necessary to the preferences.  Does not copy
     hooks or pointers.
@@ -124,7 +127,11 @@ VOID CopyDisplay( DISPLAY *src, DISPLAY *dst )
     dst->drawalpha = src->drawalpha;
     dst->DPIX = src->DPIX;
     dst->DPIY = src->DPIY;
+    dst->keephidden = src->keephidden;
 }
+///
+
+/// GuessDisplay() and associates
 
 /*
     Gives a proper name for a given display mode id.
@@ -314,6 +321,7 @@ VOID GuessDisplay( FRAME *frame )
     }
 
 }
+///
 
 /// Color routines [SetRGB8(), LoadRGB8()]
 /*
@@ -419,6 +427,7 @@ UBYTE SlowBestMatchPen8( COLORMAP *cm, UBYTE ncolors, UBYTE r, UBYTE g, UBYTE b 
 #endif
 ///
 
+/// SetupStandardColors()
 Local
 VOID SetUpStandardColors( UBYTE depth, COLORMAP *cm )
 {
@@ -439,6 +448,7 @@ VOID SetUpStandardColors( UBYTE depth, COLORMAP *cm )
         cm[19].r = cm[19].g = 224; cm[19].b = 192;
     }
 }
+///
 
 /// BuildQuick*Colormap()
 
@@ -763,6 +773,7 @@ VOID ShowText( FRAME *frame, UBYTE *txt, EXTBASE *xb )
 }
 ///
 
+/// UndisplayFrame()
 /*
     This routine closes down the display, but does not deallocate
     resources.
@@ -785,7 +796,9 @@ PERROR UndisplayFrame( FRAME *frame )
 
     return PERR_OK;
 }
+///
 
+/// RemoveDisplayWindow()
 /*
     This routine kills off a quickrenderwindow.
 */
@@ -808,6 +821,7 @@ PERROR RemoveDisplayWindow( FRAME *f )
 
     return PERR_OK;
 }
+///
 
 /// Hooks
 
@@ -913,6 +927,7 @@ ULONG DPropHook( REG(a0) struct Hook *hook,
 }
 ///
 
+/// GimmeQuickDisplayWindow()
 PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
 {
     extern struct NewMenu PPTMenus[];
@@ -1080,6 +1095,47 @@ PERROR GimmeQuickDisplayWindow( FRAME *frame, EXTBASE *ExtBase )
 
     return res;
 }
+///
+
+/// HideDisplayWindow() & ShowDisplayWindow()
+
+Prototype PERROR HideDisplayWindow( FRAME *frame );
+
+PERROR HideDisplayWindow( FRAME *frame )
+{
+    PERROR res = PERR_FAILED;
+
+    if( frame->disp ) {
+        if( frame->disp->win ) {
+            UndisplayFrame( frame );
+            frame->selstatus = 0;
+            frame->disp->keephidden = TRUE;
+            res = PERR_OK;
+        }
+    }
+    return res;
+}
+
+Prototype PERROR ShowDisplayWindow( FRAME *frame );
+
+PERROR ShowDisplayWindow( FRAME *frame )
+{
+    PERROR res = PERR_FAILED;
+
+    if( frame->disp ) {
+        if( !frame->disp->win ) {
+            frame->disp->keephidden = FALSE;
+            if( MakeDisplayFrame( frame ) ) {
+                DisplayFrame( frame );
+                res = PERR_OK;
+            }
+        }
+    }
+
+    return res;
+}
+
+///
 
 /*
     Opens a preview window.
@@ -1222,12 +1278,14 @@ PERROR DisplayFrame( FRAME *frame )
 
     D(bug("DisplayFrame()\n"));
 
+    if(!frame->disp) return PERR_OK;
+
     /*
      *  If this frame is supposed to be kept hidden, we do not
      *  wish to have it to pop up, unless the user says so.
      */
 
-    if( frame->keephidden ) {
+    if( frame->disp->keephidden ) {
         frame->reqrender = 0;
     } else {
 
