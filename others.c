@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.22 1997/12/06 22:51:01 jj Exp $
+    $Id: others.c,v 1.23 1998/08/20 09:00:54 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -581,6 +581,7 @@ int HowManyThreads( void )
     If the specified time has passed, shows a nag requester
 */
 
+#if 0
 Prototype void Nag(void);
 
 void Nag(void)
@@ -624,7 +625,7 @@ void Nag(void)
         }
     }
 }
-
+#endif
 /*-------------------------------------------------------------------------*/
 /*                                  END OF CODE                            */
 /*-------------------------------------------------------------------------*/
