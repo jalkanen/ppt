@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 3.2 1997/02/22 21:44:49 jj Exp $
+    $Id: support.c,v 3.3 1997/02/23 14:45:27 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -121,6 +121,10 @@ APTR ExtLibData[] = {
 
     GetOptions,
     PutOptions,
+
+    AddExtension,
+    FindExtension,
+    RemoveExtension,
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
 
