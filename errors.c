@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.3 1996/01/08 23:38:03 jj Exp $
+    $Id: errors.c,v 1.4 1996/08/25 17:04:05 jj Exp $
 
     Error handling routines.
 */
@@ -81,10 +81,14 @@ UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *ExtBase )
     UBYTE *msg = "";
 
     if(frame) {
+        SHLOCK(frame);
+
         if( strlen( frame->errormsg ) != 0 )
             msg = frame->errormsg;
         else
             msg = ErrorMsg( frame->errorcode, ExtBase );
+
+        UNLOCK(frame);
     }
 
     return msg;
@@ -96,9 +100,13 @@ UBYTE *GetErrorMsg( FRAME *frame, EXTBASE *ExtBase )
 VOID ClearError( FRAME *frame )
 {
     if(frame) {
+        LOCK(frame);
+
         frame->errormsg[0] = '\0';
         frame->errorcode   = PERR_OK;
         frame->doerror     = FALSE;
+
+        UNLOCK(frame);
     }
 }
 
@@ -109,9 +117,13 @@ VOID ClearError( FRAME *frame )
 VOID CopyError( FRAME *source, FRAME *dest )
 {
     if( source != dest ) {
+        LOCK(dest);
+        SHLOCK(source);
         dest->errorcode = source->errorcode;
         dest->doerror   = source->doerror;
         strncpy( dest->errormsg, source->errormsg, ERRBUFLEN-1 );
+        UNLOCK(source);
+        UNLOCK(dest);
     }
 }
 
@@ -156,12 +168,14 @@ SAVEDS ASM VOID SetErrorCode( REG(A0) FRAME *frame, REG(D0) PERROR error )
     D(bug("SetErrorCode(%08X, error=%lu)\n",frame,error));
 
     if(CheckPtr(frame,"SetErrorCode: frame")) {
+        LOCK(frame);
         if( frame->doerror == FALSE ) {
             frame->errorcode = error;
             frame->doerror   = TRUE; /* Signal: This error has not yet been shown */
         } else {
             D(bug("\tAn error was already pending; didn't add this one\n"));
         }
+        UNLOCK(frame);
     }
 }
 
@@ -207,6 +221,7 @@ SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
     D(bug("SetErrorMsg(%08X, error='%s')\n",frame,error));
 
     if( CheckPtr(frame,"SetErrorMsg(): frame") && error) {
+        LOCK(frame);
         if( frame->doerror == FALSE ) {
             frame->errorcode = PERR_FAILED;
             strncpy( frame->errormsg, error, ERRBUFLEN-1 );
@@ -214,6 +229,7 @@ SAVEDS ASM VOID SetErrorMsg( REG(A0) FRAME *frame, REG(A1) UBYTE *error )
         } else {
             D(bug("\tAn error was already pending; didn't add this one\n"));
         }
+        UNLOCK(frame);
     }
 }
 
@@ -225,7 +241,9 @@ SAVEDS ASM VOID ShowError( REG(A0) FRAME *frame, REG(A6) EXTBASE *ExtBase )
     D(bug("ShowError()\n"));
 
     if( frame ) {
-        XReq(NEGNUL,NULL,ISEQ_C"%s\n", GetErrorMsg( frame, ExtBase) );
+        XReq(NEGNUL,NULL,
+            ISEQ_C ISEQ_HIGHLIGHT"\nERROR:\n\n"
+            ISEQ_TEXT"%s\n", GetErrorMsg( frame, ExtBase) );
         ClearError( frame );
     }
 }
