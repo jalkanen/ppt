@@ -1,0 +1,10 @@
+
+all : test
+
+colorgadget.o : colorgadget.c colorgadget.h
+
+test : colorgadget.o test.o colorgadget.h
+    sc test.o colorgadget.o TO test LINK LIB lib:debug.lib
+
+
+
