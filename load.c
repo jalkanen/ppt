@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.5 1996/11/03 01:53:40 jj Exp $
+    $Id: load.c,v 1.6 1996/11/04 00:21:59 jj Exp $
 
     Code for loaders...
 */
@@ -144,7 +144,10 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
     D(bug("RunLoad()\n"));
 
     frame = NewFrame(0,0,0,globxd); /* Allocate with no buffers. */
-    if(frame == NULL) return NULL;
+    if(frame == NULL) {
+        D(bug("ERROR: Unable to allocate a new frame in RunLoad()\n"));
+        return NULL;
+    }
 
     if(ObtainFrame( frame, BUSY_LOADING ) == FALSE) {
         RemFrame( frame, globxd );
@@ -275,7 +278,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
     EXTDATA *xd;
     APTR DOSBase;
     struct PPTMessage *msg;
-    FRAME *frame;
+    FRAME *frame = NULL;
     char *path = NULL, *name = NULL, *loadername = NULL;
     int res = PERR_GENERAL;
     ULONG *optarray = NULL;
