@@ -4,13 +4,13 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.5 1996/02/23 13:24:31 jj Exp $
+    $Id: save.c,v 1.6 1996/10/13 15:05:06 jj Exp $
 */
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
-#include <gui.h>
+#include "gui.h"
 
 #include <libraries/asl.h>
 #include <dos/dostags.h>
@@ -19,14 +19,14 @@
 #include <clib/bgui_protos.h>
 #include <clib/alib_protos.h>
 
-#include <pragma/utility_pragmas.h>
-#include <pragma/bgui_pragmas.h>
-#include <pragma/intuition_pragmas.h>
-#include <pragma/graphics_pragmas.h>
+#include <pragmas/utility_pragmas.h>
+#include <pragmas/bgui_pragmas.h>
+#include <pragmas/intuition_pragmas.h>
+#include <pragmas/graphics_pragmas.h>
 
 #include <stdlib.h>
 
-extern    VOID      SavePicture( REG(a0) UBYTE *, REG(d0) ULONG );
+extern    ASM VOID  SavePicture( REG(a0) UBYTE *, REG(d0) ULONG );
 Prototype PERROR    RunSave( FRAME *, UBYTE * );
 
 /*----------------------------------------------------------------------*/
@@ -104,9 +104,9 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 Local
 void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
 {
-    volatile char errbuf[ERRBUFLEN];
+    volatile char filename[MAXPATHLEN];
     volatile int res;
-    volatile struct TagItem tags[] = { PPTX_ErrMsg, &errbuf[0], TAG_DONE };
+    volatile struct TagItem tags[] = { TAG_DONE };
     volatile APTR UtilityBase = xd->lb_Utility, DOSBase = xd->lb_DOS;
     volatile BPTR fh;
     volatile ULONG colorspaces;
@@ -117,7 +117,10 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
      *  Open save file
      */
 
-    fh = Open( frame->fullname, MODE_NEWFILE );
+    strcpy(filename, frame->path);
+    AddPart(filename, frame->name, MAXPATHLEN);
+
+    fh = Open( filename, MODE_NEWFILE );
     if(!fh) {
         XReq( GetFrameWin(frame), NULL, "\nUnable to open write file\n" );
         return;
@@ -128,7 +131,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
      */
 
     if(mode == SAVE_TRUECOLOR) {
-        volatile auto REG(d0) int (*X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
+        volatile auto int (* ASM X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
 
         X_SaveT = (FPTR) GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags );
 
@@ -142,7 +145,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
             D(bug("+-+-+-+-+-\n"));
         }
     } else { /* COLORMAPPED */
-        volatile auto REG(d0) int (*X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
+        volatile auto int (* ASM X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
 
         X_SaveC = (FPTR) GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags );
 
@@ -164,14 +167,36 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
 
     /*
      *  Show error message, if needed.
+     *  Kludge together some probable responses
      */
 
-    SetErrorCode( frame, res ); /* BUG: This is a kludge, as the save routines should do it. */
 
-    if( frame->doerror && frame->errorcode != PERR_BREAK && frame->errorcode != PERR_CANCELED)
-    {
-        XReq( GetFrameWin(frame), NULL, "\nError while saving : %s\n", GetErrorMsg( frame, xd ));
+    if( res != PERR_OK ) {
+        if( frame->doerror && frame->errorcode != PERR_BREAK && frame->errorcode != PERR_CANCELED)
+        {
+            if( res == PERR_WARNING ) {
+                ULONG r;
+                r = XReq( GetFrameWin(frame), "Ignore|Remove Saved File",
+                          ISEQ_C"\nWARNING!\n"
+                          "While I was attempting to save '%s',\n"
+                          "I got this warning message:\n"
+                          ISEQ_I"%s",
+                          frame->name, GetErrorMsg( frame, xd ));
+
+                if( r == 0 ) res = PERR_FAILED;
+            } else {
+                XReq( GetFrameWin(frame), "Understood",
+                      ISEQ_C"\nERROR!\n"
+                      "While I was attempting to save '%s',\n"
+                      "I got this error message:\n"
+                      ISEQ_I"%s",
+                      frame->name, GetErrorMsg( frame, xd ));
+            }
+        }
+    } else {
+        if( res == PERR_BREAK || res == PERR_CANCELED) res = PERR_FAILED;
     }
+
 
     ClearError( frame );
 
@@ -184,9 +209,9 @@ errexit:
     Close(fh);
 
     CloseInfoWindow( frame->mywin, xd );
-    if(res != PERR_OK) {
-        if(DeleteFile( frame->fullname ) == FALSE)
-            XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", frame->fullname );
+    if(res == PERR_FAILED) {
+        if(DeleteFile( filename ) == FALSE)
+            XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", filename );
     }
 }
 
@@ -230,10 +255,17 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
 {
     LOADER *ld;
     STRPTR file;
+    UBYTE *s;
     APTR entry;
     ULONG activemode;
     APTR SysBase = xd->lb_Sys, IntuitionBase = xd->lb_Intuition,
-         UtilityBase = xd->lb_Utility, DOSBase = xd->lb_DOS;
+         DOSBase = xd->lb_DOS;
+    char tmppath[MAXPATHLEN];
+    struct TagItem t[3] = {
+        ASLFR_InitialFile, NULL,
+        ASLFR_InitialDrawer, NULL,
+        TAG_END
+    };
 
     switch(rc) {
         case GID_SW_CANCEL:
@@ -253,11 +285,17 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
                 GetAttr( MX_Active, gads->Mode, &activemode );
 
                 /*
-                 *  Get the path
+                 *  Get the path, split into parts and save it
                  */
 
-                GetAttr( STRINGA_TextVal, gads->Name, &file );
-                strcpy( frame->fullname, file );
+                GetAttr( STRINGA_TextVal, gads->Name, (ULONG *)&file );
+
+                s = PathPart(file);
+
+                bzero( frame->path, MAXPATHLEN ); /* BUG: Clumsy */
+                strncpy( frame->path, file, (s-file) );
+
+                strcpy( frame->name, s );
 
                 /*
                  *  Close window and save
@@ -273,18 +311,12 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
             break;
 
         case GID_SW_GETFILE:
-            char tmppath[MAXPATHLEN], *s;
-            struct TagItem t[3] = {
-                ASLFR_InitialFile, NULL,
-                ASLFR_InitialDrawer, NULL,
-                TAG_END
-            };
 
             /*
              *  First, make sure the path is correct.
              */
 
-            GetAttr( STRINGA_TextVal, gads->Name, &file );
+            GetAttr( STRINGA_TextVal, gads->Name, (ULONG *)&file );
 
             strcpy(tmppath, file);
             s = PathPart(tmppath);
@@ -294,7 +326,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
             SetAttrsA( gads->Frq, t );
 
             if(DoRequest( gads->Frq ) == FRQ_OK) {
-                GetAttr( FRQ_Path, gads->Frq, &file );
+                GetAttr( FRQ_Path, gads->Frq, (ULONG *)&file );
                 XSetGadgetAttrs( xd, (struct Gadget *)gads->Name, gads->win, NULL,
                                  STRINGA_TextVal, file, TAG_END );
             }
@@ -323,9 +355,8 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
     BUG: REXX control handling could be prettier.
 */
 
-SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
+SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 {
-    char path[MAXPATHLEN], *s;
     struct SaveWin gads;
     ULONG sigmask, sig, rc, sttags[] = { ASLFR_InitialDrawer, NULL, TAG_END };
     BOOL quit = FALSE;
@@ -333,7 +364,7 @@ SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
     FRAME *frame;
     struct PPTMessage *msg;
     APTR IntuitionBase,SysBase, DOSBase;
-    UBYTE *dpath = NULL, *args;
+    UBYTE *dpath = NULL, *args, *name = NULL;
     LOADER *loader = NULL;
     UBYTE activemode;
     ULONG *optarray = NULL;
@@ -347,10 +378,12 @@ SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
      */
 
     // D(bug("\tARGV = '%s'\n", argvect ));
-    if( optarray = ParseDOSArgs( argvect, "FRAME/A/N,PATH/K,FORMAT/K,TYPE/N/K,ARGS/K", xd )) {
+    if( optarray = ParseDOSArgs( argvect, "FRAME/A/N,PATH/K,FORMAT/K,TYPE/N/K,ARGS/K,NAME/K", xd )) {
         frame = (FRAME *) *( (ULONG *)optarray[0]);
-        if( optarray[1] ) { /* PATH existed */
+
+        if( optarray[1] || optarray[5]) { /* PATH or NAME existed */
             dpath = (UBYTE *)optarray[1];
+            name  = (UBYTE *)optarray[5];
             loader = (LOADER *) FindIName( &globals->loaders, (UBYTE *)optarray[2] );
             if(!loader) {
                 D(bug("\tFindName() failed\n"));
@@ -359,23 +392,29 @@ SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
             activemode = *( (ULONG *)optarray[3] ) ? TRUE : FALSE;
             args = (UBYTE *)optarray[4];
         }
+
     } else {
         InternalError( "REXX Message of incorrect format" );
         goto errorexit;
     }
 
-    D(bug("SavePicture(%08X, '%s', ARGS = '%s')\n",frame, dpath ? dpath  : "NULL",
-                                                      args ? args : "NULL"));
+    D(bug("SavePicture(%08X, '%s':'%s', ARGS = '%s')\n",frame, dpath ? dpath  : (STRPTR)"NULL",
+                                                        name ? name : (STRPTR)"NULL",
+                                                        args ? args : (STRPTR)"NULL"));
 
     if(!frame) goto errorexit;
 
     if( loader ) {
 
         if(dpath)
-            strncpy( frame->fullname, dpath, MAXPATHLEN );
+            strncpy( frame->path, dpath, MAXPATHLEN );
 
-        D(bug("DoTheSave: frame = %08X, loader = '%s', activemode = %d, path = %s\n",
-               frame, loader->info.nd.ln_Name, activemode, dpath ));
+        if(name)
+            strncpy( frame->name, name, NAMELEN );
+
+        D(bug("DoTheSave: frame = %08X, loader = '%s', activemode = %d\n"
+              "path = %s, name = %s\n",
+               frame, loader->info.nd.ln_Name, activemode, dpath, name ));
 
         DoTheSave( frame, loader, activemode, xd );
 
@@ -390,13 +429,10 @@ SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
          *  Initialize the save requester.
          */
 
-        strcpy(path, frame->fullname);
-        s = PathPart(path);
-        *s = '\0';
-        sttags[1] = (ULONG)path;
+        sttags[1] = (ULONG)frame->path;
         SetAttrsA( gads.Frq, (struct TagItem *)sttags );
         sttags[0] = ASLFR_InitialFile;
-        sttags[1] = (ULONG) FilePart(frame->fullname);
+        sttags[1] = (ULONG) frame->name;
         SetAttrsA( gads.Frq, (struct TagItem *)sttags );
 
         /*
@@ -441,16 +477,18 @@ errorexit:
     if(optarray)
         FreeDOSArgs( optarray, xd );
 
-    msg = InitPPTMsg();
+    msg = AllocPPTMsg( sizeof( struct PPTMessage), xd );
     msg->frame = frame;
     msg->code = PPTMSG_SAVEDONE;
 
     /* Send the message */
-    DoPPTMsg( globals->mport, msg );
+    SendPPTMsg( globals->mport, msg, xd );
 
-    PurgePPTMsg( msg ); /* Remove it */
+    WaitDeathMessage(xd);
 
-    RelExtBase(xd);
+    EmptyMsgPort( xd->mport, xd );
+
+    if(xd) RelExtBase(xd);
     /* Die. */
 
 }
