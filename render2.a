@@ -2,7 +2,7 @@
 ;   PROJECT: ppt
 ;   MODULE : render2.a
 ;
-;   $Id: render2.a,v 1.6 1997/07/12 21:59:46 jj Exp $
+;   $Id: render2.a,v 1.7 1997/10/06 21:49:50 jj Exp $
 ;
 ;   Support functions for renderer. Mainly to fasten things up a bit ;)
 ;
@@ -16,6 +16,8 @@
         XDEF    _BestMatchPen8
         XDEF    _Plane2Chunk
         XDEF    _QuickMapRow
+        XDEF    @QuickMapARGBDeepRow
+        XDEF    _QuickMapARGBDeepRow
 
 ;
 ; INPUTS: d0.h = r1, d0.l = g1,
@@ -299,6 +301,107 @@ maploop:
 ; exit
         movem.l (A7)+,D2-D7/A2-A6
         rts
+
+;-------------------------------------------------------------------------
+;
+;  Same as above, but for CGX
+;
+;    D0.w = windowwidth
+;    D1.w = srcwidth
+;    D2.b = high alpha intensity
+;    D3.b = low alpha intensity
+;    D4.w = row
+;    A0 = map to RGB data
+;    A1 = map to quickrender row (pixelrow)
+;
+;  Could really use some more optimization.
+;    D2 is still free.
+
+_QuickMapARGBDeepRow:
+@QuickMapARGBDeepRow:
+        movem.l D2-D7/A2-A6,-(A7)
+
+        move.l  D2,A2       ; White
+        move.l  D3,A3       ; Black
+
+        moveq   #0,D7       ; D7 = column counter
+
+; Black or white?
+        lsr.w   #3,D4
+        move.l  D4,A6       ; A6 = row/8
+
+deepmaploop:
+; Black or white, again:
+        move.l  D7,D6
+        lsr.w   #3,D6
+        move.l  A6,D3
+        eor.w   D6,D3       ; even, if black; odd, if white
+        btst    #0,D3
+        bne     deep_white
+
+        move.l  A2,A4
+        bra     deep_pixel
+deep_white:
+        move.l  A3,A4       ; A4 = background pixel value.
+
+; Calculate pixel location
+
+deep_pixel:
+        move.l  D7,D6
+        mulu.w  D1,D6       ; col*srcwidth
+        divu.w  D0,D6       ; D6 = col * scrwidth/winwidth
+        ext.l   D6          ; no remainder
+        lsl.l   #2,D6       ; x4
+
+; Calculate pixel RGB value
+
+        move.l  0(A0,D6),D4 ; ARGB pixel
+        move.l  D4,D5
+        move.l  D4,A5       ; A5 = original pixel data
+        moveq   #24,D3
+        lsr.l   D3,D5       ; D5 = alpha
+        move.l  D5,D4
+        move.w  #255,D6
+        sub.w   D4,D6       ; D6 = 255-alpha
+
+; Pre-calculate the background value to be mixed (a * t)
+        move.l  A4,D3
+        mulu.w  D3,D5       ; D5 = t * alpha
+
+; Red
+        move.l  A5,D4
+        moveq   #16,D3
+        lsr.l   D3,D4
+        and.l   #$FF,D4
+        mulu.w  D6,D4
+        add.w   D5,D4
+        lsr.w   #8,D4       ; /256
+        move.b  D4,(A1)+
+; Green
+        move.l  A5,D4
+        lsr.l   #8,D4
+        and.l   #$FF,D4
+        mulu.w  D6,D4
+        add.w   D5,D4
+        lsr.w   #8,D4       ; /256
+        move.b  D4,(A1)+
+; Blue
+        move.l  A5,D4
+        and.l   #$FF,D4
+        mulu.w  D6,D4
+        add.w   D5,D4
+        lsr.w   #8,D4       ; /256
+        move.b  D4,(A1)+
+
+; End loop
+        addq    #1,D7
+        cmp.l   D7,D0       ; < winwidth?
+        bne     deepmaploop
+
+; exit
+        movem.l (A7)+,D2-D7/A2-A6
+        rts
+
 
 ;-------------------------------------------------------------------------
 ;
