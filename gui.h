@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.24 1997/10/26 21:09:36 jj Exp $
+    $Id: gui.h,v 1.25 1997/10/26 23:06:53 jj Exp $
 */
 
 #ifndef GUI_H
@@ -125,9 +125,9 @@ struct SelectWindow {
     BOOL            initialopen;
 
     Object          *Win;
+    struct  Window  *win;
     Object          *TopLeft, *TopRight, *BottomLeft, *BottomRight,
                     *Height, *Width;
-    struct  Window  *win;
 };
 
 /*
@@ -142,8 +142,8 @@ struct FramesWindow {
     BOOL            initialopen;    /* DO NOT MOVE! */
 
     Object          *Win;
-    Object          *Frames, *Info;
     struct Window   *win;
+    Object          *Frames, *Info;
 };
 
 struct PrefsWindow {
