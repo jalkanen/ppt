@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.30 1998/10/14 20:36:50 jj Exp $
+    $Id: rexx.c,v 1.31 1998/11/08 00:48:57 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -47,6 +47,12 @@ struct RexxAskReqValue {
     LONG value;
 };
 
+typedef enum
+{
+    ASI_INT,
+    ASI_STRING
+} StemType;
+
 /*--------------------------------------------------------------------------*/
 /* Prototypes */
 
@@ -61,7 +67,7 @@ Local void FreeRexxCommand( struct RexxMsg * );
 Local void ReplyRexxCommand( struct RexxMsg  *, long, long,char * );
 Local struct Stem *AllocStem( UBYTE * );
 Local VOID FreeStem( struct Stem *s );
-Local PERROR AddStemItem( struct Stem *, UBYTE *, ULONG, BOOL );
+Local PERROR AddStemItem( struct Stem *, UBYTE *, ULONG, StemType );
 Local VOID FreeStemItem( struct StemItem * );
 Local VOID RexxReply( struct RexxMsg *, REXXARGS * );
 Local BOOL DoRexxCommand( struct RexxMsg *, char *, REXXARGS * );
@@ -173,6 +179,19 @@ const Tag artags[] = {
     AR_CycleObject,
     AR_FloatObject
 };
+
+/*
+ *  English names for REXX.
+ */
+
+const char *ColorSpaceNamesE[] = {
+    "Unknown",
+    "Greyscale",
+    "RGB",
+    "Colormapped",
+    "ARGB"
+};
+
 
 
 /*--------------------------------------------------------------------------*/
@@ -397,17 +416,21 @@ PERROR parse_arcycle(struct RexxMsg *rm,struct TagItem *tags,char *name,int s)
 
     /*
      *  Build an array suitable for ARCYCLE_Labels.  The entries must be
-     *  separated by a bar
+     *  separated by a bar.
+     *  BUG: strtok() is not a re-entrable function!
      */
 
     arg = rx_FetchString(rm,name,"LABELS","");
     if(!arg) return PERR_INVALIDARGS;
     strncpy(gadgets,arg,256);
+    LOCKGLOB();
     for(arg = strtok(gadgets,"|"),i=0; arg && i<MAX_REXX_ASKREQ_CYCLELABELS; arg = strtok(NULL,"|"),i++ ) {
         labels[i] = smalloc(strlen(arg)+1);
-        if(!labels[i]) return PERR_OUTOFMEMORY;
+        D(bug("\tAllocated %d bytes @%08X\n",strlen(arg)+1,labels[i]));
+        if(!labels[i]) { UNLOCKGLOB(); return PERR_OUTOFMEMORY; }
         strcpy(labels[i],arg);
     }
+    UNLOCKGLOB();
 
     return PERR_OK;
 }
@@ -553,9 +576,10 @@ void rx_askreq( REXXARGS *ra, struct RexxMsg *rm )
                 if(!CheckPtr(labels,"REXX/AR_CycleObject labels") )
                     break;
 
-                for(j = 0; labels[j] == NULL; j++)
+                for(j = 0; labels[j] == NULL; j++) {
+                    D(bug("\tReleasing label @%08X\n",labels[j]));
                     sfree(labels[j]);
-
+                }
                 pfree(labels);
                 /* FALLTHROUGH OK */
 
@@ -651,14 +675,14 @@ void rx_listloaders( REXXARGS *ra, struct RexxMsg *rm )
 
         if(ok) {
             sprintf(buf,"%u",count);
-            AddStemItem( stem, buf, (ULONG) cn->ln_Name, TRUE ); /* This is a string. BUG: should check  */
+            AddStemItem( stem, buf, (ULONG) cn->ln_Name, ASI_STRING ); /* This is a string. BUG: should check  */
             count++;
         }
         cn = nn;
     }
 
     /* Finally, add the amount of effects. */
-    AddStemItem( stem, "0", count-1, FALSE );
+    AddStemItem( stem, "0", count-1, ASI_INT );
 
     ra->stem = stem;
 }
@@ -679,13 +703,13 @@ void rx_listeffects( REXXARGS *ra, struct RexxMsg *rm )
 
     while( nn = cn->ln_Succ ) {
         sprintf(buf,"%u",count);
-        AddStemItem( stem, buf, (ULONG) cn->ln_Name, TRUE ); /* This is a string. BUG: should check  */
+        AddStemItem( stem, buf, (ULONG) cn->ln_Name, ASI_STRING ); /* This is a string. BUG: should check  */
         cn = nn;
         count++;
     }
 
     /* Finally, add the amount of effects. */
-    AddStemItem( stem, "0", count-1, FALSE );
+    AddStemItem( stem, "0", count-1, ASI_INT );
 
     ra->stem = stem;
 }
@@ -889,12 +913,12 @@ void rx_getrenderprefs( REXXARGS *ra, struct RexxMsg *rm )
         return;
     }
 
-    AddStemItem( stem, "MODEID", frame->disp->dispid, FALSE );
-    AddStemItem( stem, "DEPTH", frame->disp->depth, FALSE );
-    AddStemItem( stem, "NCOLORS", frame->disp->ncolors, FALSE );
-    AddStemItem( stem, "DITHER", (ULONG)dithers[frame->disp->dither], TRUE );
-    AddStemItem( stem, "MODE", (ULONG)modes[frame->disp->renderq], TRUE );
-    AddStemItem( stem, "FORCEBW", frame->disp->forcebw, FALSE );
+    AddStemItem( stem, "MODEID", frame->disp->dispid, ASI_INT );
+    AddStemItem( stem, "DEPTH", frame->disp->depth, ASI_INT );
+    AddStemItem( stem, "NCOLORS", frame->disp->ncolors, ASI_INT );
+    AddStemItem( stem, "DITHER", (ULONG)dithers[frame->disp->dither], ASI_STRING );
+    AddStemItem( stem, "MODE", (ULONG)modes[frame->disp->renderq], ASI_STRING );
+    AddStemItem( stem, "FORCEBW", frame->disp->forcebw, ASI_INT );
 
     ra->stem = stem;
 }
@@ -918,16 +942,16 @@ void rx_frameinfo( REXXARGS *ra, struct RexxMsg *rm )
     stem = AllocStem( (UBYTE *)ra->args[1] ); /* BUG: Should check */
 
     SHLOCK(frame);
-    AddStemItem( stem, "NAME", (ULONG)frame->name, TRUE );
-    AddStemItem( stem, "HEIGHT", (ULONG)frame->pix->height, FALSE );
-    AddStemItem( stem, "WIDTH", (ULONG)frame->pix->width, FALSE );
-    AddStemItem( stem, "COLORSPACE", (ULONG)ColorSpaceNames[frame->pix->colorspace], TRUE );
-    AddStemItem( stem, "COMPONENTS", (ULONG)frame->pix->components, FALSE );
-    AddStemItem( stem, "DPIX", (ULONG)frame->pix->DPIX, FALSE );
-    AddStemItem( stem, "DPIY", (ULONG)frame->pix->DPIY, FALSE );
-    AddStemItem( stem, "BYTESPERROW", (ULONG)frame->pix->bytes_per_row, FALSE );
-    AddStemItem( stem, "PATH", (ULONG)frame->path, TRUE );
-    AddStemItem( stem, "HIDDEN", (ULONG) (frame->disp->win ? FALSE : TRUE), FALSE );
+    AddStemItem( stem, "NAME", (ULONG)frame->name, ASI_STRING );
+    AddStemItem( stem, "HEIGHT", (ULONG)frame->pix->height, ASI_INT );
+    AddStemItem( stem, "WIDTH", (ULONG)frame->pix->width, ASI_INT );
+    AddStemItem( stem, "COLORSPACE", (ULONG)ColorSpaceNamesE[frame->pix->colorspace], ASI_STRING );
+    AddStemItem( stem, "COMPONENTS", (ULONG)frame->pix->components, ASI_INT );
+    AddStemItem( stem, "DPIX", (ULONG)frame->pix->DPIX, ASI_INT );
+    AddStemItem( stem, "DPIY", (ULONG)frame->pix->DPIY, ASI_INT );
+    AddStemItem( stem, "BYTESPERROW", (ULONG)frame->pix->bytes_per_row, ASI_INT );
+    AddStemItem( stem, "PATH", (ULONG)frame->path, ASI_STRING );
+    AddStemItem( stem, "HIDDEN", (ULONG) (frame->disp->win ? FALSE : TRUE), ASI_INT );
     UNLOCK(frame);
 
     ra->stem = stem;
@@ -951,12 +975,12 @@ void rx_effectinfo( REXXARGS *ra, struct RexxMsg *rm )
             ra->rc2 = (long)"Couldn't open effect";
         } else {
             stem = AllocStem( (UBYTE *) ra->args[1] );
-            AddStemItem( stem, "NAME", (ULONG) effect->nd.ln_Name, TRUE );
-            AddStemItem( stem, "VERSION", EffectBase->lib_Version, FALSE );
-            AddStemItem( stem, "REVISION", EffectBase->lib_Revision, FALSE );
-            AddStemItem( stem, "AUTHOR", EffectInquire( PPTX_Author, globxd ) , TRUE );
-            AddStemItem( stem, "INFOTXT", EffectInquire( PPTX_InfoTxt, globxd ), TRUE );
-            AddStemItem( stem, "REXXTEMPLATE", EffectInquire( PPTX_RexxTemplate, globxd), TRUE );
+            AddStemItem( stem, "NAME", (ULONG) effect->nd.ln_Name, ASI_STRING );
+            AddStemItem( stem, "VERSION", EffectBase->lib_Version, ASI_INT );
+            AddStemItem( stem, "REVISION", EffectBase->lib_Revision, ASI_INT );
+            AddStemItem( stem, "AUTHOR", EffectInquire( PPTX_Author, globxd ) , ASI_STRING );
+            AddStemItem( stem, "INFOTXT", EffectInquire( PPTX_InfoTxt, globxd ), ASI_STRING );
+            AddStemItem( stem, "REXXTEMPLATE", EffectInquire( PPTX_RexxTemplate, globxd), ASI_STRING );
             CloseModule( EffectBase, globxd );
         }
 
@@ -965,11 +989,38 @@ void rx_effectinfo( REXXARGS *ra, struct RexxMsg *rm )
 }
 
 Local
+VOID rx_AddCSName( char *buf, ULONG cs )
+{
+    strcat(buf,ColorSpaceNamesE[cs]);
+    strcat(buf,"|");
+}
+
+Local
+VOID rx_DecodeColorSpaceBits( char *buf, ULONG csf )
+{
+    strcpy(buf, "");
+
+    if (csf & CSF_RGB)
+        rx_AddCSName( buf, CS_RGB );
+    if (csf & CSF_GRAYLEVEL)
+        rx_AddCSName( buf, CS_GRAYLEVEL );
+    if (csf & CSF_LUT)
+        rx_AddCSName( buf, CS_LUT );
+    if (csf & CSF_ARGB)
+        rx_AddCSName( buf, CS_ARGB );
+
+    if (csf)
+        buf[strlen(buf) - 1] = '\0';    // Remove last comma.
+
+}
+
+Local
 void rx_loaderinfo( REXXARGS *ra, struct RexxMsg *rm )
 {
     EXTERNAL    *loader;
     struct Stem *stem = NULL;
     struct Library *IOModuleBase;
+    char buf[256];
 
     loader = (EXTERNAL *)FindName( &globals->loaders, (UBYTE *)ra->args[0] );
     if(!loader) {
@@ -982,14 +1033,16 @@ void rx_loaderinfo( REXXARGS *ra, struct RexxMsg *rm )
             ra->rc2 = (long)"IO Module not found!";
         } else {
             stem = AllocStem( (UBYTE *) ra->args[1] );
-            AddStemItem( stem, "NAME", (ULONG) loader->nd.ln_Name, TRUE );
-            AddStemItem( stem, "VERSION", IOModuleBase->lib_Version, FALSE );
-            AddStemItem( stem, "REVISION", IOModuleBase->lib_Revision, FALSE );
-            AddStemItem( stem, "AUTHOR", IOInquire( PPTX_Author, globxd ), TRUE );
-            AddStemItem( stem, "INFOTXT", IOInquire(PPTX_InfoTxt, globxd), TRUE );
-            AddStemItem( stem, "REXXTEMPLATE", IOInquire( PPTX_RexxTemplate, globxd), TRUE );
-            AddStemItem( stem, "LOAD", IOInquire( PPTX_Load, globxd ), FALSE );
-            AddStemItem( stem, "SAVEFORMATS", IOInquire( PPTX_ColorSpaces, globxd ), FALSE );
+            AddStemItem( stem, "NAME", (ULONG) loader->nd.ln_Name, ASI_STRING );
+            AddStemItem( stem, "VERSION", IOModuleBase->lib_Version, ASI_INT );
+            AddStemItem( stem, "REVISION", IOModuleBase->lib_Revision, ASI_INT );
+            AddStemItem( stem, "AUTHOR", IOInquire( PPTX_Author, globxd ), ASI_STRING );
+            AddStemItem( stem, "INFOTXT", IOInquire(PPTX_InfoTxt, globxd), ASI_STRING );
+            AddStemItem( stem, "REXXTEMPLATE", IOInquire( PPTX_RexxTemplate, globxd), ASI_STRING );
+            AddStemItem( stem, "LOAD", IOInquire( PPTX_Load, globxd ), ASI_INT );
+            rx_DecodeColorSpaceBits(buf, IOInquire( PPTX_ColorSpaces, globxd ) );
+            AddStemItem( stem, "SAVEFORMATS", (ULONG)buf, ASI_STRING );
+            AddStemItem( stem, "PREFERREDPOSTFIX", IOInquire( PPTX_PreferredPostFix, globxd), ASI_STRING );
             CloseModule( IOModuleBase, globxd );
         }
         ra->stem = stem;
@@ -1039,10 +1092,10 @@ void rx_getarea( REXXARGS *ra, struct RexxMsg *rm )
     }
 
     SHLOCK(frame);
-    AddStemItem( stem, "MINX", (ULONG)frame->selbox.MinX, FALSE );
-    AddStemItem( stem, "MINY", (ULONG)frame->selbox.MinY, FALSE );
-    AddStemItem( stem, "MAXX", (ULONG)frame->selbox.MaxX, FALSE );
-    AddStemItem( stem, "MAXY", (ULONG)frame->selbox.MaxY, FALSE );
+    AddStemItem( stem, "MINX", (ULONG)frame->selbox.MinX, ASI_INT );
+    AddStemItem( stem, "MINY", (ULONG)frame->selbox.MinY, ASI_INT );
+    AddStemItem( stem, "MAXX", (ULONG)frame->selbox.MaxX, ASI_INT );
+    AddStemItem( stem, "MAXY", (ULONG)frame->selbox.MaxY, ASI_INT );
     UNLOCK(frame);
 
     ra->stem = stem;
@@ -1171,8 +1224,8 @@ void rx_askfile( REXXARGS *ra, struct RexxMsg *rm )
     UBYTE *initialdrawer, *initialfile, *path;
 
     if( !RexxFileReq ) {
-        GetAttr( FRQ_Drawer, globals->LoadFileReq, (ULONG *)&initialdrawer );
-        GetAttr( FRQ_File, globals->LoadFileReq, (ULONG *)&initialfile );
+        GetAttr( FRQ_Drawer, gvLoadFileReq.Req, (ULONG *)&initialdrawer );
+        GetAttr( FRQ_File, gvLoadFileReq.Req, (ULONG *)&initialfile );
 
         RexxFileReq = FileReqObject,
             ASLFR_Locale,       globxd->locale,
@@ -1905,7 +1958,7 @@ VOID FreeStemItem( struct StemItem *si )
     BUG: No error checking
 */
 Local
-PERROR AddStemItem( struct Stem *stem, UBYTE *name, ULONG value, BOOL string )
+PERROR AddStemItem( struct Stem *stem, UBYTE *name, ULONG value, StemType type )
 {
     struct StemItem *si;
 
@@ -1928,7 +1981,7 @@ PERROR AddStemItem( struct Stem *stem, UBYTE *name, ULONG value, BOOL string )
 
     strcpy( si->name, name );
 
-    if(string) {
+    if(type == ASI_STRING) {
         si->value = smalloc( strlen( (UBYTE *) value) + 1 );
         if(!si->value) {
             FreeStemItem( si );
