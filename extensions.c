@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.4 1997/03/04 23:58:05 jj Exp $
+    $Id: extensions.c,v 1.5 1997/03/13 18:51:45 jj Exp $
 */
 
 #include "defs.h"
@@ -211,9 +211,9 @@ VOID CloseEditWindow( EDITWIN *ew )
 /*
     Removes all special \xxx markers
  */
-Prototype VOID ConvertCToExtension( STRPTR c, STRPTR e, ULONG len );
+Prototype VOID ConvertCToExtension( UBYTE *c, UBYTE *e, ULONG len );
 
-VOID ConvertCToExtension( STRPTR c, STRPTR e, ULONG len )
+VOID ConvertCToExtension( UBYTE *c, UBYTE *e, ULONG len )
 {
     int i = 0, j = 0;
 
@@ -245,9 +245,9 @@ VOID ConvertCToExtension( STRPTR c, STRPTR e, ULONG len )
 }
 
 
-Prototype VOID ConvertExtensionToC( STRPTR e, STRPTR c, ULONG len );
+Prototype VOID ConvertExtensionToC( UBYTE *e, UBYTE *c, ULONG len );
 
-VOID ConvertExtensionToC( STRPTR e, STRPTR c, ULONG len )
+VOID ConvertExtensionToC( UBYTE *e, UBYTE *c, ULONG len )
 {
     int i = 0, j = 0;
 
