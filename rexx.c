@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 1.24 1998/02/06 19:09:22 jj Exp $
+    $Id: rexx.c,v 1.25 1998/06/28 23:24:18 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1116,7 +1116,7 @@ void rx_copyframe( REXXARGS *ra, struct RexxMsg *rm )
 
     LOCK(frame);
 
-    if( newframe = CopyFrame( frame, globxd ) ) {
+    if( newframe = DupFrame( frame, DFF_COPYDATA|DFF_MAKENEWNAME, globxd ) ) {
         AllocInfoWindow( newframe, globxd );
         AddFrame( newframe );
         DoMainList( newframe );
@@ -1312,25 +1312,36 @@ void rx_ppt_to_back( REXXARGS *ra, struct RexxMsg *rm )
 /*
     Start processing of a frame.
 
-    BUG:  argstr will overflow easily!
+    Note that the rxargs is not released until the effect has stopped!
 */
 Local
 void rx_process( REXXARGS *ra, struct RexxMsg *rm )
 {
-    char argstr[MAXPATHLEN];
+    char argstr[MAXPATHLEN], *rxargs = NULL;
     FRAME *frame;
 
     frame = ra->frame;
 
+    if( ra->args[2] ) {
+        if( rxargs = pmalloc( strlen( STR(ra->args[2]) ) + 1 ) ) {
+            strcpy( rxargs, STR(ra->args[2]) );
+        } else {
+            ra->rc = 10; ra->rc2 = PERR_OUTOFMEMORY;
+            ra->proc = NULL;
+            return;
+        }
+    }
+
     LOCK(frame);
 
     D(bug("Calling frame %08X, effect %s with ", frame, ra->args[1]));
-    if(ra->args[2]) {
-        D(bug("args '%s'\n",ra->args[2]));
-        sprintf(argstr,"NAME=\"%s\" REXX ARGS=\"%s\"",ra->args[1],ra->args[2]);
+
+    if(rxargs) {
+        D(bug("args '%s'\n",rxargs));
+        sprintf(argstr,"NAME=\"%s\" REXX ARGS=%lu",ra->args[1],rxargs);
     } else {
         D(bug("NULL args\n"));
-        sprintf(argstr,"NAME=\"%s\" REXX ARGS=\"\"",ra->args[1]);
+        sprintf(argstr,"NAME=\"%s\" REXX ARGS=0",ra->args[1]);
     }
 
     if( RunFilter( frame, argstr ) != PERR_OK) {
@@ -1339,6 +1350,7 @@ void rx_process( REXXARGS *ra, struct RexxMsg *rm )
     } else {
         ra->frame = frame;
         ra->proc  = frame->currproc;
+        ra->process_args = rxargs;
     }
 
     UNLOCK(frame);
@@ -1543,6 +1555,41 @@ void HandleRexxCommands( struct RexxHost *host )
 }
 
 /*
+    Use to put a pseudo rexx command into the queue.  This is necessary
+    if PPT starts an effect by using its own internal args.
+
+    See Composite() for example.
+
+    Returns a pointer to the added REXXARGS.
+ */
+
+Prototype REXXARGS *SimulateRexxCommand( FRAME *frame, char *command );
+
+REXXARGS *
+SimulateRexxCommand( FRAME *frame, char *command )
+{
+    REXXARGS *ra = NULL;
+
+    if( ra = pzmalloc(sizeof(REXXARGS)) ) {
+        ra->frame = frame;
+
+        if(ra->process_args = pmalloc( strlen(command)+1 )) {
+            strcpy( ra->process_args, command );
+
+            Forbid();
+            AddTail( &RexxWaitList, (struct Node *) ra );
+            Permit();
+        } else {
+            pfree( ra );
+            ra = NULL;
+        }
+
+    }
+
+    return ra;
+}
+
+/*
     Master reply interface. Does STEM and possible future VAR
     setting correctly.
 */
@@ -1672,10 +1719,16 @@ void ReplyRexxWaitItem( REXXARGS *ra )
 {
     D(bug("ReplyRexxWaitItem(ra=%08X)\n",ra));
     if( ra->args ) FreeDOSArgs( ra->args, globxd );
-    RexxReply( ra->msg, ra );
+    if( ra->msg )  RexxReply( ra->msg, ra );
     Forbid();
     Remove( (struct Node *)ra);
     Permit();
+
+    /*
+     *  Release the structure and allocated args
+     */
+
+    if( ra->process_args ) pfree( ra->process_args );
     pfree(ra);
 }
 
