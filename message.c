@@ -2,13 +2,13 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 1.3 1996/02/27 21:22:43 jj Exp $
+    $Id: message.c,v 1.4 1996/10/10 19:05:32 jj Exp $
 
     This module contains code about message handling routines.
 */
 
-#include <defs.h>
-#include <misc.h>
+#include "defs.h"
+#include "misc.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -16,18 +16,65 @@ Prototype struct PPTMessage *InitPPTMsg( void );
 Prototype VOID              PurgePPTMsg( struct PPTMessage * );
 Prototype VOID              DoPPTMsg( struct MsgPort *, struct PPTMessage * );
 
-Prototype REG(d0) PERROR    StartInput( REG(a0) FRAME *, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
-Prototype VOID              StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
+Prototype ASM PERROR        StartInput( REG(a0) FRAME *, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype ASM VOID          StopInput( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype VOID              FinishFrameInput( FRAME * );
 Prototype VOID              SetupFrameForInput( struct PPTMessage * );
 Prototype VOID              ClearFrameInput( FRAME * );
 
 Prototype VOID              SendInputMsg(FRAME *, ULONG,  APTR);
 
-Prototype LONG              EmptyMsgPort( struct MsgPort * );
+Prototype LONG              EmptyMsgPort( struct MsgPort *, EXTBASE * );
 
 /*------------------------------------------------------------------------*/
 /* Code */
+
+/*
+    This is a more complex PPTMessage system.  Allows for more configurability
+*/
+
+Prototype struct PPTMessage *AllocPPTMsg( ULONG, EXTBASE * );
+
+struct PPTMessage *AllocPPTMsg( ULONG size, EXTBASE *ExtBase )
+{
+    struct PPTMessage *msg = NULL;
+
+    if(msg = smalloc( size )) {
+        bzero( msg, size );
+        msg->msg.mn_Node.ln_Type = NT_MESSAGE;
+        msg->msg.mn_Length       = size;
+        msg->msg.mn_ReplyPort    = ExtBase->mport;
+    }
+
+    return msg;
+}
+
+Prototype VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase );
+
+VOID FreePPTMsg( struct PPTMessage *pmsg, EXTBASE *ExtBase )
+{
+    if( pmsg ) {
+        D(bug("FreePPTMsg(%08X) : code %lu\n", pmsg, pmsg->code ));
+        sfree( pmsg );
+    }
+}
+
+Prototype VOID SendPPTMsg( struct MsgPort *, struct PPTMessage *, EXTBASE * );
+
+VOID SendPPTMsg( struct MsgPort *mp, struct PPTMessage *pmsg, EXTBASE *ExtBase )
+{
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+
+    D(bug("SendPPTMsg(%08X) : code %lu\n",pmsg, pmsg->code ));
+
+    Forbid();
+    PutMsg( mp, (struct Message *) pmsg );
+    Permit();
+}
+
+/*
+    A simple, synchronous PPT messaging system.
+*/
 
 /*
     Initialize a PPTMsg.
@@ -39,7 +86,11 @@ struct PPTMessage *InitPPTMsg( void )
     struct PPTMessage *msg;
 
     D(bug("InitPPTMsg()\n"));
-    replyport = CreateMsgPort();
+    if( NULL == (replyport = CreateMsgPort())) {
+        D(bug("\tCouldn't make MsgPort!\n"));
+        return NULL;
+    }
+
     msg = pzmalloc( sizeof(struct PPTMessage) );
     if(!msg) {
         DeleteMsgPort(replyport);
@@ -61,11 +112,13 @@ void PurgePPTMsg( struct PPTMessage *msg )
 {
     APTR SysBase = SYSBASE();
 
-    D(bug("PurgePPTMsg(%08x)\n",msg));
-    if(msg->msg.mn_ReplyPort)
-        DeleteMsgPort(msg->msg.mn_ReplyPort);
+    if( msg ) {
+        D(bug("PurgePPTMsg(%08x)\n",msg));
+        if(msg->msg.mn_ReplyPort)
+            DeleteMsgPort(msg->msg.mn_ReplyPort);
 
-    pfree(msg);
+        pfree(msg);
+    }
 }
 
 /*
@@ -75,16 +128,23 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 {
     APTR SysBase = SYSBASE();
 
-    Forbid();
-    PutMsg(dest, (struct Message *)msg);
-    Permit();
+    D(bug("DoPPTMsg(%08X,%08X)\n",dest,msg));
 
-    D(bug("\tWaiting for answer...\n"));
+    if( dest && msg ) {
+        Forbid();
+        PutMsg(dest, (struct Message *)msg);
+        Permit();
 
-    WaitPort(msg->msg.mn_ReplyPort); /* Wait for the answer... */
-    GetMsg(msg->msg.mn_ReplyPort);
+        D(bug("\tWaiting for answer...\n"));
 
-    D(bug("\tGot answer, now exiting\n"));
+        WaitPort(msg->msg.mn_ReplyPort); /* Wait for the answer... */
+
+        D(bug("\tGot answer\n"));
+
+        GetMsg(msg->msg.mn_ReplyPort);
+
+        D(bug("\tExiting wait...\n"));
+    }
 }
 
 /****** pptsupport/StartInput ******************************************
@@ -144,10 +204,10 @@ void DoPPTMsg( struct MsgPort *dest, struct PPTMessage *msg )
 */
 
 SAVEDS ASM
-REG(d0) PERROR StartInput( REG(a0) FRAME *frame,
-                           REG(a1) APTR  area,
-                           REG(d0) ULONG mid,
-                           REG(a6) EXTBASE *ExtBase )
+PERROR StartInput( REG(a0) FRAME *frame,
+                   REG(a1) APTR  area,
+                   REG(d0) ULONG mid,
+                   REG(a6) EXTBASE *ExtBase )
 {
     struct PPTMessage pmsg, *amsg;
 
@@ -224,7 +284,7 @@ REG(d0) PERROR StartInput( REG(a0) FRAME *frame,
                         D(bug("\tFailed to set up the comm system\n"));
                     }
                     // ReplyMsg( (struct Message *)amsg );
-                    return amsg->data;
+                    return (PERROR) (amsg->data);
                 }
 
                 /*
@@ -235,6 +295,8 @@ REG(d0) PERROR StartInput( REG(a0) FRAME *frame,
             }
         }
     }
+
+    return PERR_OK;
 }
 
 /****** pptsupport/StopInput ******************************************
@@ -398,18 +460,60 @@ VOID FinishFrameInput( FRAME *f )
     This empties a message port from all messages. The message count
     is returned.
 */
-LONG EmptyMsgPort( struct MsgPort *mp )
+LONG EmptyMsgPort( struct MsgPort *mp, EXTBASE *ExtBase )
 {
     struct Message *msg;
     LONG count = 0;
-    struct Library *SysBase = SYSBASE();
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+
+    D(bug("EmptyMsgPort()\n"));
 
     while( msg = GetMsg( mp ) ) {
-        ReplyMsg( msg );
+        if( msg->mn_Node.ln_Type != NT_REPLYMSG ) {
+            ReplyMsg( msg );
+        } else {
+            FreePPTMsg( (struct PPTMessage *)msg, ExtBase );
+        }
         ++count;
     }
 
     return count;
+}
+
+/*
+    This waits for a deathmessage sent by our master and replies to
+    all other messages.  It will also release any replied message.
+*/
+
+Prototype VOID WaitDeathMessage( EXTBASE * );
+
+VOID WaitDeathMessage( EXTBASE *ExtBase )
+{
+    struct MsgPort *mp = ExtBase->mport;
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    ULONG sig;
+    struct Message *msg;
+    BOOL  quit = FALSE;
+
+    D(bug("WaitDeathMessage()\n"));
+
+    while(!quit) {
+        sig = Wait( 1 << mp->mp_SigBit | SIGBREAKF_CTRL_C );
+
+        if( sig & SIGBREAKF_CTRL_C ) return;
+
+        while( msg = GetMsg( mp ) ) {
+            if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
+                if( ((struct PPTMessage *)msg)->code & PPTMSGF_DONE ) {
+                    quit = TRUE;
+                }
+                FreePPTMsg( (struct PPTMessage *) msg, ExtBase );
+            } else {
+                ReplyMsg( msg );
+            }
+        }
+
+    }
 }
 
 /*------------------------------------------------------------------------*/
