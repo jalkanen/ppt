@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE:  preview.c
 
-    $Id: preview.c,v 4.9 1999/08/01 16:48:33 jj Exp $
+    $Id: preview.c,v 6.0 1999/09/06 21:17:04 jj Exp $
 */
 
 #include "defs.h"
@@ -79,7 +79,7 @@ PERROR DoPreview( FRAME *frame )
         GetAttr( AREA_AreaBox, frame->disp->RenderArea, (ULONG *)&bounds);
         pm->area        = *bounds;
 
-        SendPPTMsg( frame->selectport,pm,globxd );
+        SendPPTMsg( frame->selection.selectport,pm,globxd );
     } else {
 #if 0
         res = QuickDisplayFrame( frame->pf_Frame );
@@ -311,6 +311,8 @@ FRAME *ObtainPreviewFrameA( REG(a0) FRAME *frame,
                     /*
                      *  Calculate the new selbox size and save it.
                      */
+
+                    CopySelection( frame, pwframe );
 
                     if( IsAreaSelected(frame) ) {
                         RescaleSelection( frame, pwframe );
