@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.8 1996/11/27 22:44:41 jj Exp $
+#       $Id: dmakefile,v 1.9 1996/12/08 20:37:39 jj Exp $
 #
 #####################################################################
 #
@@ -104,7 +104,8 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #  NB:  If compiling for 020+, then remove utillib from the command line
 #
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
-RCOPTS  = cpu=68000 UTILLIB OPT OPTSCHED DEBUG=LINE STRCON PARMS=R UTILLIB
+RCOPTS  = cpu=68000 UTILLIB OPT OPTSCHED DEBUG=LINE STRCON PARMS=R UTILLIB \
+          GST=include:all.gst
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
 
@@ -163,7 +164,7 @@ MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
 
 # These files version on version & gfx information
 
-VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c
+VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c external.c
 
 #
 #   Object files.
@@ -296,7 +297,7 @@ ext :
 # Make prototypes file
 
 proto : $(SRCS)
-        makeproto -o machine-protos.h $(SRCS) $(SLOWSRCS)
+        makeproto -o machine-protos.h $(SRCS)
 
 # Makes a backup from everything except for object files.
 
