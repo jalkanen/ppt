@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.11 1996/09/30 02:42:34 jj Exp $
+    $Id: ppt_real.h,v 1.12 1996/10/10 19:04:12 jj Exp $
 
     Main definitions for PPT.
 
@@ -658,14 +658,31 @@ struct PPTMessage {
     APTR            data;           /* code-dependent. */
 };
 
-#define PPTMSG_EFFECTDONE   1L      /* External has died. data contains a
-                                       pointer to a new frame. */
-#define PPTMSG_LOADDONE     3L
-#define PPTMSG_RENDERDONE   4L
-#define PPTMSG_SAVEDONE     5L      /* Save complete. */
-#define PPTMSG_LASSO_RECT   10L
-#define PPTMSG_PICK_POINT   11L
-#define PPTMSG_FIXED_RECT   12L
+#define PPTMSGF_DONE            0x80000000 /* Set, if the message contains a death msg */
+
+#define PPTMSG_EFFECTDONE       (PPTMSGF_DONE + 0x01)
+#define PPTMSG_LOADDONE         (PPTMSGF_DONE + 0x02)
+#define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
+#define PPTMSG_SAVEDONE         (PPTMSGF_DONE + 0x04)
+
+#define PPTMSG_LASSO_RECT       0x10L
+#define PPTMSG_PICK_POINT       0x11L
+#define PPTMSG_FIXED_RECT       0x12L
+
+#define PPTMSG_STOP_INPUT       0x100L
+#define PPTMSG_ACK_INPUT        0x101L
+
+#define PPTMSG_OPENINFOWINDOW   0x200L
+#define PPTMSG_CLOSEINFOWINDOW  0x201L
+#define PPTMSG_UPDATEINFOWINDOW 0x202L
+#define PPTMSG_UPDATEPROGRESS   0x203L        /* Is really a ProgressMsg (see below) */
+
+struct ProgressMsg {
+    struct PPTMessage pmsg;
+    ULONG  done;
+    UBYTE  text[256];
+};
+
 
 /*------------------------------------------------------------------*/
 /* The input handler system */
