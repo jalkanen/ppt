@@ -20,21 +20,27 @@
 extern "C" {
 #endif
 
+#ifdef _DCC
+#define STDARGS __stkargs
+#else
+#define STDARGS __stdargs
+#endif
+
 typedef void (*OutputFuncPtr)(char *);
 
-void * __stdargs Fortify_malloc(size_t size, char *file, unsigned long line);
-void * __stdargs Fortify_realloc(void *ptr, size_t new_size, char *file, unsigned long line);
-void * __stdargs Fortify_calloc(size_t num, size_t size, char *file, unsigned long line);
-void  __stdargs  Fortify_free(void *uptr, char *file, unsigned long line);
+void * STDARGS Fortify_malloc(size_t size, char *file, unsigned long line);
+void * STDARGS Fortify_realloc(void *ptr, size_t new_size, char *file, unsigned long line);
+void * STDARGS Fortify_calloc(size_t num, size_t size, char *file, unsigned long line);
+void  STDARGS  Fortify_free(void *uptr, char *file, unsigned long line);
 
-int __stdargs Fortify_OutputAllMemory(char *file, unsigned long line);
-int __stdargs Fortify_CheckAllMemory(char *file, unsigned long line);
-int __stdargs Fortify_CheckPointer(void *uptr, char *file, unsigned long line);
-int __stdargs Fortify_Disable(char *file, unsigned long line);
-int __stdargs Fortify_SetMallocFailRate(int Percent);
-int __stdargs Fortify_EnterScope(char *file, unsigned long line);
-int __stdargs Fortify_LeaveScope(char *file, unsigned long line);
-int __stdargs Fortify_DumpAllMemory(int scope, char *file, unsigned long line);
+int STDARGS Fortify_OutputAllMemory(char *file, unsigned long line);
+int STDARGS Fortify_CheckAllMemory(char *file, unsigned long line);
+int STDARGS Fortify_CheckPointer(void *uptr, char *file, unsigned long line);
+int STDARGS Fortify_Disable(char *file, unsigned long line);
+int STDARGS Fortify_SetMallocFailRate(int Percent);
+int STDARGS Fortify_EnterScope(char *file, unsigned long line);
+int STDARGS Fortify_LeaveScope(char *file, unsigned long line);
+int STDARGS Fortify_DumpAllMemory(int scope, char *file, unsigned long line);
 
 typedef void (*Fortify_OutputFuncPtr)(const char *);
 Fortify_OutputFuncPtr Fortify_SetOutputFunc(Fortify_OutputFuncPtr Output);
