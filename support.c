@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 4.6 1998/02/28 18:04:51 jj Exp $
+    $Id: support.c,v 5.0 1998/12/15 21:26:29 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -132,6 +132,11 @@ APTR ExtLibData[] = {
     ReleasePreviewFrame,
     RenderFrame,       /* 40 */
     CopyFrameData,
+
+    /* Start of V5 additions */
+
+    CloseProgress,
+    NULL, // SetRexxVariable,
 
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
@@ -1252,6 +1257,10 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
 *       when you're finished. You may still do cleanups, etc., but nothing
 *       slow, otherwise it might confuse the user.
 *
+*       Note that this routines does not actually close the progress display,
+*       but renders it at 100% done.  PPT will close the window when you
+*       return from the plugin.
+*
 *   INPUTS
 *       frame - As usual.
 *
@@ -1276,6 +1285,56 @@ SAVEDS ASM VOID FinishProgress( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
 {
     D(bug("FinishProgress()\n"));
     UpdateProgress( frame, NEGNUL, MAXPROGRESS, ExtBase );
+}
+
+/****i* pptsupport/CloseProgress ******************************************
+*
+*   NAME
+*       CloseProgress -- closes progress display (V5)
+*
+*   SYNOPSIS
+*       CloseProgress( frame )
+*                       A0
+*
+*       VOID CloseProgress( FRAME * );
+*
+*   FUNCTION
+*       TBA
+*
+*   INPUTS
+*       frame - As usual.
+*
+*   RESULT
+*
+*   EXAMPLE
+*
+*   NOTES
+*
+*   BUGS
+*
+*   SEE ALSO
+*       InitProgress(), ClearProgress(), Progress().
+*
+******************************************************************************
+*
+*
+*/
+
+Prototype ASM VOID CloseProgress( REG(a0) FRAME *, REG(a6) struct PPTBase * );
+
+SAVEDS ASM VOID CloseProgress( REG(a0) FRAME *frame, REG(a6) struct PPTBase *PPTBase )
+{
+    INFOWIN *iw;
+
+    D(bug("CloseProgress()\n"));
+    if( frame ) {
+        if( frame->parent ) {
+            iw = frame->parent->mywin;
+        } else {
+            iw = frame->mywin;
+        }
+        CloseInfoWindow( iw, PPTBase );
+    }
 }
 
 /*
