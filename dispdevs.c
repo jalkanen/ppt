@@ -1,5 +1,5 @@
 /*
-    $Id: dispdevs.c,v 1.15 1998/02/28 18:04:07 jj Exp $
+    $Id: dispdevs.c,v 1.16 1998/08/14 19:28:15 jj Exp $
 
     Has code for different display devices.
 
@@ -81,7 +81,7 @@ VOID BMS_DestroyTempRp( struct RenderObject *rdo )
         tempbm = temprp->BitMap;
 
         if( tempbm ) {
-            if( GfxBase->LibNode.lib_Version >= 39 ) {
+            if( GFXV39 ) {
                 FreeBitMap( tempbm );
             } else {
                 for(i = 0; i < tempbm->Depth && tempbm->Planes[i]; i++)
@@ -119,7 +119,7 @@ PERROR BMS_GetTempRp( struct RenderObject *rdo )
     temprp = smalloc( sizeof( struct RastPort ) );
     if( temprp ) {
 
-        if( GfxBase->LibNode.lib_Version >= 39 ) {
+        if( GFXV39 ) {
             bcopy( dest, temprp, sizeof(struct RastPort) );
             temprp->Layer = NULL;
             temprp->BitMap = AllocBitMap( width, 1, dest->BitMap->Depth, 0L, dest->BitMap );
