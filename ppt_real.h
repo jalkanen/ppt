@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.13 $
-        $Date: 1997/06/07 21:17:13 $
+    $Revision: 4.5 $
+        $Date: 1997/10/24 22:57:44 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.13 1997/06/07 21:17:13 jj Exp $
+    $Id: ppt_real.h,v 4.5 1997/10/24 22:57:44 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -83,6 +83,8 @@ typedef struct GrayPixel_T {
     UBYTE g;
 } GrayPixel;
 
+typedef void Pixel;                 /* Use only as Pixel * */
+
 /*
  *  These macros can be used to extract an ULONG-cast
  *  ARGB pixels components.
@@ -117,8 +119,8 @@ typedef struct GrayPixel_T {
 /*!!PRIVATE*/
 /* Main window and main screen */
 
-#define MAINWIN       globals->maindisp->win
-#define MAINSCR       globals->maindisp->scr
+#define MAINWIN       (globals->maindisp->win)
+#define MAINSCR       (globals->maindisp->scr)
 
 
 /*------------------------------------------------------------------*/
@@ -132,6 +134,7 @@ typedef struct GrayPixel_T {
 #define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
 #define SCRTITLELEN         80      /* Length of the screen title buffer in DISPLAY */
 #define MAXSCRTITLENAMELEN  40      /* Max length of file name when shown on screen title */
+#define MAXPIXELSIZE         4      /* Maximum size of a pizel in bytes */
 
 /*!!PUBLIC*/
 
@@ -228,7 +231,7 @@ typedef struct {
     ULONG           begin,end;
     ULONG           last;
     APTR            data;
-    BOOL            chflag;
+    BOOL            chflag; /* TRUE, if the memory has been changed. */
 } VMHANDLE;
 
 /*!!PUBLIC*/
@@ -268,10 +271,12 @@ typedef struct {
     /*!!PRIVATE*/
 
     VMHANDLE        *vmh;       /* For virtual memory */
+    ULONG           vm_mode;    /* Virtual memory mode.  See below */
 
     ROWPTR          tmpbuf;     /* This contains a temporary area into which the
                                    image data is copied when processing. */
 
+    UBYTE           transparentpixel[MAXPIXELSIZE];
     /*!!PUBLIC*/
 } PIXINFO;
 
@@ -294,13 +299,30 @@ typedef struct {
 #define CSF_LUT             (1<<CS_LUT)
 #define CSF_ARGB            (1<<CS_ARGB)
 
+
 /*
-    The display structure contains necessary info to open a given
-    screen/display.
+    The display structure contains the data about a rendered image or
+    an open display.
 
     This structure is READ ONLY!  And most of the time, nothing very
     useful is in it, anyway...  Use only, if you really need the information,
     for example in a saver module.
+
+    The colortable contains up to ncolors ARGBPixel_T structures that
+    contain the RGB values as well as the Alpha channel value for an image.
+    An alpha value of 255 means that this color is fully transparent, a value
+    of zero means that it is not transparent at all.
+
+    If the image format supports only one transparent color, then you should
+    use the first color (starting from color zero) with a transparency value of 255.
+
+    More than 8 bits-per-gun colortables are not supported, as I really do not
+    see the value for using anything else.  In heavy-duty-image processing yes,
+    but colormapped images were originally used because the display hardware
+    could not cope with the bandwiths required for a full truecolor display and
+    are nowadays used just to keep the image size down.
+
+    If you really need 16-bits per gun color, then tell me.
 
     !!PRIVATE
     NOTE: Do not keep here anything that is not shared between
@@ -311,15 +333,19 @@ typedef struct {
     !!PUBLIC
  */
 
+typedef struct ARGBPixel_T      COLORMAP;
+
 typedef struct {
     struct Screen   *scr;       /* NULL, if not opened */
     struct Window   *win;       /* Render to this windows rastport. */
-    UBYTE           *colortable;/* Colortable in RGB8 format */
+    COLORMAP        *colortable; /* The colormap. See above. */
     UWORD           height,width;  /* Sizes. */
     ULONG           dispid;     /* Standard display ID */
     ULONG           ncolors;    /* Number of colors. May be somewhere between 2...depth */
     UWORD           type;       /* PRIVATE */
     UWORD           depth;      /* The depth the screen should use */
+
+    UWORD           DPIX, DPIY; /* The DPI values of the display. */
 
     /* All fields below this point are PRIVATE */
     /*!!PRIVATE*/
@@ -340,6 +366,12 @@ typedef struct {
     BOOL            forcebw;    /* TRUE, if Force Black/White is enabled */
 
     ULONG           selpt;      /* Draw selection pattern for SetDrPt() */
+    UBYTE           saved_cmap; /* Saves cmap method for Remapping on-the fly */
+    struct Rectangle handles;   /* The co-ordinates of the handles on the select
+                                   box.  They're updated automatically by
+                                   DrawSelectBox() */
+    BOOL            drawalpha;  /* TRUE, if alpha channels should be taken into
+                                   account when rendering */
     /*!!PUBLIC*/
 } DISPLAY;
 
@@ -368,6 +400,9 @@ typedef struct {
 #define CMAP_MEDIANCUT          0   /* Heckbert Median Cut. Slow but accurate. Default. */
 #define CMAP_POPULARITY         1   /* Popularity algorithm. Fast but not accurate */
 #define CMAP_FORCEPALETTE       2   /* Forces the colormap named in palettepath  */
+#define CMAP_FORCEOLDPALETTE    3   /* Forces whatever palette was last loaded */
+
+#define CMAP_NONE             0xFF  /* No cmap method defined.  Used as a marker */
 
 /*!!PUBLIC*/
 
@@ -391,6 +426,36 @@ typedef struct {
 } INFOWIN;
 
 extern struct EditWindow_T;
+
+/*
+    Contains anything defined for the previews.  This structure is
+    embedded into the main frame structure.
+
+*/
+
+struct PreviewFrame {
+
+    /*
+     *  Preview stuff.  Previewframe tells if we're currently doing a preview
+     *  and previewhook points to a hook structure that is used to render
+     *  this preview.
+     *
+     *  ispreview is true only if this is actually a preview frame.
+     *
+     *  tempframe is reserved for the modifications: the previewframe
+     *  is always copied into the tempframe before any modifications
+     *  are made.
+     */
+
+    BOOL            pf_IsPreview;
+    struct Frame_t  *pf_Frame;
+    struct Frame_t  *pf_TempFrame;
+    struct Hook     *pf_Hook;
+
+    Object          *pf_RenderArea;
+    struct Window   *pf_win;
+};
+
 
 /*!!PUBLIC*/
 
@@ -439,10 +504,12 @@ typedef struct Frame_t {
     ULONG           progress_diff;
     ULONG           progress_old;
 
+#ifdef USE_OLD_ALPHA
     ID              alpha;          /* This frames alpha channel frame */
 
     ID              alphaparents[10]; /* All the frames this frames is an alpha channel to.
                                          End the list with 0L. */
+#endif
 
     ULONG           selectmethod;
     APTR            selectdata;
@@ -461,8 +528,13 @@ typedef struct Frame_t {
     struct EClockVal eclock;
 
     struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
+    WORD            fixoffsetx,     /* Hold the offset of the mouse relative */
+                    fixoffsety;     /* to the corner */
+
 
     struct EditWindow_T *editwin;      /* Info editing window */
+
+    struct PreviewFrame preview;
 
 #ifdef DEBUG_MODE
     BPTR            debug_handle;   /* The debug output of this task */
@@ -486,6 +558,14 @@ typedef struct Frame_t {
 #define BUSY_RENDERING          5L
 #define BUSY_EDITING            6L
 
+/*
+ *  These define the fr_VMemMode field, above
+ */
+
+#define VMEM_ALWAYS     0L  /* Always use virtual memory. */
+#define VMEM_NEVER      1L  /* Never use virtual memory. vm_fh will be NULL */
+
+
 /*!!PUBLIC*/
 
 /*
@@ -504,6 +584,17 @@ typedef struct {
 
     struct TextAttr *mainfont;
     struct TextAttr *listfont;
+
+    /*
+     *  The (recommended) preview height and preview width.  If you are
+     *  providing your own previews, then you should observe these.  Try not
+     *  to skew the aspect ratio of the image too much.
+     *
+     *  Do not cache these, as they may be set by the user (or PPT) at any time.
+     */
+
+    WORD            previewheight,
+                    previewwidth;
 
     /* PRIVATE data only beyond this point */
 
@@ -534,6 +625,7 @@ typedef struct {
     char            lfontname[NAMELEN];
 
     BOOL            colorpreview;   /* TRUE, if the user wants to have a color prview */
+    ULONG           previewmode;    /* The preview mode */
 
     UBYTE           modulepath[MAXPATHLEN]; /* All the modules reside here. */
 
@@ -545,10 +637,18 @@ typedef struct {
     UBYTE           startupfile[NAMELEN+1];
 
     LONG            extniceval;     /* Nice for scheduler */
+
+    LONG            extpriority;    /* Priority for any subprocess */
+
     /*!!PUBLIC*/
 } PREFS;
 
-
+/*!!PRIVATE*/
+#define PWMODE_OFF      0L
+#define PWMODE_SMALL    1L
+#define PWMODE_MEDIUM   2L
+#define PWMODE_LARGE    3L
+/*!!PUBLIC*/
 
 /*
     Global variables structure. If you wish to read this structure, you must
@@ -721,6 +821,12 @@ struct LocaleString {
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
 #define PPTX_FileName           ( GTAGBASE + 1006 ) /* STRPTR */
 
+/*
+ *  The following tags have been reserved for the ObtainPreviewFrame()
+ *  calls.
+ */
+
+#define PREV_PreviewHook        ( GTAGBASE + 10000 ) /* struct Hook * */
 
 /*------------------------------------------------------------------*/
 /* Error codes */
@@ -751,6 +857,9 @@ struct LocaleString {
 #define PERR_GENERAL       PERR_FAILED  /* Obsolete */
 #define PERR_ERROR         PERR_FAILED  /* Obsolete */
 
+#define PERR_NOTINIMAGE    17 /* An out-of-bounds error happened when
+                                 indexing an image */
+
 /*!!PRIVATE*/
 #define PERR_UNKNOWNCPU    1000 /* This CPU is not supported */
 
@@ -761,6 +870,7 @@ struct LocaleString {
 
 #define DFF_COPYDATA        0x01
 
+#define CFDF_SHOWPROGRESS   1L
 
 /*------------------------------------------------------------------*/
 /* Extensions.  This also contains the pre-defined names for
