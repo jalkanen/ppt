@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.25 1997/10/26 23:06:53 jj Exp $
+    $Id: gui.h,v 1.26 1998/02/26 19:53:43 jj Exp $
 */
 
 #ifndef GUI_H
@@ -32,6 +32,10 @@
 
 #ifndef DROPAREACLASS_H
 #include "dropareaclass.h"
+#endif
+
+#ifndef FLOATGADGET_H
+#include "floatgadget/floatgadget.h"
 #endif
 
 /*------------------------------------------------------------------*/
@@ -245,6 +249,8 @@ extern const ULONG dpcol_sl2int[];
 extern const ULONG dpcol_int2sl[];
 extern const ULONG dpcol_sl2ind[];
 extern const ULONG dpcol_ind2sl[];
+extern const ULONG dpcol_sl2fl[];
+extern const ULONG dpcol_fl2sl[];
 
 
 /*------------------------------------------------------------------*/
