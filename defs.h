@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.24 1998/06/30 19:57:50 jj Exp $
+    $Id: defs.h,v 1.25 1998/08/19 23:08:56 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -132,6 +132,13 @@
 #define DOCONFIRM     (globals->userprefs->confirm)
 
 #undef TMPBUF_SUPPORTED
+
+/*
+ *  Useful version checking macros
+ */
+
+#define GFXV39              ( GfxBase->LibNode.lib_Version >= 39 )
+#define IS_AGA              (((struct GfxBase *)GfxBase)->ChipRevBits0 & GFXF_AA_ALICE)
 
 /*------------------------------------------------------------------*/
 /* Internal type definitions, which are not in ppt.h */
