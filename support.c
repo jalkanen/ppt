@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 5.3 1999/01/13 22:57:41 jj Exp $
+    $Id: support.c,v 5.4 1999/03/17 23:10:58 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -37,9 +37,6 @@
 #include <utility/tagitem.h>
 #endif
 
-#include <proto/intuition.h>
-#include <proto/dos.h>
-#include <proto/utility.h>
 #include <proto/locale.h>
 #include <proto/timer.h>
 
@@ -54,13 +51,6 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-Prototype ASM BOOL       Progress( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
-Prototype ASM VOID       ClearProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
-Prototype ASM VOID       FinishProgress( REG(a0) FRAME *, REG(a6) EXTBASE * );
-Prototype ASM UWORD      GetNPixelRows( REG(a0) FRAME *, REG(a1) ROWPTR [], REG(d0) WORD, REG(d1) UWORD, REG(a6) EXTBASE * );
-Prototype ASM APTR       GetPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a6) EXTBASE * );
-Prototype ASM VOID       PutPixel( REG(a0) FRAME *, REG(d0) WORD, REG(d1) WORD, REG(a1) APTR, REG(a6) EXTBASE * );
-Prototype ASM UBYTE *    MakeFrameName( REG(a0) UBYTE *, REG(a1) UBYTE *, REG(d0) ULONG,REG(a6) EXTBASE * );
 
 Prototype VOID OpenExtCatalog( EXTERNAL *, STRPTR, LONG, EXTBASE * );
 Prototype VOID CloseExtCatalog( EXTERNAL *, EXTBASE * );
@@ -68,6 +58,7 @@ Prototype VOID CloseExtCatalog( EXTERNAL *, EXTBASE * );
 /*----------------------------------------------------------------------*/
 /* Global variables */
 
+/// ExtLibData[]
 APTR ExtLibData[] = {
     NULL, /* LIB_OPEN */
     NULL, /* LIB_CLOSE */
@@ -132,9 +123,12 @@ APTR ExtLibData[] = {
 
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
+///
 
 /*----------------------------------------------------------------------*/
 /* Code */
+
+/// GetStr() and support funcs
 
 /****i* pptsupport/GetStr *******************************************
 *
@@ -170,9 +164,9 @@ APTR ExtLibData[] = {
 *
 */
 
-Prototype ASM STRPTR GetStr_External( REGDECL(a0,struct LocaleString *), REGDECL(a6,EXTBASE *) );
+Prototype STRPTR ASM GetStr_External( REGDECL(a0,struct LocaleString *), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM STRPTR GetStr_External(REGPARAM(a0,struct LocaleString *,ls),
+SAVEDS STRPTR ASM GetStr_External(REGPARAM(a0,struct LocaleString *,ls),
                                   REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     STRPTR defaultstr;
@@ -232,7 +226,9 @@ VOID CloseExtCatalog( EXTERNAL *ext, EXTBASE *ExtBase )
         ExtBase->extcatalog = NULL;
     }
 }
+///
 
+/// PlanarToChunky()
 /****u* pptsupport/PlanarToChunky ******************************************
 *
 *   NAME
@@ -279,9 +275,9 @@ VOID CloseExtCatalog( EXTERNAL *ext, EXTBASE *ExtBase )
 *   the data, with the start location moved each time.
 */
 
-Prototype ASM VOID PlanarToChunky( REGDECL(a0,UBYTE **), REGDECL(a1,ROWPTR), REGDECL(d0,ULONG),REGDECL(d1,UWORD),REGDECL(a6,EXTBASE *) );
+Prototype VOID ASM PlanarToChunky( REGDECL(a0,UBYTE **), REGDECL(a1,ROWPTR), REGDECL(d0,ULONG),REGDECL(d1,UWORD),REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR,dest),
+VOID SAVEDS ASM PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR,dest),
                                 REGPARAM(d0,ULONG,width),REGPARAM(d1,UWORD,depth),
                                 REGPARAM(a6,EXTBASE *,ExtBase) )
 {
@@ -305,7 +301,9 @@ SAVEDS ASM VOID PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR
     }
     // D(bug("...done!\n"));
 }
+///
 
+/// TagData()
 /****u* pptsupport/TagData ******************************************
 *
 *   NAME
@@ -342,9 +340,9 @@ SAVEDS ASM VOID PlanarToChunky( REGPARAM(a0,UBYTE **,source), REGPARAM(a1,ROWPTR
 *
 */
 
-Prototype ASM ULONG TagData( REGDECL(d0,Tag), REGDECL(a0,struct TagItem *), REGDECL(a6,EXTBASE *) );
+Prototype ULONG ASM TagData( REGDECL(d0,Tag), REGDECL(a0,struct TagItem *), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM ULONG TagData( REGPARAM(d0,Tag,value),
+ULONG SAVEDS ASM TagData( REGPARAM(d0,Tag,value),
                           REGPARAM(a0,struct TagItem *,list),
                           REGPARAM(a6,EXTBASE *,ExtBase) )
 {
@@ -352,7 +350,9 @@ SAVEDS ASM ULONG TagData( REGPARAM(d0,Tag,value),
 
     return(GetTagData(value,0L,list));
 }
+///
 
+/// GetBackgroundColor()
 /****u* pptsupport/GetBackgroundColor ******************************************
 *
 *   NAME
@@ -393,11 +393,11 @@ SAVEDS ASM ULONG TagData( REGPARAM(d0,Tag,value),
 *   BUG: Does not have any background selector.
 */
 
-Prototype ASM PERROR GetBackgroundColor( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
+Prototype PERROR ASM GetBackgroundColor( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM
-PERROR GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
-                           REGPARAM(a6,EXTBASE *,ExtBase) )
+PERROR SAVEDS ASM
+GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel),
+                    REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     PERROR res = PERR_OK;
     RGBPixel *rgb, prgb[4];
@@ -437,7 +437,9 @@ PERROR GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel)
 
     return res;
 }
+///
 
+/// GetPixelRow()
 /****u* pptsupport/GetPixelRow ******************************************
 *
 *   NAME
@@ -478,9 +480,9 @@ PERROR GetBackgroundColor( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,pixel)
 *   are counting on it.  Do not use SetError*()!
 */
 
-Prototype ASM ROWPTR GetPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a6,EXTBASE *) );
+Prototype ROWPTR ASM GetPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM ROWPTR GetPixelRow( REGPARAM(a0,FRAME *,f),
+ROWPTR SAVEDS ASM GetPixelRow( REGPARAM(a0,FRAME *,f),
                                REGPARAM(d0,WORD,row),
                                REGPARAM(a6,EXTBASE *,xd) )
 {
@@ -539,7 +541,8 @@ SAVEDS ASM ROWPTR GetPixelRow( REGPARAM(a0,FRAME *,f),
     return source;
 #endif
 }
-
+///
+/// PutPixelRow()
 /****u* pptsupport/PutPixelRow ******************************************
 *
 *   NAME
@@ -584,9 +587,9 @@ SAVEDS ASM ROWPTR GetPixelRow( REGPARAM(a0,FRAME *,f),
 *
 */
 
-Prototype ASM VOID PutPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
+Prototype VOID ASM PutPixelRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a1,ROWPTR), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID PutPixelRow( REGPARAM(a0,FRAME *,frame),
+VOID SAVEDS ASM PutPixelRow( REGPARAM(a0,FRAME *,frame),
                              REGPARAM(d0,WORD,row),
                              REGPARAM(a1,ROWPTR,data),
                              REGPARAM(a6,EXTBASE *,xd) )
@@ -675,8 +678,9 @@ SAVEDS ASM VOID PutPixelRow( REGPARAM(a0,FRAME *,frame),
     }
 #endif
 }
+///
 
-
+/// PutNPixelRows()
 /****u* pptsupport/PutNPixelRows ******************************************
 *
 *   NAME
@@ -725,9 +729,8 @@ VOID SAVEDS ASM PutNPixelRows( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,bu
 {
     frame->pix->vmh->chflag = 1;
 }
-
-
-
+///
+/// GetNPixelRows()
 /****u* pptsupport/GetNPixelRows ******************************************
 *
 *   NAME
@@ -778,10 +781,11 @@ VOID SAVEDS ASM PutNPixelRows( REGPARAM(a0,FRAME *,frame), REGPARAM(a1,ROWPTR,bu
 *   BUG: Should maybe return -1 on error and reserve zero for real stuff
 */
 
+Prototype UWORD ASM GetNPixelRows( REGDECL(a0,FRAME *), REGDECL(a1,ROWPTR []), REGDECL(d0,WORD), REGDECL(d1,UWORD), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM UWORD GetNPixelRows( REG(a0) FRAME *frame,  REG(a1) ROWPTR buffer[],
-                                REG(d0) WORD startrow, REG(d1) UWORD nrows,
-                                REG(a6) EXTBASE *xd )
+UWORD SAVEDS ASM GetNPixelRows( REGPARAM(a0,FRAME *,frame),  REGPARAM(a1,ROWPTR,buffer[]),
+                                REGPARAM(d0,WORD,startrow), REGPARAM(d1,UWORD,nrows),
+                                REGPARAM(a6,EXTBASE *,xd) )
 {
     ULONG linelen = ROWLEN( frame->pix );
     ULONG offset, chunklen;
@@ -836,7 +840,9 @@ SAVEDS ASM UWORD GetNPixelRows( REG(a0) FRAME *frame,  REG(a1) ROWPTR buffer[],
 
     return (UWORD)j;
 }
+///
 
+/// GetPixel()
 
 /****i* pptsupport/GetPixel ******************************************
 *
@@ -869,8 +875,10 @@ SAVEDS ASM UWORD GetNPixelRows( REG(a0) FRAME *frame,  REG(a1) ROWPTR buffer[],
 *    BUG: Does not take different size pixels into account.
 */
 
-SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
-                          REG(d1) WORD column, REG(a6) EXTBASE *xd )
+Prototype APTR ASM GetPixel( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(d1,WORD), REGDECL(a6,EXTBASE *) );
+
+APTR SAVEDS ASM GetPixel( REGPARAM(a0,FRAME *,f), REGPARAM(d0,WORD,row),
+                          REGPARAM(d1,WORD,column), REGPARAM(a6,EXTBASE *,xd) )
 {
     ROWPTR cp;
 
@@ -879,7 +887,8 @@ SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
     }
     return NULL;
 }
-
+///
+/// PutPixel()
 /****i* pptsupport/PutPixel ******************************************
 *
 *   NAME
@@ -910,10 +919,12 @@ SAVEDS ASM APTR GetPixel( REG(a0) FRAME *f, REG(d0) WORD row,
 *   Note: data is copied.
 */
 
+Prototype VOID ASM PutPixel( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(d1,WORD), REGDECL(a1,APTR), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD column,
-                          REG(a1) APTR data,
-                          REG(a6) EXTBASE *xd )
+VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
+                          REGPARAM(d0,WORD,row), REGPARAM(d1,WORD,column),
+                          REGPARAM(a1,APTR,data),
+                          REGPARAM(a6,EXTBASE *,xd) )
 {
     ROWPTR cp;
 
@@ -923,8 +934,9 @@ SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD colum
         PutPixelRow( f, row, cp, xd );
     }
 }
+///
 
-
+/// GetBitMapRow()
 /****i* pptsupport/GetBitMapRow ******************************************
 *
 *   NAME
@@ -964,10 +976,10 @@ SAVEDS ASM VOID PutPixel( REG(a0) FRAME *f, REG(d0) WORD row, REG(d1) WORD colum
 *
 */
 
-Prototype ASM UBYTE *GetBitMapRow( REG(a0) FRAME *, REG(d0) WORD, REG(a6) EXTBASE * );
+Prototype UBYTE * ASM GetBitMapRow( REGDECL(a0,FRAME *), REGDECL(d0,WORD), REGDECL(a6,EXTBASE *) );
 
-SAVEDS ASM UBYTE *GetBitMapRow( REG(a0) FRAME *frame, REG(d0) WORD row,
-                                REG(a6) EXTBASE *ExtBase )
+UBYTE * SAVEDS ASM GetBitMapRow( REGPARAM(a0,FRAME *,frame), REGPARAM(d0,WORD,row),
+                                 REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     struct RenderObject *rdo = frame->renderobject;
 
@@ -979,7 +991,9 @@ SAVEDS ASM UBYTE *GetBitMapRow( REG(a0) FRAME *frame, REG(d0) WORD row,
         return NULL;
     }
 }
+///
 
+/// ClearProgress()
 /****u* pptsupport/ClearProgress ******************************************
 *
 *   NAME
@@ -1016,7 +1030,9 @@ SAVEDS ASM UBYTE *GetBitMapRow( REG(a0) FRAME *frame, REG(d0) WORD row,
 *    A short-hand to UpdateProgress( f, NULL, 0, xd )
 */
 
-SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
+Prototype VOID ASM ClearProgress( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
+
+VOID SAVEDS ASM ClearProgress( REGPARAM(a0,FRAME *,f), REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     struct ExecBase *SysBase = ExtBase->lb_Sys;
 
@@ -1029,7 +1045,8 @@ SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
     f->progress_diff = 1; /* Just in case */
     UNLOCK(f);
 }
-
+///
+/// InitProgress()
 /****u* pptsupport/InitProgress ******************************************
 *
 *   NAME
@@ -1091,7 +1108,6 @@ SAVEDS ASM VOID ClearProgress( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
 
 Prototype VOID ASM InitProgress( REGDECL(a0,FRAME *), REGDECL(a1,char *), REGDECL(d0,ULONG), REGDECL(d1,ULONG),REGDECL(a6,EXTBASE *) );
 
-
 SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
                               REGPARAM(a1,char *,txt),
                               REGPARAM(d0,ULONG, min),
@@ -1125,7 +1141,8 @@ SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
     else
         OpenInfoWindow( f->mywin, ExtBase );
 }
-
+///
+/// Progress()
 /****u* pptsupport/Progress ******************************************
 *
 *   NAME
@@ -1169,7 +1186,11 @@ SAVEDS VOID ASM InitProgress( REGPARAM(a0,FRAME *,f),
 *    Returns TRUE, if a BREAK signal has been encountered, FALSE otherwise.
 */
 
-SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE *ExtBase )
+Prototype BOOL ASM Progress( REGDECL(a0,FRAME *), REGDECL(d0,ULONG), REGDECL(a6,EXTBASE *) );
+
+BOOL SAVEDS ASM Progress( REGPARAM(a0,FRAME *,f),
+                          REGPARAM(d0,ULONG,done),
+                          REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     APTR DOSBase = ExtBase->lb_DOS;
     APTR SysBase = ExtBase->lb_Sys;
@@ -1244,8 +1265,8 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
 
     return FALSE;
 }
-
-
+///
+/// FinishProgress()
 /****u* pptsupport/FinishProgress ******************************************
 *
 *   NAME
@@ -1288,12 +1309,16 @@ SAVEDS ASM BOOL Progress( REG(a0) FRAME *f, REG(d0) ULONG done, REG(a6) EXTBASE 
 *   Currently just a shorthand, like ClearProgress().
 */
 
-SAVEDS ASM VOID FinishProgress( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
+Prototype VOID ASM FinishProgress( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
+
+VOID SAVEDS ASM FinishProgress( REGPARAM(a0,FRAME *,frame),
+                                REGPARAM(a6,EXTBASE *,ExtBase) )
 {
     D(bug("FinishProgress()\n"));
     UpdateProgress( frame, NEGNUL, MAXPROGRESS, ExtBase );
 }
-
+///
+/// CloseProgress()
 /****i* pptsupport/CloseProgress ******************************************
 *
 *   NAME
@@ -1327,9 +1352,10 @@ SAVEDS ASM VOID FinishProgress( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
 *
 */
 
-Prototype ASM VOID CloseProgress( REG(a0) FRAME *, REG(a6) struct PPTBase * );
+Prototype VOID ASM CloseProgress( REGDECL(a0,FRAME *), REGDECL(a6,struct PPTBase *) );
 
-SAVEDS ASM VOID CloseProgress( REG(a0) FRAME *frame, REG(a6) struct PPTBase *PPTBase )
+VOID SAVEDS ASM CloseProgress( REGPARAM(a0,FRAME *,frame),
+                               REGPARAM(a6,struct PPTBase *,PPTBase) )
 {
     INFOWIN *iw;
 
@@ -1343,6 +1369,7 @@ SAVEDS ASM VOID CloseProgress( REG(a0) FRAME *frame, REG(a6) struct PPTBase *PPT
         CloseInfoWindow( iw, PPTBase );
     }
 }
+///
 
 /*
     Updates progress for a given frame. Currently updates only infowindow
@@ -1457,6 +1484,8 @@ SAVEDS VOID DeleteNameCount( UBYTE *str )
     is modified in place.  Of course, newname must always be != NULL
 */
 
+Prototype UBYTE *  ASM MakeFrameName( REGDECL(a0,UBYTE *), REGDECL(a1,UBYTE *), REGDECL(d0,ULONG),REGDECL(a6,EXTBASE *) );
+
 SAVEDS UBYTE * ASM MakeFrameName( REGPARAM(a0,UBYTE *,oldname),
                                   REGPARAM(a1,UBYTE *,newname),
                                   REGPARAM(d0,ULONG, length),
@@ -1472,7 +1501,7 @@ SAVEDS UBYTE * ASM MakeFrameName( REGPARAM(a0,UBYTE *,oldname),
         SHLOCKGLOB();
         for( nd = globals->frames.lh_Head; nd->ln_Succ; nd = nd->ln_Succ ) {
             s = strchr( nd->ln_Name, '[' );
-            if( strncmp( oldname, nd->ln_Name, (s == NULL) ? 1024 : s - nd->ln_Name - 1 ) == 0 ) {
+            if( strncmp( oldname, nd->ln_Name, (s == NULL) ? 1024 : (ULONG)s - (ULONG)nd->ln_Name - 1 ) == 0 ) {
                 // printf("*** Match found: %s vs. %s\n",oldname,nd->ln_Name);
                 if(s) {
                     sscanf(s,"[%lu]",&appcount); appcount++;
