@@ -2,19 +2,19 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 5.0 $
-        $Date: 1998/12/15 21:21:24 $
+    $Revision: 5.1 $
+        $Date: 1999/01/02 22:35:06 $
       $Author: jj $
 
     Main definitions for PPT.
 
-    This file is (C) Janne Jalkanen 1994-1998.
+    This file is (C) Janne Jalkanen 1994-1999.
 
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 5.0 1998/12/15 21:21:24 jj Exp $
+    $Id: ppt_real.h,v 5.1 1999/01/02 22:35:06 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -665,6 +665,7 @@ typedef struct {
 #define PWMODE_MEDIUM   2L
 #define PWMODE_LARGE    3L
 #define PWMODE_HUGE     4L
+#define PWMODE_LAST     PWMODE_HUGE
 /*!!PUBLIC*/
 
 /*
