@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.12 1996/11/23 00:43:11 jj Exp $
+    $Id: external.c,v 2.13 1997/12/06 22:51:43 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -16,6 +16,7 @@
 #include "gui.h"
 #include "misc.h"
 
+#include "version.h"
 
 #ifndef CLIB_UTILITY_PROTOS_H
 #include <clib/utility_protos.h>
@@ -25,11 +26,14 @@
 #include <pragmas/intuition_pragmas.h>
 #endif
 
+#include <dos/dostags.h>
+
 #include <proto/locale.h>
 
 #include "proto/module.h"
 #include "proto/effect.h"
 
+#include "libraries/ExecutiveAPI.h"
 
 /*-------------------------------------------------------------------------*/
 /* Prototypes*/
@@ -44,9 +48,72 @@ Prototype EXTBASE       *NewExtBase( BOOL );
 /*-------------------------------------------------------------------------*/
 
 #define EXTSIZE (LIB_VECTSIZE * XLIB_FUNCS + sizeof(EXTBASE))
+#define AFF_PROCESSORS (AFF_68010|AFF_68020|AFF_68030|AFF_68040|AFF_68060)
+#define AFF_FPUS (AFF_68881|AFF_68882|AFF_FPU40)
 
 /*-------------------------------------------------------------------------*/
 /* Code */
+
+/*
+    Set the NICE value of a task
+*/
+
+Prototype PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase );
+
+PERROR SetTaskNice( struct Task *task, LONG nice, EXTBASE *ExtBase )
+{
+    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecutiveMessage em = {0};
+    struct MsgPort *executiveport;
+    ULONG  sig, quit = 0;
+
+    em.message.mn_ReplyPort = ExtBase->mport;
+    em.message.mn_Length = sizeof(struct ExecutiveMessage);
+    em.command = EXAPI_CMD_SET_NICE;
+    em.task    = task;
+    em.value1  = nice;
+
+    Forbid();
+
+    if( executiveport = FindPort(EXECUTIVEAPI_PORTNAME) ) {
+        PutMsg( executiveport, (struct Message *) &em );
+        Permit();
+        while(!quit) {
+            sig = Wait( SIGBREAKF_CTRL_C|(1<<ExtBase->mport->mp_SigBit));
+            if( sig & SIGBREAKF_CTRL_C ) {
+                return PERR_BREAK;
+            }
+            if( sig & (1<<ExtBase->mport->mp_SigBit)) {
+                struct Message *msg;
+
+                while( msg = GetMsg( ExtBase->mport ) ) {
+                    if( msg->mn_Node.ln_Type == NT_REPLYMSG ) {
+                        quit = TRUE; /* BUG: Does not check for errors */
+                    } else {
+                        ReplyMsg( msg ); /* Mikä lie */
+                    }
+                }
+            }
+        }
+    } else {
+        Permit();
+    }
+
+    return PERR_OK;
+
+}
+
+
+/*
+    This is called whenever a new task is started.
+*/
+
+Prototype PERROR NewTaskProlog( FRAME *frame, EXTBASE * );
+
+PERROR NewTaskProlog( FRAME *frame, EXTBASE *ExtBase )
+{
+    return SetTaskNice( FindTask(NULL), 10, ExtBase );
+}
 
 /*
     These two will open and close an external module.
@@ -60,8 +127,6 @@ struct Library *OpenModule( EXTERNAL *x, EXTBASE *ExtBase )
     struct Library *ModuleBase;
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     struct ExecBase   *SysBase = ExtBase->lb_Sys;
-
-    // BUG:  should use globals->userprefs->modulepath
 
     strcpy( buf, globals->userprefs->modulepath );
 
@@ -156,18 +221,19 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
 
         switch( type ) {
             case NT_LOADER:
-                if( flags & AEE_SAVECM && !add) {
-                    if( GetTagData(PPTX_SaveColorMapped, NULL, ext->tags))
+
+                if( (flags & AEE_SAVECM) && !add ) {
+                    if( ((LOADER *)ext)->saveformats & CSF_LUT )
                         add = TRUE;
                 }
 
-                if( flags & AEE_SAVETC && !add) {
-                    if( GetTagData(PPTX_SaveTrueColor, NULL, ext->tags))
+                if( (flags & AEE_SAVETC) && !add ) {
+                    if( ((LOADER *)ext)->saveformats & (CSF_GRAYLEVEL|CSF_RGB) )
                         add = TRUE;
                 }
 
-                if( flags & AEE_LOAD && !add) {
-                    if( GetTagData(PPTX_Load, NULL, ext->tags))
+                if( (flags & AEE_LOAD) && !add ) {
+                    if( ((LOADER *)ext)->canload )
                         add = TRUE;
                 }
 
@@ -183,14 +249,15 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
         }
 
         if(add) {
-            AddEntry( NULL,lv,cn->ln_Name,LVAP_TAIL );
+            DoMethod(lv,LVM_ADDSINGLE,NULL,cn->ln_Name, LVAP_TAIL, 0L);
+            // AddEntry( win,lv,cn->ln_Name,LVAP_TAIL );
             count++;
         }
     }
 
     UNLOCKGLOB();
-    SortList( NULL,lv );
-    RefreshList(win,lv);
+    SortList( win,lv );
+    // RefreshList(win,lv);
     return count;
 }
 
@@ -200,7 +267,8 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
     This routine is re-entrant.
 */
 
-SAVEDS VOID ShowOldExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
+Local
+SAVEDS VOID ShowOldExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 {
     int   ver,rev;
     APTR txt, au;
@@ -212,12 +280,14 @@ SAVEDS VOID ShowOldExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
     rev  = GetTagData( PPTX_Revision, -1, x->tags );
     UNLOCKGLOB();
 
-    Req(win,NULL, ISEQ_C ISEQ_B "%s V.%ld.%ld\n\n"ISEQ_N"%s\n" ISEQ_N ISEQ_C ISEQ_I "Author: %s\n",
-        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : "Unknown" );
+    Req(win,NULL,
+        XGetStr( mEXTERNAL_INFO_FORMAT ),
+        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : XGetStr(mAUTHOR_UNKNOWN) );
 
 }
 
-SAVEDS VOID ShowNewExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
+Local
+SAVEDS VOID ShowNewExtInfo( EXTBASE *ExtBase, EXTERNAL *x, struct Window *win )
 {
     struct Library *ModuleBase;
     int   ver,rev;
@@ -225,18 +295,19 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 
     D(bug("ShowNewExtInfo()\n"));
 
-    ModuleBase = OpenModule( x, xd ); // BUG!
+    ModuleBase = OpenModule( x, ExtBase ); // BUG!
     if(!ModuleBase) return;
 
-    txt  = (APTR)Inquire( PPTX_InfoTxt, xd );
-    au   = (APTR)Inquire( PPTX_Author, xd );
+    txt  = (APTR)Inquire( PPTX_InfoTxt, ExtBase );
+    au   = (APTR)Inquire( PPTX_Author, ExtBase );
     ver  = ModuleBase->lib_Version;
     rev  = ModuleBase->lib_Revision;
 
-    Req(win,NULL, ISEQ_C ISEQ_B "%s V.%ld.%ld\n\n"ISEQ_N"%s\n" ISEQ_N ISEQ_C ISEQ_I "Author: %s\n",
-        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : "Unknown" );
+    Req(win,NULL,
+        XGetStr( mEXTERNAL_INFO_FORMAT ),
+        x->nd.ln_Name, (ULONG)ver, (ULONG)rev, txt ? txt : "", au ? au : XGetStr(mAUTHOR_UNKNOWN) );
 
-    CloseModule( ModuleBase, xd );
+    CloseModule( ModuleBase, ExtBase );
 }
 
 /*
@@ -246,7 +317,21 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 {
     if( x->nd.ln_Type == NT_SCRIPT ) {
-        Req(NEGNUL,NULL,"Scripts not supported yet");
+        char buf[256], *prg;
+
+        if( SysBase->LibNode.lib_Version >= 40 ) {
+            prg = "MultiView";
+        } else {
+            if( !(prg = getenv("PAGER") ) )
+                prg = "More";
+        }
+
+        sprintf(buf, "%s rexx/%s PUBSCREEN=PPT", prg, x->nd.ln_Name );
+
+        SystemTags( buf, SYS_Asynch, TRUE,
+                    SYS_Input, Open("NIL:", MODE_OLDFILE ),
+                    SYS_Output, Open("NIL:", MODE_NEWFILE ),
+                    TAG_DONE );
     } else {
         if(x->islibrary)
             ShowNewExtInfo( xd, x, win );
@@ -256,15 +341,12 @@ VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 }
 
 
-/*
-    This routine kills the given external from memory. If the external is in
-    use, however, PERR_INUSE is returned. If force == TRUE, then the
-    purge is made even if the external is in use.
- */
-
+Local
 PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 {
-    static PERROR (* ASM X_Purge)( REG(a6) EXTBASE * );
+#if 0
+    auto PERROR (* ASM X_Purge)( REG(a6) EXTBASE * );
+#endif
 
     if(who->usecount && force == FALSE) /* If someone is using us, don't release */
         return PERR_INUSE;
@@ -277,9 +359,11 @@ PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
 
     /* Execute release code, if any */
 
+#if 0
     X_Purge   = (FPTR)GetTagData( PPTX_Purge,(ULONG)NULL,who->tags);
     if(X_Purge)
         (*X_Purge)( globxd );
+#endif
 
     UnLoadSeg(who->seglist);
 
@@ -288,6 +372,7 @@ PERROR PurgeOldExternal( EXTERNAL *who, BOOL force )
     return PERR_OK;
 }
 
+Local
 PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
 {
     if(who->usecount && force == FALSE) /* If someone is using us, don't release */
@@ -300,12 +385,25 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
     UNLOCKGLOB();
 
     if( who->nd.ln_Type != NT_SCRIPT ) {
-        if( globals->userprefs->expungelibs )
+        if( globals->userprefs->expungelibs || force )
             FlushLibrary( who->diskname, globxd );
     }
 
     sfree(who);
+
+    return PERR_OK;
 }
+
+/*
+    Purges an external from memory, removing it from our
+    lists, as well.
+
+    Returns PERR_INUSE, if the external is currently used
+    by someone.
+
+    If force == TRUE, then will remove even if someone is
+    using us and forces a flush as well.
+ */
 
 PERROR PurgeExternal( EXTERNAL *w, BOOL f )
 {
@@ -336,7 +434,7 @@ PERROR InitOldExternal( const char *who )
     seglist = NewLoadSeg( who, NULL );
     if(!seglist) {
         D(bug("Unable to open\n"));
-        Req(NEGNUL,NULL,ISEQ_C"Could not load '%s':\nIt probably is not object code...\n",who);
+        Req(NEGNUL,NULL, GetStr(mNO_OBJECT_CODE),who);
         return PERR_WONTOPEN;
     }
 
@@ -352,14 +450,14 @@ PERROR InitOldExternal( const char *who )
             type = NT_EFFECT;
             break;
         default:
-            Req(NEGNUL,NULL,"'%s' is not a recognised module!",who);
+            Req(NEGNUL,NULL,GetStr(mNOT_A_PPT_MODULE),who);
             return PERR_UNKNOWNTYPE;
     }
 
     // DumpMem( (ULONG)(m->tagarray),64L);
     version  = GetTagData( PPTX_Version, ~0, m->tagarray);
     revision = GetTagData( PPTX_Revision,~0, m->tagarray);
-    X_Init   = (FPTR)GetTagData( PPTX_Init,(ULONG)NULL,m->tagarray);
+//    X_Init   = (FPTR)GetTagData( PPTX_Init,(ULONG)NULL,m->tagarray);
     name     = (char *)GetTagData( PPTX_Name, NULL, m->tagarray);
     if(!name)
         goto nogood;
@@ -370,23 +468,24 @@ PERROR InitOldExternal( const char *who )
 //    DEBUG("'%s' version:%d.%d.\n",name,version,revision);
 
     if( kickver > SysBase->LibNode.lib_Version) {
-        Req(NEGNUL,NULL,"External %s requires OS %d+",name,kickver);
+        Req(NEGNUL,NULL,GetStr(mREQUIRES_OS_X),name,kickver);
         goto nogood;
     }
 
     if( pptver > VERNUM ) {
-        Req(NEGNUL,NULL,"External %s requires PPT version %d+",name,pptver);
+        Req(NEGNUL,NULL,GetStr(mREQUIRES_PPT_X),name,pptver);
         goto nogood;
     }
 
 //    DEBUG("Calling X_Init() @ %X\n",X_Init);
-    if(X_Init)
-        res = (*X_Init)(globxd);
+//    if(X_Init)
+//        res = (*X_Init)(globxd);
 
 //    DEBUG("INIT DONE\n");
 
     if(res == PERR_OK || X_Init == NULL) { /* No error occurred, or X_Init() does not exist. */
         x = smalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+        bzero( x, type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
         x->seglist    = seglist;
         x->tags       = m->tagarray;
         x->islibrary  = FALSE;
@@ -395,7 +494,7 @@ PERROR InitOldExternal( const char *who )
         x->nd.ln_Name = name;
         x->nd.ln_Pri  = (BYTE)GetTagData( PPTX_Priority, 0L, m->tagarray );
         strncpy( x->diskname, FilePart(who), 39 );
-        strncpy( x->realname, GetTagData( PPTX_Name, "", m->tagarray ), NAMELEN-1 );
+        strncpy( x->realname, (STRPTR)GetTagData( PPTX_Name, (ULONG)"", m->tagarray ), NAMELEN-1 );
 
         LOCKGLOB();
         if(type == NT_LOADER)
@@ -448,10 +547,11 @@ PERROR InitNewExternal( const char *who )
 {
     struct Library *ModuleBase = NULL;
     UWORD pptver;
+    ULONG cpuflags, thiscpu;
     PERROR res = PERR_OK;
     STRPTR name;
     UBYTE type;
-    EXTERNAL *x;
+    EXTERNAL *x, *prev;
 
     D(bug("NewOpenExternal(%s)\n",who));
 
@@ -478,19 +578,41 @@ PERROR InitNewExternal( const char *who )
 
     /*
      *  Determine whether we can use this or not.
+     *
+     *  From SysBase->AttnFlags we read only the lower byte, as
+     *  the 68060 is the last CPU probably to ever support the AmigaOS
+     *  as we know it.
+     *  Note that the 68000 does not have any bits set in AttnFlags
      */
 
     pptver = (UWORD) Inquire( PPTX_ReqPPTVersion,  globxd );
 
     if( pptver > VERNUM ) {
-        Req(NEGNUL,NULL,"External %s requires PPT version %d+",name,pptver);
+        Req(NEGNUL,NULL,GetStr(mREQUIRES_PPT_X),name,(ULONG)pptver);
         res = PERR_WONTOPEN;
+        goto nogood;
+    }
+
+    cpuflags = Inquire( PPTX_CPU, globxd );
+#if 1
+    thiscpu  = (ULONG)(SysBase->AttnFlags & 0xFF);
+#else
+    thiscpu  = AFF_68010|AFF_68020|AFF_68030|AFF_68040|AFF_68881|AFF_68882|AFF_FPU40|AFF_68060;
+    D(bug("\tMy CPU=%d, external code is optimized for %d\n",thiscpu,cpuflags));
+#endif
+
+    if( cpuflags && ( ((thiscpu & AFF_PROCESSORS) < (cpuflags & AFF_PROCESSORS)) ||
+                      ((thiscpu & AFF_FPUS) < (cpuflags & AFF_FPUS)) ) )
+    {
+        D(bug("\tExternal %s does not support this CPU\n",name));
+        res = PERR_OK;
         goto nogood;
     }
 
     /*
      *  Determine type.  A kludge, at best.  Should probably use
      *  Inquire() somehow.
+     *  BUG: Do something about this.
      */
 
     if( strcmp( &who[strlen(who)-7], ".effect" ) == 0 )
@@ -499,10 +621,48 @@ PERROR InitNewExternal( const char *who )
         type = NT_LOADER;
 
     /*
+     *  Determine if it already exists and if it does, which
+     *  one we should use
+     */
+
+    if( prev = (EXTERNAL *)FindName( type == NT_EFFECT ? &globals->effects : &globals->loaders, name) ) {
+        struct Library *save;
+        ULONG oldcpuflags;
+
+        save = ModuleBase;
+
+        ModuleBase = OpenModule( prev, globxd );
+        if(!ModuleBase) Panic("OpenModule() failed in InitExternal()");
+
+        oldcpuflags = Inquire(PPTX_CPU, globxd);
+
+        D(bug("%s : %lu <-> %s : %lu\n", prev->diskname, (ULONG)oldcpuflags,
+                                         who, (ULONG)cpuflags ));
+
+        CloseModule(ModuleBase,globxd);
+        ModuleBase = save;
+
+        if( oldcpuflags >= cpuflags ) {
+            /* Skip the new one */
+            D(bug("\tThe new one is worse than the old one\n"));
+            res = PERR_OK;
+            goto nogood;
+        } else {
+            /* Remove the old one */
+            D(bug("\tThis new module is better than the old one\n"));
+            PurgeExternal( prev, TRUE );
+        }
+
+    }
+
+
+    /*
      *  Allocate room and put the necessary info into memory.
      */
 
     x = smalloc( type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+    bzero( x, type == NT_LOADER ? sizeof(LOADER) : sizeof(EFFECT) );
+
     x->seglist    = 0L;
     x->tags       = NULL;
     x->islibrary  = TRUE;
@@ -512,6 +672,25 @@ PERROR InitNewExternal( const char *who )
     x->nd.ln_Pri  = (BYTE)Inquire( PPTX_Priority, globxd );
     strncpy( x->diskname, FilePart(who), 39 );
     strncpy( x->realname, name, 39 );
+
+    /*
+     *  Set up loader specific stuphs.  Mainly this means
+     *  caching some values so that we don't have to
+     *  constantly load a file while attempting to recognize a file.
+     */
+
+    if( type == NT_LOADER ) {
+        STRPTR s;
+
+        ((LOADER *)x)->saveformats = Inquire( PPTX_ColorSpaces, globxd );
+        ((LOADER *)x)->canload = Inquire( PPTX_Load, globxd );
+        if( s = (STRPTR) Inquire( PPTX_PreferredPostFix, globxd ) ) {
+            strncpy( ((LOADER *)x)->prefpostfix, s, NAMELEN );
+        }
+        if( s = (STRPTR) Inquire( PPTX_PostFixPattern, globxd ) ) {
+            strncpy( ((LOADER *)x)->postfixpat, s, MAXPATTERNLEN );
+        }
+    }
 
     LOCKGLOB();
     if(type == NT_LOADER)
@@ -563,6 +742,7 @@ SAVEDS ASM VOID CloseLibBases( REG(a6) EXTBASE *xd )
         DeleteIORequest( xd->TimerIO );
     }
 
+    if(xd->lb_CyberGfx) CloseLibrary(xd->lb_CyberGfx);
     if(xd->lb_Locale)   CloseLibrary(xd->lb_Locale);
     if(xd->lb_BGUI)     CloseLibrary(xd->lb_BGUI);
     if(xd->lb_Gfx)      CloseLibrary( (struct Library *)xd->lb_Gfx);
@@ -619,6 +799,8 @@ SAVEDS ASM PERROR OpenLibBases( REG(a6) EXTBASE *xd )
 #endif
     }
 
+    xd->lb_CyberGfx = OpenLibrary("cybergraphics.library",40L);
+
     if(!xd->lb_GadTools || !xd->lb_DOS || !xd->lb_Utility ||
        !xd->lb_Intuition || !xd->lb_BGUI || !xd->lb_Gfx)
     {
@@ -642,7 +824,7 @@ SAVEDS EXTBASE *NewExtBase( BOOL open )
     extern  APTR ExtLibData[];
     APTR    SysBase = SYSBASE();
 
-    D(bug("NewExtBase(%d). Allocating %lu bytes...\n",open,EXTSIZE));
+    // D(bug("NewExtBase(%d). Allocating %lu bytes...\n",open,EXTSIZE));
 
     realptr = pzmalloc( EXTSIZE );
 
@@ -680,7 +862,7 @@ SAVEDS VOID RelExtBase( EXTBASE *xb )
     if(xb->opened)
         CloseLibBases(xb);
 
-    D(bug("Releasing ExtBase @ %08X, realptr = %08X\n", xb, (ULONG)xb - (EXTSIZE - sizeof(EXTBASE)) ));
+    // D(bug("Releasing ExtBase @ %08X, realptr = %08X\n", xb, (ULONG)xb - (EXTSIZE - sizeof(EXTBASE)) ));
     realptr = (APTR) ((ULONG)xb - (EXTSIZE - sizeof(EXTBASE)));
     pfree(realptr);
 }
