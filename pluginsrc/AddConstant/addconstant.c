@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: addconstant.c,v 1.2 1998/12/09 22:05:53 jj Exp $
+    $Id: addconstant.c,v 3.0 1999/11/28 22:25:13 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -66,6 +66,8 @@ const struct TagItem MyTagArray[] = {
     PPTX_RexxTemplate,  (ULONG)"RED/N,GREEN/N,BLUE/N,ALPHA/N,GREY/N",
 
     PPTX_ColorSpaces,   CSF_ARGB|CSF_RGB|CSF_GRAYLEVEL,
+
+    PPTX_SupportsGetArgs, TRUE,
 
     TAG_END, 0L
 };
@@ -198,23 +200,59 @@ FRAME *DoAdd( FRAME *frame, struct Values *v, struct PPTBase *PPTBase )
 
 struct Hook pwhook = { {0}, MyHookFunc, 0L, NULL };
 
+static
+PERROR ParseRexxArgs( struct Values *val, ULONG *args, struct PPTBase *PPTBase )
+{
+    if( args[0] ) val->Red     = (*(LONG *)args[0] ); // Reads a LONG
+    if( args[1] ) val->Green   = (*(LONG *)args[1] ); // Reads a LONG
+    if( args[2] ) val->Blue    = (*(LONG *)args[2] ); // Reads a LONG
+    if( args[3] ) val->Alpha   = (*(LONG *)args[3] ); // Reads a LONG
+    if( args[4] ) val->Grey    = (*(LONG *)args[4] ); // Reads a LONG
+
+    return PERR_OK;
+}
+
+static
+PERROR HandleGUI( FRAME *frame, struct Values *val, UBYTE colorspace, struct PPTBase *PPTBase )
+{
+    struct TagItem red[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Red", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
+    struct TagItem green[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Green", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
+    struct TagItem blue[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Blue", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
+    struct TagItem alpha[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Alpha", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
+    struct TagItem grey[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Grey", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
+    PERROR res;
+
+    red[0].ti_Data   = (ULONG) &val->Red;
+    green[0].ti_Data = (ULONG) &val->Green;
+    blue[0].ti_Data  = (ULONG) &val->Blue;
+    alpha[0].ti_Data = (ULONG) &val->Alpha;
+    grey[0].ti_Data  = (ULONG) &val->Grey;
+
+    if( colorspace == CS_ARGB || colorspace == CS_RGB ) {
+        res = AskReq( frame,
+                      AR_SliderObject, &red,
+                      AR_SliderObject, &green,
+                      AR_SliderObject, &blue,
+                      colorspace == CS_ARGB ? TAG_IGNORE : TAG_SKIP, 1,
+                      AR_SliderObject, &alpha,
+                      AR_Text, "\nPlease select the values to be added\n",
+                      TAG_DONE );
+    } else {
+        res = AskReq( frame,
+                      AR_SliderObject, &grey,
+                      AR_Text, "\nPlease select the values to be added\n",
+                      TAG_DONE );
+    }
+
+    return res;
+}
+
 EFFECTEXEC(frame,tags,PPTBase,EffectBase)
 {
     FRAME *newframe = NULL;
     ULONG *args;
     struct Values *opt, val = {0};
     PERROR res = PERR_OK;
-    struct TagItem red[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Red", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
-    struct TagItem green[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Green", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
-    struct TagItem blue[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Blue", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
-    struct TagItem alpha[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Alpha", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
-    struct TagItem grey[] = { AROBJ_Value, NULL, AROBJ_Label, (ULONG)"Grey", ARSLIDER_Min, -255, ARSLIDER_Max, 255, AROBJ_PreviewHook, (ULONG)&pwhook, TAG_DONE };
-
-    red[0].ti_Data   = (ULONG) &val.Red;
-    green[0].ti_Data = (ULONG) &val.Green;
-    blue[0].ti_Data  = (ULONG) &val.Blue;
-    alpha[0].ti_Data = (ULONG) &val.Alpha;
-    grey[0].ti_Data  = (ULONG) &val.Grey;
 
     pwhook.h_Data = (void *)GETREG(REG_A4); // Save register
 
@@ -228,31 +266,13 @@ EFFECTEXEC(frame,tags,PPTBase,EffectBase)
      */
 
     if( args = (ULONG *)TagData( PPTX_RexxArgs, tags ) ) {
-        if( args[0] ) val.Red     = (*(LONG *)args[0] ); // Reads a LONG
-        if( args[1] ) val.Green   = (*(LONG *)args[1] ); // Reads a LONG
-        if( args[2] ) val.Blue    = (*(LONG *)args[2] ); // Reads a LONG
-        if( args[3] ) val.Alpha   = (*(LONG *)args[3] ); // Reads a LONG
-        if( args[4] ) val.Grey    = (*(LONG *)args[4] ); // Reads a LONG
+        ParseRexxArgs( &val, args, PPTBase );
     } else {
         FRAME *pwframe;
 
         pwframe = ObtainPreviewFrame( frame, NULL );
 
-        if( frame->pix->colorspace == CS_ARGB || frame->pix->colorspace == CS_RGB ) {
-            res = AskReq( frame,
-                        AR_SliderObject, &red,
-                        AR_SliderObject, &green,
-                        AR_SliderObject, &blue,
-                        frame->pix->colorspace == CS_ARGB ? TAG_IGNORE : TAG_SKIP, 1,
-                        AR_SliderObject, &alpha,
-                        AR_Text, "\nPlease select the values to be added\n",
-                        TAG_DONE );
-        } else {
-            res = AskReq( frame,
-                        AR_SliderObject, &grey,
-                        AR_Text, "\nPlease select the values to be added\n",
-                        TAG_DONE );
-        }
+        res = HandleGUI( frame, &val, frame->pix->colorspace, PPTBase );
 
         if( pwframe ) ReleasePreviewFrame( pwframe );
 
@@ -275,6 +295,37 @@ EFFECTEXEC(frame,tags,PPTBase,EffectBase)
     return newframe;
 }
 
+/*
+    BUG: How to handle different color spaces?
+ */
+
+EFFECTGETARGS(frame,tags,PPTBase,EffectBase)
+{
+    ULONG *args;
+    STRPTR buffer;
+    PERROR res = PERR_OK;
+    struct Values *opt, val = {0};
+
+    if( opt = GetOptions(MYNAME) ) {
+        val = *opt;
+    }
+
+    buffer = (STRPTR) TagData( PPTX_ArgBuffer, tags );
+
+    if( args = (ULONG *)TagData( PPTX_RexxArgs, tags ) )
+        res = ParseRexxArgs( &val, args, PPTBase );
+
+    if( res == PERR_OK ) {
+        UBYTE colorspace = CS_RGB;
+
+        if(res = HandleGUI( frame, &val, colorspace, PPTBase ) == PERR_OK ) {
+            SPrintF( buffer, "RED %d GREEN %d BLUE %d",
+                              val.Red, val.Green, val.Blue );
+        }
+    }
+
+    return res;
+}
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
