@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: ellipseselect.c,v 1.2 1999/08/01 16:45:53 jj Exp $
+    $Id: ellipseselect.c,v 6.0 1999/09/08 22:47:17 jj Exp $
 
  */
 
@@ -185,6 +185,8 @@ VOID LassoCircleButtonDown( FRAME *frame, struct MouseLocationMsg *msg )
     selection->circley = yloc;
     selection->circleradius = 0;
     selection->selstatus |= SELF_BUTTONDOWN;
+    frame->selbox.MinX = 0; /* Signal: area selected. */
+
     D(bug("Marked circle select begin (%d,%d)\n",xloc,yloc));
 }
 ///
@@ -247,7 +249,7 @@ VOID LassoCircleButtonUp( FRAME *frame, struct MouseLocationMsg *msg )
         /* Too small an image */
         UnselectImage( frame );
         UpdateIWSelbox( frame, TRUE );
-        selection->selstatus &= ~(SELF_BUTTONDOWN|SELF_RECTANGLE);
+        selection->selstatus &= ~(SELF_BUTTONDOWN|SELF_DRAWN);
     } else {
         ULONG radius;
         EraseSelection( frame );
