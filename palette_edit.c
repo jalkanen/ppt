@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : palette.c
 
-    $Id: palette_edit.c,v 1.9 1998/11/08 00:48:06 jj Exp $
+    $Id: palette_edit.c,v 1.10 1999/03/14 20:58:40 jj Exp $
 
     Palette selector and editor.
 */
@@ -61,12 +61,6 @@ PERROR OpenPaletteWindow( FRAME *frame )
     if(frame) {
         struct RenderObject *rdo;
 
-        if( frame->pw == NULL ) {
-            frame->pw = smalloc( sizeof( struct PaletteWindow ));
-            /* BUG: should check */
-            bzero( frame->pw, sizeof(struct PaletteWindow));
-        }
-
         /*
          *  Determine screen on which to open
          */
@@ -80,11 +74,21 @@ PERROR OpenPaletteWindow( FRAME *frame )
         }
 
         if( scr == NULL ) {
+#if 0
             scr = MAINSCR; /* BUG: Should open a custom screen */
             ct  = globals->maindisp->colortable;
             depth = globals->maindisp->depth;
+#else
+            Req( NEGNUL, NULL, "\nThere is no rendered image.\n" );
+            return PERR_FAILED;
+#endif
         }
 
+        if( frame->pw == NULL ) {
+            frame->pw = smalloc( sizeof( struct PaletteWindow ));
+            /* BUG: should check */
+            bzero( frame->pw, sizeof(struct PaletteWindow));
+        }
 
         if( frame->pw->Win == NULL ) {
             if( GimmePaletteWindow( frame, depth ) != PERR_OK ) {
