@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 2.0 $
-        $Date: 1996/12/08 20:27:04 $
+    $Revision: 2.1 $
+        $Date: 1997/01/06 18:31:21 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 2.0 1996/12/08 20:27:04 jj Exp $
+    $Id: ppt_real.h,v 2.1 1997/01/06 18:31:21 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -406,6 +406,8 @@ typedef struct Frame_t {
 
     struct EClockVal eclock;
 
+    struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
+
     /*!!PUBLIC*/
 } FRAME;
 
@@ -692,64 +694,12 @@ struct LocaleString {
 #define EDITCMD_CUTFRAME    4
 #define EDITCMD_CROPFRAME   5
 
-/*------------------------------------------------------------------*/
-/* Interprocess communication */
-
-struct PPTMessage {
-    struct Message  msg;
-    FRAME           *frame;         /* Who does this message concern? */
-    ULONG           code;           /* See below */
-    APTR            data;           /* code-dependent. */
-};
-
-#define PPTMSGF_DONE            0x80000000 /* Set, if the message contains a death msg */
-
-#define PPTMSG_EFFECTDONE       (PPTMSGF_DONE + 0x01)
-#define PPTMSG_LOADDONE         (PPTMSGF_DONE + 0x02)
-#define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
-#define PPTMSG_SAVEDONE         (PPTMSGF_DONE + 0x04)
-
-#define PPTMSG_LASSO_RECT       0x10L
-#define PPTMSG_PICK_POINT       0x11L
-#define PPTMSG_FIXED_RECT       0x12L
-
-#define PPTMSG_STOP_INPUT       0x100L
-#define PPTMSG_ACK_INPUT        0x101L
-
-#define PPTMSG_OPENINFOWINDOW   0x200L
-#define PPTMSG_CLOSEINFOWINDOW  0x201L
-#define PPTMSG_UPDATEINFOWINDOW 0x202L
-#define PPTMSG_UPDATEPROGRESS   0x203L        /* Is really a ProgressMsg (see below) */
-
-struct ProgressMsg {
-    struct PPTMessage pmsg;
-    ULONG  done;
-    UBYTE  text[256];
-};
-
 /*!!PUBLIC*/
 
-/*------------------------------------------------------------------*/
-/* The input handler system */
+#ifndef PPTMESSAGE_H
+#include "pptmessage.h"
+#endif
 
-/* Codes for GetInput() */
-
-#define GINP_LASSO_RECT      0
-#define GINP_PICK_POINT      1
-#define GINP_FIXED_RECT      2
-
-struct gPoint {
-    WORD            x, y;
-};
-
-struct gRect {
-    struct IBox     dim;
-};
-
-struct gFixRect {
-    WORD            x, y; /* Topleft coords */
-    struct IBox     dim;  /* Dimensions of the fixed box */
-};
 
 #endif /* PPT_H */
 
