@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.4 $
-        $Date: 1997/07/12 21:43:09 $
+    $Revision: 1.5 $
+        $Date: 1998/06/28 23:11:35 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -54,6 +54,7 @@ struct PPTMessage {
 #define PPTMSG_LASSO_RECT       0x10L
 #define PPTMSG_PICK_POINT       0x11L
 #define PPTMSG_FIXED_RECT       0x12L
+#define PPTMSG_LASSO_CIRCLE     0x13L
 
 /*!!PRIVATE*/
 
@@ -88,6 +89,7 @@ struct ProgressMsg {
 #define GINP_LASSO_RECT      0
 #define GINP_PICK_POINT      1
 #define GINP_FIXED_RECT      2
+#define GINP_LASSO_CIRCLE    3
 
 /*
  *  These messages are sent to you after you have called
@@ -115,6 +117,14 @@ struct gFixRectMessage {
     struct PPTMessage   msg;
     WORD                x, y;   /* Topleft coords */
     struct IBox         dim;    /* Dimensions of the fixed box */
+};
+
+/* PPTMSG_LASSO_CIRCLE */
+
+struct gCircleMessage {
+    struct PPTMessage   msg;
+    WORD                x,y;    /* Coordinates of the center of the sphere */
+    WORD                radius; /* Radius of the sphere */
 };
 
 #endif /* PPT_MESSAGE_H */
