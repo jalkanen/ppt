@@ -1,25 +1,37 @@
 
-RELEASE NOTES FOR PPT RELEASE C-6
+RELEASE NOTES FOR PPT RELEASE D-1
 ---------------------------------
 
-This version fixes a number of bugs that got into the last release
-(mainly due to the hurry I had to get it out by Christmas).  See
-HISTORY for more info.
+After a long wait, here's the D-1 release (V6 of PPT).
 
-In addition, I have added the possibility to use images in the toolbar.
-You'll need OS V3.x for it, though.  I'll add V37 support, if someone
-*really* wants it.
+This is more or less a feature release, but quite little
+features.  Most notably:
 
-Other cool stuff includes:
-- dithered previews (and possibility to use ordered dither in rendering)
-- AppIcon
-- A number of icons contributed by A. Tolonen.  Yes, you can now
-  make your own icons =)
+- BMP and PsionPIC IOmodules added
+- TIFF iomodule is now in the main archive (with LZW support removed)
+- Twirl.effect
+- New splash screen =)
+- Possibility to select circular areas (yay!)
+- Open File now supports multiselect
+- Tips for newbies
+- Preferences (and window positions) are now saved on quit, unless you
+  use "Quit, discard changes" - menu item.
+
+On the downside, I fear this release has not been so extensively tested
+as the last ones.  I have been extremely busy, and I have also reworked
+MAJOR portions of the PPT code, so there might well be a bug or two
+still residing here.  In addition, this version is noticeably slower
+than the last release.  This is because the next version will support
+arbitrary shaped areas, and lots of the support code have not yet
+been optimized in any way.
 
 Known bugs:
-- the images in toolbar may not function correctly in all places.  This
-  is caused by a combination of bugs in CyberGfx, BGUI, and PPT.  I'll
-  try to fix them as much as I can for the next release.
+- Circular selection will be displayed wrong with previews sometimes.
+- Some effects do not like circular selection either.
+- Undo is problematic with some effects
+- Twirl does not work as well as I'd like.
+- Circle selection sometimes does not work pixel-perfect. I suspect
+  a roundoff error.
 
 /Janne
 
