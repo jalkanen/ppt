@@ -298,7 +298,6 @@ LIBIOSave( REG(d0) BPTR fh,       REG(d1) ULONG format,
 {
     WORD row, col;
     char basename[256];
-    ROWPTR buf = NULL;
     PERROR res;
 
     D(bug("IOSave(type=%08X)\n",format));
@@ -313,12 +312,6 @@ LIBIOSave( REG(d0) BPTR fh,       REG(d1) ULONG format,
     if( format == CSF_LUT ) {
         if( (res = WriteColormap( frame, basename, FALSE, fh, ExtBase )) != PERR_OK ) {
             SetErrorCode(frame,res);
-            return PERR_ERROR;
-        }
-
-        buf = AllocVec( frame->disp->width +16, 0L );
-        if(!buf) {
-            SetErrorCode( frame, PERR_OUTOFMEMORY );
             return PERR_ERROR;
         }
     }
@@ -346,20 +339,15 @@ LIBIOSave( REG(d0) BPTR fh,       REG(d1) ULONG format,
                 res = fhprintf( fh, ExtBase, "0x%02X,", cp[col] );
             }
         } else {
-            PLANEPTR cp[8];
-            int i;
+            UBYTE *cp;
 
-            for( i = 0; i < frame->disp->depth; i++ ) {
-                cp[i] = GetBitMapRow( frame, row, i );
-            }
-
-            PlanarToChunky( cp, buf, frame->pix->width, frame->disp->depth );
+            cp = GetBitMapRow( frame, row );
 
             for( col = 0; col < frame->pix->width; col++ ) {
                 if( col % 20 == 0 ) {
                     fhprintf(fh,ExtBase,"\n    ");
                 }
-                res = fhprintf( fh, ExtBase, "0x%02X,", buf[col] );
+                res = fhprintf( fh, ExtBase, "0x%02X,", cp[col] );
             }
 
         }
@@ -376,8 +364,6 @@ LIBIOSave( REG(d0) BPTR fh,       REG(d1) ULONG format,
     }
 
     FinishProgress( frame );
-
-    if(buf) FreeVec( buf );
 
     return PERR_OK;
 }
