@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: colorcount.c,v 1.1 1999/01/17 15:24:33 jj Exp $
+    $Id: colorcount.c,v 1.2 1999/01/18 23:01:54 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -185,7 +185,7 @@ LONG CountColors( FRAME *frame, struct PPTBase *PPTBase )
         bzero( colors, nBytes );
 
         colorMin = pass * nBytes * 8;
-        colorMax = (pass+1) * nBytes * 8-1;
+        colorMax = (pass+1) * nBytes * 8 - 1;
 
         D(bug("\tHunting for colors %06lx - %06lx\n",colorMin, colorMax ));
 
@@ -207,7 +207,7 @@ LONG CountColors( FRAME *frame, struct PPTBase *PPTBase )
                 switch( cspace ) {
 
                     case CS_RGB:
-                        rgb = (UBYTE *)&cp[3*col];
+                        rgb = (RGBPixel *)&cp[3*col];
                         offset = ( (rgb->r)<<16)|((rgb->g)<<8)|(rgb->b);
                         break;
 
@@ -216,7 +216,7 @@ LONG CountColors( FRAME *frame, struct PPTBase *PPTBase )
                         break;
 
                     case CS_GRAYLEVEL:
-                        offset = *((UBYTE *)cp);
+                        offset = ((UBYTE *)cp)[col];
                         break;
                 }
 
