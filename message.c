@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 2.1 1997/05/27 22:24:43 jj Exp $
+    $Id: message.c,v 2.2 1997/06/07 21:21:26 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -261,7 +261,9 @@ PERROR StartInput( REG(a0) FRAME *frame,
      *  since it is quite easy to derive, we'll do it here.
      */
 
-    pmsg->code  = mid + PPTMSG_LASSO_RECT;
+    pmsg->code  = PPTMSG_START_INPUT;
+    // pmsg->code  = mid + PPTMSG_LASSO_RECT;
+    pmsg->data  = (APTR)mid;
 
     /*
      *  Send the address of the parent frame, if such a beast
@@ -314,7 +316,7 @@ PERROR StartInput( REG(a0) FRAME *frame,
             if( amsg = (struct PPTMessage *)GetMsg(ExtBase->mport) ) {
 
                 if( amsg->msg.mn_Node.ln_Type == NT_REPLYMSG ) {
-                    if( amsg->code == PPTMSG_ACK_INPUT ) {
+                    if( amsg->code == PPTMSG_START_INPUT ) {
                         PERROR res;
 
                         if( (res = (PERROR)amsg->data) == PERR_OK ) {
@@ -428,8 +430,7 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
     RemoveSelectBox( f );
 
-    f->selectmethod = pmsg->code - PPTMSG_LASSO_RECT;
-    f->selectdata   = pmsg->data;
+    f->selectmethod = (ULONG)pmsg->data;
     f->selectport   = pmsg->msg.mn_ReplyPort;
 
     if( f->selectmethod == GINP_FIXED_RECT ) {
@@ -444,7 +445,6 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
      *  Modify the initial message that main() will ReplyMsg() to.
      */
 
-    pmsg->code  = PPTMSG_ACK_INPUT;
     pmsg->data  = PERR_OK; /* Signal: successful. */
 }
 
@@ -455,7 +455,7 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
 VOID SendInputMsg( FRAME *f, struct PPTMessage *pmsg )
 {
-    D(bug("Sending frame input\n"));
+    D(bug("\tSending frame input\n"));
 
     pmsg->frame = f;
 
@@ -492,7 +492,7 @@ VOID ClearFrameInput( FRAME *f )
 
 VOID FinishFrameInput( FRAME *f )
 {
-    D(bug("Finished frame input\n"));
+    D(bug("\tFinished frame input\n"));
 
     ChangeBusyStatus( f, BUSY_CHANGING );
 
