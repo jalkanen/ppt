@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 1.22 1997/01/06 22:02:03 jj Exp $
+    $Id: support.c,v 3.0 1997/02/07 00:02:05 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -117,6 +117,7 @@ APTR ExtLibData[] = {
     StartInput,
     StopInput,
 
+    GetBackgroundColor,
     (APTR) ~0 /* Marks the end of the table for MakeFunctions() */
 };
 
@@ -334,6 +335,90 @@ SAVEDS ASM ULONG TagData( REG(d0) Tag value,
     return(GetTagData(value,0L,list));
 }
 
+/****u* pptsupport/GetBackgroundColor ******************************************
+*
+*   NAME
+*       GetBackgroundColor
+*
+*   SYNOPSIS
+*       success = GetBackgroundColor( frame, pixel )
+*       D0                            A0     A1
+*
+*       PERROR GetPixelRow( FRAME *, ROWPTR );
+*
+*   FUNCTION
+*       Returns the background color of the given frame.  If no background
+*       color has been designated, then will calculate a good guess
+*       using an average of each of the corners.
+*
+*   INPUTS
+*       frame - the frame handle
+*       pixel - pointer to a location where the pixel should be
+*           written.  Make sure you have enough space for one pixel!
+*
+*   RESULT
+*       success - PPT error code.  PERR_OK, if everything went OK.
+*
+*   EXAMPLE
+*
+*   NOTES
+*       The reason this is a function instead of a field in the PIXINFO
+*       structure is that if needed, the background color can be
+*       calculated on the fly.
+*
+*   BUGS
+*
+*   SEE ALSO
+*
+*****************************************************************************
+*
+*   BUG: Does not have any background selector.
+*/
+
+Prototype ASM PERROR GetBackgroundColor( REG(a0) FRAME *, REG(a1) ROWPTR, REG(a6) EXTBASE * );
+
+SAVEDS ASM
+PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
+                           REG(a6) EXTBASE *ExtBase )
+{
+    PERROR res = PERR_OK;
+    RGBPixel *rgb, prgb[4];
+    ARGBPixel *argb, pargb[4];
+    GrayPixel *gray, pgray[4];
+    WORD width = frame->pix->width;
+
+    switch( frame->pix->colorspace ) {
+        case CS_RGB:
+            rgb = (RGBPixel *)GetPixelRow( frame, 0, ExtBase );
+            prgb[0] = rgb[0]; prgb[1] = rgb[width-1];
+            rgb = (RGBPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            prgb[2] = rgb[0]; prgb[3] = rgb[width-1];
+            ((RGBPixel *)pixel)->r = (((ULONG)prgb[0].r + prgb[1].r + prgb[2].r + prgb[3].r)/4);
+            ((RGBPixel *)pixel)->g = (((ULONG)prgb[0].g + prgb[1].g + prgb[2].g + prgb[3].g)/4);
+            ((RGBPixel *)pixel)->b = (((ULONG)prgb[0].b + prgb[1].b + prgb[2].b + prgb[3].b)/4);
+            break;
+
+        case CS_ARGB:
+            argb = (ARGBPixel *)GetPixelRow( frame, 0, ExtBase );
+            pargb[0] = argb[0]; pargb[1] = argb[width-1];
+            argb = (ARGBPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            pargb[2] = argb[0]; pargb[3] = argb[width-1];
+            ((ARGBPixel *)pixel)->r = (((ULONG)pargb[0].r + pargb[1].r + pargb[2].r + pargb[3].r)/4);
+            ((ARGBPixel *)pixel)->g = (((ULONG)pargb[0].g + pargb[1].g + pargb[2].g + pargb[3].g)/4);
+            ((ARGBPixel *)pixel)->b = (((ULONG)pargb[0].b + pargb[1].b + pargb[2].b + pargb[3].b)/4);
+            break;
+
+        case CS_GRAYLEVEL:
+            gray = (GrayPixel *)GetPixelRow( frame, 0, ExtBase );
+            pgray[0] = gray[0]; pgray[1] = gray[width-1];
+            gray = (GrayPixel *)GetPixelRow( frame, frame->pix->height-1, ExtBase );
+            pgray[0] = gray[0]; pgray[1] = gray[width-1];
+            ((GrayPixel *)pixel)->g = (((ULONG)pgray[0].g + pgray[1].g + pgray[2].g + pgray[3].g)/4);
+            break;
+    }
+
+    return res;
+}
 
 /****u* pptsupport/GetPixelRow ******************************************
 *
