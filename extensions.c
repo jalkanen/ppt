@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.2 1997/02/23 14:46:25 jj Exp $
+    $Id: extensions.c,v 1.3 1997/02/23 18:22:59 jj Exp $
 */
 
 #include "defs.h"
@@ -415,7 +415,7 @@ PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
     }
 
     if(new = AllocOptNode(name,len,ExtBase)) {
-        memcpy(&new->on_Data, data, len);
+        memcpy(&(new->on_Data[0]), data, len);
         AddTail(&optlist, (struct Node *)new);
     } else {
         res = PERR_OUTOFMEMORY;
@@ -490,7 +490,7 @@ APTR GetOptions( REG(a0) STRPTR name, REG(a6) EXTBASE *ExtBase )
     if( opt ) {
         D(bug("\tFound opt at %08X\n",opt));
         ReleaseSemaphore( &optsemaphore );
-        return opt->on_Data;
+        return &(opt->on_Data[0]);
     }
 
     ReleaseSemaphore( &optsemaphore );
