@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.11 1997/05/06 00:09:48 jj Exp $
+    $Id: infowin.c,v 1.12 1997/10/06 21:52:42 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -35,7 +35,6 @@
 
 Prototype void          UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd );
 Prototype Object *      GimmeInfoWindow( EXTBASE *, INFOWIN * );
-Prototype void          UpdateIWSelbox( FRAME *f );
 Prototype PERROR        AllocInfoWindow( FRAME *, EXTBASE * );
 Prototype void          DeleteInfoWindow( INFOWIN *, EXTBASE * );
 Prototype PERROR        OpenInfoWindow( INFOWIN *iw, EXTBASE *xd );
@@ -386,15 +385,6 @@ void UpdateInfoWindow( INFOWIN *iw, EXTBASE *xd )
     }
 }
 
-/*
-    This routine updates the toolbox area display.
-    It is not used at the moment.
-*/
-
-void UpdateIWSelbox( FRAME *f )
-{
-
-}
 
 /*
  *  Disables the info window gadgets from accepting input.
