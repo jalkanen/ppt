@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.3 1995/09/14 22:43:56 jj Exp $
+    $Id: dither.c,v 1.4 1995/09/23 22:02:29 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -35,23 +35,9 @@ struct FSObject {
 /* Prototypes */
 
 Prototype PERROR Dither_NoneI( struct RenderObject * );
-Prototype PERROR Dither_NoneD( struct RenderObject * );
-Prototype VOID   Dither_None( struct RenderObject * );
-
 Prototype PERROR Dither_FSI( struct RenderObject * );
-Prototype PERROR Dither_FSD( struct RenderObject * );
-Prototype VOID   Dither_FS( struct RenderObject * );
 
 /*-----------------------------------------------------------*/
-
-/*
-    Initialization routine
-*/
-PERROR Dither_NoneI( struct RenderObject *rdo )
-{
-    D(bug("\tDither_NoneI()\n"));
-    return PERR_OK;
-}
 
 /*
     Deconstructor
@@ -80,10 +66,47 @@ VOID Dither_None( struct RenderObject *rdo )
         red   = *cp++;
         green = *cp++;
         blue  = *cp++;
-        pixcode = rdo->GetColor( rdo, red, green, blue );
+        pixcode = (*rdo->GetColor)( rdo, red, green, blue );
         dcp[col] = (UBYTE)pixcode;
     }
 }
+
+VOID Dither_NoneGray( struct RenderObject *rdo )
+{
+    WORD width = rdo->frame->pix->width,col;
+    ROWPTR cp = rdo->cp;
+    UBYTE *dcp = rdo->buffer;
+
+    // D(bug("\tDither_None(width=%d)\n",width));
+
+    for( col = 0; col < width; col++ ) {
+        UWORD pixcode;
+        UBYTE gray;
+
+        gray   = *cp++;
+
+        pixcode = (*rdo->GetColor)( rdo, gray, gray, gray );
+        dcp[col] = (UBYTE)pixcode;
+    }
+}
+
+
+/*
+    Initialization
+*/
+PERROR Dither_NoneI( struct RenderObject *rdo )
+{
+    D(bug("\tDither_NoneI()\n"));
+
+    rdo->Dither = Dither_None;
+    rdo->DitherD = Dither_NoneD;
+
+    if( rdo->frame->pix->colorspace == CS_GRAYLEVEL )
+        rdo->Dither = Dither_NoneGray;
+
+    return PERR_OK;
+}
+
 
 /*-----------------------------------------------------------*/
 /* FLOYD-STEINBERG */
@@ -150,36 +173,6 @@ int *Init_FS_ErrorLimits( void )
     return table;
 }
 
-
-/*
-    Initialization routine
-*/
-PERROR Dither_FSI( struct RenderObject *rdo )
-{
-    struct FSObject *fs;
-    UWORD width = rdo->frame->pix->width;
-    PERROR res;
-
-    fs = pzmalloc( sizeof( struct FSObject ) );
-    if(!fs) return PERR_OUTOFMEMORY;
-
-    fs->odd_row = FALSE;
-    fs->error_limit = Init_FS_ErrorLimits();
-    if(fs->error_limit) {
-        fs->fserrors = pzmalloc( (width + 2) * rdo->frame->pix->components * sizeof(FSERROR) );
-        if( fs->fserrors ) {
-            res = PERR_OK;
-        } else {
-            res = PERR_INITFAILED;
-        }
-    } else {
-        res = PERR_INITFAILED;
-    }
-
-    rdo->DitherObject = (APTR) fs;
-
-    return res;
-}
 
 /*
     Deconstructor
@@ -261,7 +254,7 @@ VOID Dither_FS( struct RenderObject *rdo )
 
         {   register UWORD pixcode;
 
-            pixcode = (*(rdo->GetColor))( rdo, cur0, cur1, cur2 );
+            pixcode = (*rdo->GetColor)( rdo, cur0, cur1, cur2 );
             *dcp = (UBYTE)(pixcode);
             cur0 -= rdo->newr;
             cur1 -= rdo->newg;
@@ -311,4 +304,51 @@ VOID Dither_FS( struct RenderObject *rdo )
 
     return;
 }
+
+/*
+    Initialization routine
+*/
+PERROR Dither_FSI( struct RenderObject *rdo )
+{
+    struct FSObject *fs;
+    UWORD width = rdo->frame->pix->width;
+    PERROR res = PERR_OK;
+
+    fs = pzmalloc( sizeof( struct FSObject ) );
+    if(!fs) return PERR_OUTOFMEMORY;
+
+    fs->odd_row = FALSE;
+    fs->error_limit = Init_FS_ErrorLimits();
+    if(fs->error_limit) {
+        fs->fserrors = pzmalloc( (width + 2) * rdo->frame->pix->components * sizeof(FSERROR) );
+        if( fs->fserrors ) {
+            res = PERR_OK;
+        } else {
+            res = PERR_INITFAILED;
+        }
+    } else {
+        res = PERR_INITFAILED;
+    }
+
+    switch( rdo->frame->pix->colorspace ) {
+
+        case CS_RGB:
+            rdo->DitherObject = (APTR) fs;
+            rdo->Dither = Dither_FS;
+            rdo->DitherD = Dither_FSD;
+            break;
+
+        default:
+            Req( NEGNUL,NULL, "You cannot make a Floyd-Steinberg dither\n"
+                              "in this colorspace!" );
+            res = PERR_INITFAILED;
+            break;
+    }
+
+    if( res != PERR_OK )
+        Dither_FSD( rdo );
+
+    return res;
+}
+
 
