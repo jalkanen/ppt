@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.29 1999/02/14 19:40:33 jj Exp $
+    $Id: prefs.c,v 1.30 1999/03/31 13:28:34 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -86,6 +86,7 @@ const char *PrefsOptions[] = {
     "SAVEPALETTEREQUESTER",
     "BEGINTOOLBAR",
     "DITHERPREVIEW",
+    "TIPNUMBER",
     NULL,
 };
 
@@ -119,7 +120,8 @@ typedef enum {
     OPENPALETTEREQUESTER,
     SAVEPALETTEREQUESTER,
     BEGINTOOLBAR,
-    DITHERPREVIEW
+    DITHERPREVIEW,
+    TIPNUMBER
 } Option;
 
 
@@ -205,6 +207,7 @@ VOID InitPrefs( PREFS *p )
     p->previewmode      = DEFAULT_PREVIEWMODE;
     p->confirm          = DEFAULT_CONFIRM;
     p->ditherpreview    = FALSE;
+    p->tipnumber        = DEFAULT_TIPNUMBER;
     SetPreviewSize( p );
 }
 
@@ -465,6 +468,11 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                         }
                         break;
 
+                    case TIPNUMBER:
+                        tmp = strtol( s, &tail, 0 );
+                        p->tipnumber = tmp;
+                        break;
+
                     case OPENFILEREQUESTER:
                         ReadWindowPrefs( s, &gvLoadFileReq.prefs );
                         break;
@@ -535,6 +543,7 @@ int SavePrefs( GLOBALS *g, char *pfile )
         WritePrefByID(fh,EXTNICEVAL,"%d",p->extniceval);
         WritePrefByID(fh,EXTPRIORITY,"%d",p->extpriority);
         WritePrefByID(fh,PREVIEWSIZE,"%d",p->previewmode);
+        WritePrefByID(fh,TIPNUMBER,"%d",p->tipnumber);
 
         if(p->mainfont)
             WritePrefByID( fh, MAINFONT, "%s %d",p->mainfont->ta_Name,p->mainfont->ta_YSize);
@@ -589,16 +598,6 @@ int SavePrefs( GLOBALS *g, char *pfile )
             WritePrefByID( fh, SCRIPTSWINDOW, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
         }
 
-#if 0
-        GetAttr( ASLREQ_Bounds, gvLoadFileReq.Req, (ULONG *)&ib );
-        WritePrefByID( fh, OPENFILEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
-
-        GetAttr( ASLREQ_Bounds, gvPaletteOpenReq.Req, (ULONG *)&ib );
-        WritePrefByID( fh, OPENPALETTEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
-
-        GetAttr( ASLREQ_Bounds, gvPaletteSaveReq.Req, (ULONG *)&ib );
-        WritePrefByID( fh, SAVEPALETTEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
-#endif
         WriteASLPrefs( fh, OPENFILEREQUESTER, gvLoadFileReq.Req );
         WriteASLPrefs( fh, OPENPALETTEREQUESTER, gvPaletteOpenReq.Req );
         WriteASLPrefs( fh, SAVEPALETTEREQUESTER, gvPaletteSaveReq.Req );
