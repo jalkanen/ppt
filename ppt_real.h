@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.5 $
-        $Date: 1997/03/01 12:08:50 $
+    $Revision: 3.6 $
+        $Date: 1997/03/04 23:48:34 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.5 1997/03/01 12:08:50 jj Exp $
+    $Id: ppt_real.h,v 3.6 1997/03/04 23:48:34 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -377,6 +377,8 @@ typedef struct {
     struct SignalSemaphore lock;
 } INFOWIN;
 
+extern struct EditWindow_T;
+
 /*!!PUBLIC*/
 
 /*
@@ -446,6 +448,8 @@ typedef struct Frame_t {
     struct EClockVal eclock;
 
     struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
+
+    struct EditWindow_T *editwin;      /* Info editing window */
 
 #ifdef DEBUG_MODE
     BPTR            debug_handle;   /* The debug output of this task */
@@ -727,7 +731,8 @@ struct LocaleString {
 
 /*------------------------------------------------------------------*/
 /* Extensions.  This also contains the pre-defined names for
-   AddExtension() */
+   AddExtension().  For more explanation, see the
+   AddExtension() autodoc. */
 
 struct Extension {
     struct Node         en_Node;    /* PRIVATE */
@@ -740,15 +745,23 @@ struct Extension {
     /* Nothing but private data down from here */
 };
 
-/* Pre-defined names */
+/*
+   Pre-defined names.  Loaders may or may not understand these,
+   but these will be supported.  The meanings are as explained
+   in the AddExtension() autodoc.
+*/
 
 #define EXTNAME_AUTHOR      "Author"
 #define EXTNAME_ANNO        "Annotation"
 #define EXTNAME_DATE        "Date"
 
-/* Flags for en_Flags */
+/* Flags for en_Flags.  As usual, all unused bits should be set
+   to 0. */
 
-#define EXTF_NOTASTRING     0x01 /* This extension is not a  string */
+#define EXTF_PRIVATE        0x00 /* Private type. PPT will not attempt
+                                    to parse this. */
+#define EXTF_CSTRING        0x01 /* This extension is a standard C
+                                    string. */
 
 /*!!PRIVATE*/
 
