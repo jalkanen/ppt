@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.24 1998/06/28 23:23:43 jj Exp $
+   $Id: render.c,v 1.25 1998/08/14 19:30:33 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -939,7 +939,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
 
     bcopy(dest, &temprp, sizeof(struct RastPort));
     temprp.Layer = NULL;
-    if (GfxBase->LibNode.lib_Version >= 39) {
+    if (GFXV39) {
 
         /*
          *  Note that it safe to pass some checks here, because the deep
@@ -1048,7 +1048,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
 
     WaitBlit();
 
-    if (GfxBase->LibNode.lib_Version >= 39) {
+    if (GFXV39) {
         FreeBitMap(temprp.BitMap);      // NULL is OK.
 
     } else {
