@@ -5,7 +5,7 @@
     This file contains the input-handlers of PPT for the external
     modules.
 
-    $Id: input.c,v 1.4 1999/05/30 18:13:34 jj Exp $
+    $Id: input.c,v 1.5 1999/08/01 16:47:04 jj Exp $
 
  */
 
@@ -298,8 +298,14 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
     EraseSelection( f );
 
+    /*
+     *  Change and lock the selection method
+     */
+
+    f->selection.cachedmethod = f->selection.selectmethod;
     ChangeSelectMethod( f, (ULONG) pmsg->data );
     f->selection.selectport = pmsg->msg.mn_ReplyPort;
+    f->selection.selstatus |= SELF_LOCKED;
 
     if( f->selection.selectmethod == GINP_FIXED_RECT ) {
         f->selection.fixrect = ((struct gFixRectMessage *)pmsg)->dim;
@@ -331,8 +337,9 @@ VOID ClearFrameInput( FRAME *f )
 
     EraseSelection( f );
     LOCK(f);
-    ChangeSelectMethod( f, GINP_LASSO_RECT );
+    ChangeSelectMethod( f, f->selection.cachedmethod );
     f->selection.selectport = NULL;
+    f->selection.selstatus  &= ~SELF_LOCKED;
     UNLOCK(f);
 }
 
