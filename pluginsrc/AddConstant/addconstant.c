@@ -5,75 +5,14 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: addconstant.c,v 1.1 1998/02/21 20:39:28 jj Exp $
+    $Id: addconstant.c,v 1.2 1998/12/09 22:05:53 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
 /* Includes */
 
-/*
-    First, some compiler stuff to make this compile on SAS/C too.
-*/
-
-#ifdef _DCC
-#define SAVEDS __geta4
-#define ASM
-#define REG(x) __ ## x
-#define FAR    __far
-#else
-#define SAVEDS __saveds
-#define ASM    __asm
-#define REG(x) register __ ## x
-#define FAR    __far
-#define GETREG(x) getreg(x)
-#define PUTREG(x,a) putreg(x,a)
-#include <dos.h>
-#endif
-
-#ifdef DEBUG_MODE
-#define D(x)    x;
-#define bug     PDebug
-#else
-#define D(x)
-#define bug     a_function_that_does_not_exist
-#endif
-
-/*
-    Here are some includes you might find useful. Actually, not all
-    of them are required, but I find it easier to delete extra files
-    than add up forgotten ones.
-*/
-
-#ifndef UTILITY_TAGITEM_H
-#include <utility/tagitem.h>
-#endif
-
-#include <libraries/bgui.h>
-#include <libraries/bgui_macros.h>
-
-#include <clib/alib_protos.h>
-
-#include <proto/exec.h>
-#include <proto/intuition.h>
-#include <proto/utility.h>
-#include <proto/dos.h>
-#include <proto/bgui.h>
-
-/*
-    These are required, however. Make sure that these are in your include path!
-*/
-
-#include <ppt.h>
-#include <pragmas/pptsupp_pragmas.h>
-
-/*
-    Just some extra, again.
-*/
-
-#include <stdio.h>
-#include <stdarg.h>
-
+#include <pptplugin.h>
 
 /*----------------------------------------------------------------------*/
 /* Defines */
@@ -89,10 +28,8 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-ASM FRAME *LIBEffectExec( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a5) EXTBASE * );
-ASM ULONG LIBEffectInquire( REG(d0) ULONG, REG(a5) EXTBASE * );
 
-FRAME *DoAdd( FRAME *frame, struct Values *v, EXTBASE *ExtBase );
+FRAME *DoAdd( FRAME *frame, struct Values *v, struct PPTBase *PPTBase );
 
 /*----------------------------------------------------------------------*/
 /* Global variables. Generally, you should keep these to the minimum,
@@ -161,13 +98,13 @@ void __regargs _CXBRK(void) {}
     failed.
 */
 
-SAVEDS ASM int __UserLibInit( REG(a6) struct Library *EffectBase )
+LIBINIT
 {
     return 0;
 }
 
 
-SAVEDS ASM VOID __UserLibCleanup( REG(a6) struct Library *EffectBase )
+LIBCLEANUP
 {
 }
 
@@ -187,19 +124,19 @@ ASM ULONG MyHookFunc( REG(a0) struct Hook *hook,
     foo.Blue = msg->aum_Values[2];
     foo.Alpha = msg->aum_Values[3];
 
-    DoAdd( msg->aum_Frame, &foo, msg->aum_ExtBase );
+    DoAdd( msg->aum_Frame, &foo, msg->aum_PPTBase );
 
     return ARR_REDRAW;
 }
 
-SAVEDS ASM ULONG LIBEffectInquire( REG(d0) ULONG attr, REG(a5) EXTBASE *ExtBase )
+EFFECTINQUIRE(attr,PPTBase,EffectBase)
 {
     return TagData( attr, MyTagArray );
 }
 
 #define CLAMP(x) ( ((x) > 255) ? 255 : ((x) < 0) ? 0 : (x) )
 
-FRAME *DoAdd( FRAME *frame, struct Values *v, EXTBASE *ExtBase )
+FRAME *DoAdd( FRAME *frame, struct Values *v, struct PPTBase *PPTBase )
 {
     WORD row, col;
 
@@ -261,9 +198,7 @@ FRAME *DoAdd( FRAME *frame, struct Values *v, EXTBASE *ExtBase )
 
 struct Hook pwhook = { {0}, MyHookFunc, 0L, NULL };
 
-SAVEDS ASM FRAME *LIBEffectExec( REG(a0) FRAME *frame,
-                                 REG(a1) struct TagItem *tags,
-                                 REG(a5) EXTBASE *ExtBase )
+EFFECTEXEC(frame,tags,PPTBase,EffectBase)
 {
     FRAME *newframe = NULL;
     ULONG *args;
@@ -328,7 +263,7 @@ SAVEDS ASM FRAME *LIBEffectExec( REG(a0) FRAME *frame,
      */
 
     if( res == PERR_OK ) {
-        newframe = DoAdd(frame,&val, ExtBase);
+        newframe = DoAdd(frame,&val, PPTBase);
     }
 
     /*
