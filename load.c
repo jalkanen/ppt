@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.4 1997/02/23 18:23:32 jj Exp $
+    $Id: load.c,v 2.5 1997/03/13 00:13:06 jj Exp $
 
     Code for loaders...
 */
@@ -81,19 +81,22 @@ const char *external_patterns[] = {
 
 UBYTE *AskFile( EXTBASE *ExtBase, STRPTR initialpattern )
 {
-    static char Drawer[MAXPATHLEN+1] = "Data:gfx/Pics"; /* BUG: */
-    static char File[NAMELEN+1] = ""; /* BUG: */
+    static char Drawer[MAXPATHLEN+1] = "UNSET";
+    static char File[NAMELEN+1] = "";
     static ULONG Top = 0, Left = 0, Height = 0, Width = 0;
     Object *freq;
     UBYTE *path, *buffer = NULL;
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
 
     /*
-     *  Initialize default values.
+     *  Initialize default values.  This is a bit kludgish.
      */
 
     if( Height == 0 ) Height = globals->maindisp->height * 3 / 4;
     if( Width  == 0 ) Width  = globals->maindisp->width / 3;
+
+    if( strcmp(Drawer,"UNSET") == 0 )
+        strncpy(Drawer, globals->userprefs->startupdir, MAXPATHLEN);
 
     freq = FileReqObject,
         ASLFR_Window,           globals->maindisp->win,
@@ -132,6 +135,7 @@ UBYTE *AskFile( EXTBASE *ExtBase, STRPTR initialpattern )
 
             strncpy( Drawer, path, MAXPATHLEN );
             strncpy( File, FilePart( buffer ), NAMELEN );
+            strncpy( globals->userprefs->startupdir, path, MAXPATHLEN );
         }
 
         AwakenAllWindows( ExtBase );
