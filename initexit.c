@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.37 1998/12/20 19:12:12 jj Exp $
+    $Id: initexit.c,v 1.38 1999/01/13 22:56:59 jj Exp $
 
     Initialization and exit code.
 */
@@ -862,6 +862,12 @@ int FreeResources (GLOBALS *g)
     if( selectw.Win ) DisposeObject( selectw.Win );
 
     CloseMainScreen(); /* Cannot use CloseDisplay(), since the objects are already disposed of. */
+
+    /*
+     *  Free toolbar
+     */
+
+    FreeToolbar();
 
     /*
      *  Get rid of allocated system resources
