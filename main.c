@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.106 1999/02/21 20:33:23 jj Exp $
+    $Id: main.c,v 1.107 1999/03/14 20:56:59 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -118,11 +118,12 @@ BPTR debug_fh, old_fh;
 
 extern int              main(int, char **);
 Local void              HandleAppMsg( const struct AppMessage * );
-Local int               HandleInfoIDCMP( INFOWIN *, ULONG );
 Local void              UpdateDispPrefsWindow( FRAME * );
 #ifdef _DCC
 Local int               wbmain( struct WBStartup * );
 #endif
+VOID SetSelboxActive( BOOL act );
+
 ///
 
 /*------------------------------------------------------------------------*/
@@ -374,12 +375,13 @@ VOID KludgeWindowMenus(VOID)
 
 VOID UpdateMainWindow( FRAME *frame )
 {
+    D(bug("UpdateMainWindow(%08x = %s)\n",frame, frame ? frame->name : ""));
 
     UpdateIWSelbox( frame ); /* NULL is OK */
 
     if( frame ) {
         FRAME *alpha = NULL;
-        ULONG args[8];
+        static ULONG args[8];
 
         SHLOCK(frame);
 
@@ -437,10 +439,14 @@ VOID UpdateMainWindow( FRAME *frame )
         if( frame->renderobject ) {
             EnableMenuItem( MID_CLOSERENDER );
             EnableMenuItem( MID_PALETTE );
+            EnableMenuItem( MID_EDITPALETTE );
         } else {
             DisableMenuItem( MID_CLOSERENDER );
             DisableMenuItem( MID_PALETTE );
+            DisableMenuItem( MID_EDITPALETTE );
         }
+
+        SetSelboxActive( TRUE );
 
     } else {
         SetGadgetAttrs( GAD(framew.Info), framew.win, NULL,
@@ -478,6 +484,8 @@ VOID UpdateMainWindow( FRAME *frame )
         DisableMenuItem( MID_CLOSERENDER );
 
         DisableMenuItem( MID_PALETTE );
+
+        SetSelboxActive( FALSE );
     }
 }
 ///
@@ -1349,10 +1357,21 @@ int HandleMainIDCMP( ULONG rc )
 
 /// HandleSelectIDCMP()
 
+VOID SetSelboxActive( BOOL act )
+{
+    SetGadgetAttrs( GAD(selectw.Rectangle), selectw.win, NULL,
+                    GA_Disabled, !act,
+                    TAG_DONE );
+#ifdef DEBUG_MODE
+    SetGadgetAttrs( GAD(selectw.Circle), selectw.win, NULL,
+                    GA_Disabled, !act,
+                    TAG_DONE );
+#endif
+}
+
 /*
     This routine updates the toolbox area display.
     BUG: Should not be here, I think.
-    BUG: setting GA_Disable each time is a waste
 */
 
 Prototype void UpdateIWSelbox( FRAME *f );
@@ -1360,21 +1379,17 @@ Prototype void UpdateIWSelbox( FRAME *f );
 void UpdateIWSelbox( FRAME *f )
 {
     LONG tl, tr, bl, br, cx, cy, cr;
-    BOOL  disable;
 
     if( !selectw.win ) return;
 
     if( !f ) {
-        disable = TRUE;
         tl = tr = bl = br = 0;
     } else {
         if( f->selbox.MinX == ~0 ) {
-            disable = FALSE;
             tl = tr = 0;
             bl = f->pix->width-1;
             br = f->pix->height-1;
         } else {
-            disable = FALSE;
             tl = f->selbox.MinX;
             tr = f->selbox.MinY;
             bl = f->selbox.MaxX-1;
@@ -1384,23 +1399,23 @@ void UpdateIWSelbox( FRAME *f )
 
     SetGadgetAttrs( GAD(selectw.TopLeft), selectw.win, NULL,
                     STRINGA_LongVal, tl,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
     SetGadgetAttrs( GAD(selectw.TopRight), selectw.win, NULL,
                     STRINGA_LongVal, tr,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
     SetGadgetAttrs( GAD(selectw.BottomLeft), selectw.win, NULL,
                     STRINGA_LongVal, bl,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
     SetGadgetAttrs( GAD(selectw.BottomRight), selectw.win, NULL,
                     STRINGA_LongVal, br,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
 
     SetGadgetAttrs( GAD(selectw.Width), selectw.win, NULL,
                     STRINGA_LongVal, abs(bl-tl)+1,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
     SetGadgetAttrs( GAD(selectw.Height), selectw.win, NULL,
                     STRINGA_LongVal, abs(br-tr)+1,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
 
 #ifdef DEBUG_MODE
     if( f ) {
@@ -1413,15 +1428,15 @@ void UpdateIWSelbox( FRAME *f )
 
     SetGadgetAttrs( GAD(selectw.CircleRadius), selectw.win, NULL,
                     STRINGA_LongVal, cr,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
 
     SetGadgetAttrs( GAD(selectw.CircleX), selectw.win, NULL,
                     STRINGA_LongVal, cx,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
 
     SetGadgetAttrs( GAD(selectw.CircleY), selectw.win, NULL,
                     STRINGA_LongVal, cy,
-                    GA_Disabled, disable, TAG_DONE );
+                    TAG_DONE );
 #endif
 }
 
@@ -1947,8 +1962,10 @@ int HandlePrefsIDCMP( ULONG rc )
 */
 
 Local
-int HandleInfoIDCMP( INFOWIN *iw, ULONG rc )
+int HandleInfoIDCMP( FRAME *frame, ULONG rc )
 {
+    INFOWIN *iw = frame->mywin;
+
     switch(rc) {
         case WMHI_CLOSEWINDOW:
         case GID_IW_CLOSE:
@@ -2399,11 +2416,12 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
 
 /// HandleEditIDCMP()
 
-int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
+int HandleEditIDCMP( FRAME *frame, ULONG rc )
 {
     STRPTR s;
     APTR entry;
     struct Extension *en;
+    EDITWIN *ew = frame->editwin;
 
     switch(rc) {
         case WMHI_CLOSEWINDOW:
@@ -3372,7 +3390,7 @@ int MainWindowMessage(VOID)
                 if( SigWin == fr->mywin->win ) {
                     D(bug("\tinfowin\n"));
                     while(( rc = HandleEvent( fr->mywin->WO_win) ) !=WMHI_NOMORE ) {
-                        res = HandleInfoIDCMP( fr->mywin, rc );
+                        res = HandleInfoIDCMP( fr, rc );
                         if(res == HANDLER_DELETED)
                             goto exit_frame_main_loop;
                         else quit += res;
@@ -3384,7 +3402,7 @@ int MainWindowMessage(VOID)
             if( fr->editwin ) {
                 if( SigWin == fr->editwin->win ) {
                     while(( rc = HandleEvent( fr->editwin->Win)) != WMHI_NOMORE ) {
-                        res = HandleEditIDCMP( fr->editwin, rc );
+                        res = HandleEditIDCMP( fr, rc );
                         if( res == HANDLER_DELETED)
                             goto exit_frame_main_loop;
                         else
@@ -3502,6 +3520,8 @@ int main(int argc, char **argv)
 
     if( selectw.prefs.initialopen )
         HandleMenuIDCMP( MID_SELECTWINDOW, NULL, FROM_MAINWINDOW );
+
+    UpdateMainWindow(NULL);
 
     /*
      *  Check for old version
