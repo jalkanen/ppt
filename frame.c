@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.7 1998/08/23 23:14:55 jj Exp $
+    $Id: frame.c,v 4.8 1998/09/02 22:41:24 nobody Exp $
 
     This contains frame handling routines
 
@@ -26,6 +26,7 @@
 /*-------------------------------------------------------------------*/
 /* Prototypes */
 
+/// Prototypes
 Prototype PERROR        AddAlpha( FRAME *, FRAME * );
 Prototype VOID          RemoveAlpha( FRAME * );
 Prototype void          DeleteFrame( FRAME * );
@@ -33,13 +34,11 @@ Prototype PERROR        ReplaceFrame( FRAME *old, FRAME *new );
 Prototype BOOL          FrameFree( FRAME * );
 Prototype struct Window *GetFrameWin( const FRAME *frame  );
 Prototype ASM FRAME *   NewFrame( REG(d0) ULONG, REG(d1) ULONG, REG(d2) UBYTE, REG(a6) EXTBASE * );
-Prototype PERROR        SetBuffers( FRAME *frame, EXTBASE *xd );
 Prototype ASM VOID      RemFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
 Prototype ASM FRAME *   DupFrame( REG(a0) FRAME *, REG(d0) ULONG, REG(a6) EXTBASE * );
 Prototype PERROR        AddFrame( FRAME * );
 Prototype ASM PERROR    InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase );
 Prototype ASM FRAME *   MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase );
-Prototype void          ResetSharedFrameVars(FRAME *);
 Prototype PERROR        MakeUndoFrame( FRAME * );
 Prototype FRAME         *UndoFrame( FRAME * );
 Prototype ASM FRAME *   FindFrame( REG(d0) ULONG );
@@ -52,12 +51,16 @@ Prototype BOOL          IsFrameBusy( FRAME * );
 Prototype ASM BOOL      AttachFrame( REG(a0) FRAME *,REG(a1) FRAME *,REG(d0) ULONG,REG(a6) EXTBASE * );
 Prototype ASM VOID      RemoveSimpleAttachments(REG(a0) FRAME * );
 
-VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
+Local PERROR            SetBuffers( FRAME *frame, EXTBASE *xd );
+Local VOID              FreeBuffers( FRAME *frame, EXTBASE *ExtBase );
+Local VOID              ResetSharedFrameVars(FRAME *);
+///
 
 /*-------------------------------------------------------------------*/
 /* Code */
 
 
+/// ObtainFrame()
 /****i* pptsupport/ObtainFrame ******************************************
 *
 *   NAME
@@ -171,7 +174,9 @@ errorexit:
 
     return res;
 }
+///
 
+/// ReleaseFrame()
 /****i* pptsupport/ReleaseFrame ******************************************
 *
 *   NAME
@@ -266,7 +271,9 @@ BOOL ReleaseFrame( REG(a0) FRAME *frame )
 
     return TRUE;
 }
+///
 
+/// IsFrameBusy(), ChangeBusyStatus(), CopyBusyStatus()
 /*
     Returns TRUE, if the frame is unusable at the moment.
 */
@@ -313,12 +320,15 @@ VOID CopyBusyStatus( FRAME *source, FRAME *dest )
     UNLOCK(dest);
     UNLOCK(source);
 }
+///
 
+/// ResetSharedFrameVars()
 /*
     A stupid routine to reset any shared variables a frame may
     have before deleting it.
 */
 
+Local
 VOID ResetSharedFrameVars(FRAME *f)
 {
     if( CheckPtr( f, "RSFV(): frame" )) {
@@ -332,7 +342,8 @@ VOID ResetSharedFrameVars(FRAME *f)
         UNLOCK(f);
     }
 }
-
+///
+/// AddFrame()
 /*
     Add the frame to the system lists. Does not currently do much.
     Refreshes the listview.
@@ -351,7 +362,8 @@ PERROR AddFrame( FRAME *frame )
 
     return PERR_OK;
 }
-
+///
+/// DeleteFrame()
 /*
     Gets rid of a frame. Completely. No traces. Safe to call with NULL
     args.
@@ -457,7 +469,9 @@ void DeleteFrame( FRAME *f )
     }
     D(bug("\nReturning from DeleteFrame()\n"));
 }
+///
 
+/// AddAlpha()
 #ifdef USE_OLD_ALPHA
 
 /*
@@ -552,8 +566,8 @@ PERROR AddAlpha( FRAME *frame, FRAME *alpha )
 }
 
 #endif
-
-
+///
+/// RemoveAlpha()
 /*
     Removes the current alpha channel
 */
@@ -568,7 +582,8 @@ VOID RemoveAlpha( FRAME *f )
 #endif
     UNLOCK(f);
 }
-
+///
+/// Local DoReplaceFrame()
 /*
     Replaces old frame with new frame. List handling is done correctly,
     but the frames are not themselves changed. This routine is common
@@ -685,7 +700,8 @@ PERROR DoReplaceFrame( FRAME *old, FRAME *new )
 
     return PERR_OK;
 }
-
+///
+/// ReplaceFrame()
 /*
     Replaces old frame with new frame.
 */
@@ -744,7 +760,8 @@ PERROR ReplaceFrame( FRAME *old, FRAME *new )
 
     return PERR_OK;
 }
-
+///
+/// MakeUnfoFrame()
 /*
     Put a frame into undo state.
 */
@@ -783,7 +800,8 @@ PERROR MakeUndoFrame( FRAME *frame )
     UNLOCK( frame );
     return PERR_OK;
 }
-
+///
+/// UndoFrame()
 /*
     Revert an undo buffer from a frame. Replaces the current frame
     with it's undo buffer and removes the current frame.
@@ -840,7 +858,8 @@ FRAME *UndoFrame( FRAME *currentframe )
 
     return undoframe;
 }
-
+///
+/// FrameFree()
 /*
     Returns true, if frame is free to be processed
     BUG: Should see what to do with it.
@@ -883,7 +902,9 @@ BOOL FrameFree( FRAME *frame )
 
     return FALSE;
 }
+///
 
+/// GetFrameWin()
 /*
     Returns a suitable window pointer for this frame. Windows are checked in
     this order:
@@ -918,7 +939,9 @@ struct Window *GetFrameWin( const FRAME *frame  )
 
     return MAINWIN;
 }
+///
 
+/// UpdateFrameInfo()
 
 /*
     This routine updates the following things:
@@ -958,8 +981,8 @@ VOID UpdateFrameInfo( FRAME *f )
 
     UNLOCK(f);
 }
-
-
+///
+/// RefreshFrameInfo()
 /*
     Refresh the display after a frame change.
 
@@ -1006,7 +1029,9 @@ VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
 
     UNLOCK(f);
 }
+///
 
+/// SelectWholeImage()
 /*
     This routine will mark the entire image as selected.
 */
@@ -1018,8 +1043,8 @@ VOID SelectWholeImage( FRAME *frame )
     frame->selbox.MaxX = frame->pix->width;
     frame->selbox.MaxY = frame->pix->height;
 }
-
-
+///
+/// UnselectImage()
 /*
     This routine unselects the entire image
     Note: must not have LOCK.
@@ -1029,7 +1054,9 @@ VOID UnselectImage( FRAME *frame )
 {
     frame->selbox.MinX = frame->selbox.MinY = ~0;
 }
+///
 
+/// IsAttached()
 /*
     Returns TRUE if the srcid frame has been attached to it
 */
@@ -1045,11 +1072,12 @@ BOOL IsAttached( FRAME *frame, ID srcid )
     }
     return FALSE;
 }
+///
 
 /*---------------------------------------------------------------------------*/
 /* Routines below this point are part of the support library. */
 
-
+/// CopyFrameData()
 /****u* pptsupport/CopyFrameData ******************************************
 *
 *   NAME
@@ -1158,7 +1186,9 @@ PERROR CopyFrameData( REG(a0) FRAME *frame, REG(a1) FRAME *newframe,
 
     return res;
 }
+///
 
+/// FindFrame()
 /****u* pptsupport/FindFrame ******************************************
 *
 *   NAME
@@ -1220,7 +1250,9 @@ FRAME *FindFrame( REG(d0) ULONG seekid )
     UNLOCKGLOB();
     return NULL;
 }
+///
 
+/// MakeFrame()
 /****u* pptsupport/MakeFrame ******************************************
 *
 *   NAME
@@ -1397,8 +1429,9 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
 
     return f;
 }
+///
 
-
+/// InitFrame()
 /****u* pptsupport/InitFrame ******************************************
 *
 *   NAME
@@ -1529,7 +1562,9 @@ SAVEDS ASM PERROR InitFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
     UNLOCK(f);
     return PERR_OK;
 }
+///
 
+/// RemFrame()
 /****u* pptsupport/RemFrame ******************************************
 *
 *   NAME
@@ -1604,8 +1639,8 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
             if(CheckPtr(f->pix,"RemFrame(): Illegal PIXINFO pointer")) {
 
                 if(f->pix->vmh) {
-                    DeleteVMData( f->pix->vmh, ExtBase );
                     FreeBuffers( f, ExtBase );
+                    DeleteVMData( f->pix->vmh, ExtBase );
                 }
 
 #ifdef TMPBUF_SUPPORTED
@@ -1630,8 +1665,9 @@ SAVEDS ASM VOID RemFrame( REG(a0) FRAME *f, REG(a6) EXTBASE *ExtBase )
         pfree(f);
     }
 }
+///
 
-
+/// DupFrame()
 /****u* pptsupport/DupFrame ******************************************
 *
 *   NAME
@@ -1735,8 +1771,9 @@ SAVEDS ASM FRAME *DupFrame( REG(a0) FRAME *frame, REG(d0) ULONG flags, REG(a6) E
     }
     return newframe;
 }
+///
 
-
+/// NewFrame()
 /****i* pptsupport/NewFrame ******************************************
 *
 *   NAME
@@ -1823,9 +1860,10 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
 
     return f;
 }
-
+///
+/// CopyFrame()
 #if 0
-/****u* pptsupport/CopyFrame ******************************************
+/****i* pptsupport/CopyFrame ******************************************
 *
 *   NAME
 *       CopyFrame -- Copy a frame fully
@@ -1901,7 +1939,8 @@ SAVEDS ASM FRAME *CopyFrame( REG(a0) FRAME *source,
     return new;
 }
 #endif
-
+///
+/// AttachFrame()
 /****i* pptsupport/AttachFrame ******************************************
 *
 *   NAME
@@ -2007,7 +2046,9 @@ BOOL AttachFrame( REG(a0) FRAME *dst,
 
     return TRUE;
 }
+///
 
+/// RemoveSimpleAttachments()
 #if 0
 /*
     BUG: Untested and unused.
@@ -2052,13 +2093,14 @@ VOID RemoveSimpleAttachments(REG(a0) FRAME *frame)
         cur = next;
     }
 }
-
+///
+/// SetBuffers()
 /*
     This sets the VM and real memory buffers. If there are any
     buffers existing, will not allocate them.
     Re-entrant.
 */
-
+Local
 PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 {
     ULONG realsize, bufsize;
@@ -2123,7 +2165,9 @@ PERROR SetBuffers( FRAME *frame, EXTBASE *ExtBase )
 
     return PERR_OK;
 }
-
+///
+/// FreeBuffers()
+Local
 VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase )
 {
     PIXINFO *p = frame->pix;
@@ -2133,7 +2177,8 @@ VOID FreeBuffers( FRAME *frame, EXTBASE *ExtBase )
         p->vmh->data = NULL;
     }
 }
-
+///
+/// SetVMemMode()
 Prototype PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase );
 
 PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase )
@@ -2150,7 +2195,7 @@ PERROR SetVMemMode( FRAME *frame, ULONG mode, EXTBASE *ExtBase )
     }
     return res;
 }
-
+///
 /*-------------------------------------------------------------------*/
 /*                           END OF CODE                             */
 /*-------------------------------------------------------------------*/
