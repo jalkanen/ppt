@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 1.20 1996/11/23 00:43:35 jj Exp $
+    $Id: frame.c,v 2.0 1996/11/27 22:23:15 jj Exp $
 
     This contains frame handling routines
 
@@ -1071,6 +1071,8 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         p->origdepth          = 1;
         p->DPIX = p->DPIY     = 72; /* A reasonable assumption */
         p->XAspect = p->YAspect = 1;
+        p->bytes_per_row      = 0;  /* Will be filled in by InitFrame() */
+        p->origmodeid         = INVALID_ID;
     } else {
         bcopy( old->pix, p, sizeof(PIXINFO) );
         p->vmh = NULL;
