@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.6 1997/03/15 23:07:59 jj Exp $
+    $Id: extensions.c,v 1.7 1997/03/16 13:38:01 jj Exp $
 */
 
 #include "defs.h"
@@ -76,6 +76,8 @@ PERROR GimmeEditWindow( EDITWIN *ew )
                             ew->ExtList = ListviewObject,
                                 GA_ID, GID_EDIT_EXTLIST,
                                 Label("Extensions"), Place(PLACE_ABOVE),
+                                BT_HelpNode,"PPT.guide/Extensions",
+                                BT_HelpHook,&HelpHook,
                             EndObject, Weight(DEFAULT_WEIGHT/2),
                         EndMember,
                         StartMember,
@@ -92,6 +94,8 @@ PERROR GimmeEditWindow( EDITWIN *ew )
                                                 GA_Disabled, TRUE,
                                                 STRINGA_MaxChars, 40,
                                                 GA_TabCycle, TRUE,
+                                                BT_HelpNode,"PPT.guide/Extensions",
+                                                BT_HelpHook,&HelpHook,
                                             EndObject,  FixMinHeight,
                                         EndMember,
                                         StartMember,
@@ -101,12 +105,14 @@ PERROR GimmeEditWindow( EDITWIN *ew )
                                                 GA_Disabled, TRUE,
                                                 STRINGA_MaxChars, 255,
                                                 GA_TabCycle, TRUE,
+                                                BT_HelpNode,"PPT.guide/Extensions",
+                                                BT_HelpHook,&HelpHook,
                                             EndObject, FixMinHeight,
                                         EndMember,
                                         StartMember,
                                             HGroupObject, NormalSpacing,
                                                 StartMember,
-                                                    ew->ExtOk = GenericDButton( "OK", GID_EDIT_EXTOK ),
+                                                    ew->ExtOk = GenericDButton( "Add", GID_EDIT_EXTOK ),
                                                 EndMember,
                                                 StartMember,
                                                     ew->ExtNew = GenericButton( "New", GID_EDIT_EXTNEW ),
