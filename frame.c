@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.2 1996/12/08 20:33:36 jj Exp $
+    $Id: frame.c,v 2.3 1997/01/12 00:21:58 jj Exp $
 
     This contains frame handling routines
 
@@ -193,12 +193,12 @@ BOOL IsFrameBusy( FRAME *frame )
 {
     BOOL result = FALSE;
 
-    SHLOCK(frame);
+    QSHLOCK(frame);
 
     if( frame->busy != BUSY_NOT || frame->currext != NULL || frame->currproc != NULL )
         result = TRUE;
 
-    UNLOCK(frame);
+    QUNLOCK(frame);
     return result;
 }
 
@@ -1541,6 +1541,8 @@ SAVEDS ASM FRAME *NewFrame( REG(d0) ULONG width, REG(d1) ULONG height,
             f->pix->colorspace = CS_GRAYLEVEL;
         else if(components == 3)
             f->pix->colorspace = CS_RGB;
+        else if(components == 4)
+            f->pix->colorspace = CS_ARGB;
         else
             f->pix->colorspace = CS_UNKNOWN;
 
