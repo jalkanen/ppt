@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.13 1998/06/28 23:25:03 jj Exp $
+    $Id: save.c,v 2.14 1998/08/27 18:57:53 jj Exp $
 */
 
 #include "defs.h"
@@ -120,6 +120,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
     volatile BPTR fh = NULL;
     struct   Library *IOModuleBase = NULL;
     ULONG format, *argarray = NULL;
+    BOOL     delete = FALSE;
 
     D(bug("DoTheSave(%s,%s,%d)\n",frame->nd.ln_Name, ld->info.nd.ln_Name, mode));
 
@@ -189,6 +190,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
             if(frame->renderobject == NULL) {
                 XReq( GetFrameWin(frame), NULL, "\nYou do not have a rendered image.\n"
                                                 "Set the correct format in Render Options Menu.\n" );
+                delete = TRUE;
                 goto errexit;
             }
 
@@ -208,11 +210,13 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
                            ColorSpaceNames[frame->pix->colorspace]);
         SetErrorMsg( frame, errorbuf );
         res = PERR_FAILED;
+        delete = TRUE;
         goto errexit;
     }
 
     if(MasterQuit) {
         res = PERR_OK; /* For quick exit */
+        delete = TRUE;
         goto errexit;
     }
 
@@ -234,7 +238,7 @@ errexit:
                           ISEQ_I"%s\n",
                           frame->name, GetErrorMsg( frame, ExtBase ));
 
-                if( r == 0 ) res = PERR_FAILED;
+                if( r == 0 ) delete = TRUE;
             } else {
                 XReq( GetFrameWin(frame), "Understood",
                       ISEQ_C"\nERROR!\n"
@@ -242,7 +246,14 @@ errexit:
                       "I got this error message:\n\n"
                       ISEQ_I"%s\n",
                       frame->name, GetErrorMsg( frame, ExtBase ));
+                delete = TRUE;
             }
+        } else {
+            /*
+             *  Either a break or user cancelled operation.  In both
+             *  cases we remove the saved image.
+             */
+            delete = TRUE;
         }
         ClearError( frame );
     } else {
@@ -260,7 +271,7 @@ errexit:
     if(IOModuleBase) CloseModule( IOModuleBase, ExtBase );
 
     CloseInfoWindow( frame->mywin, ExtBase );
-    if(res == PERR_FAILED) {
+    if(delete) {
         if(DeleteFile( filename ) == FALSE)
             XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", filename );
     }
