@@ -5,7 +5,7 @@
     Originally by Jan van den Baard, 1995
     Modified by Janne Jalkanen, 1995
 
-    $Id: dropareaclass.c,v 1.6 1996/12/02 22:26:31 jj Exp $
+    $Id: dropareaclass.c,v 1.7 1997/08/17 00:26:20 jj Exp $
 */
 
 #include "defs.h"
@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 
-#include "areaclass.h"
+#include "dropareaclass.h"
 
 
 /*------------------------------------------------------------------------*/
