@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 6.1 1999/10/02 16:33:07 jj Exp $
+    $Id: load.c,v 6.2 1999/11/25 23:15:46 jj Exp $
 
     Code for loaders...
 
@@ -188,7 +188,7 @@ LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *PPTBase )
     struct Library *IOModuleBase = NULL;
     ULONG res;
 
-    IOModuleBase = OpenModule( ld, PPTBase);
+    IOModuleBase = OpenModule( ld, 0L, PPTBase);
 
     if(IOModuleBase) {
 
@@ -428,7 +428,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *PPTBase, char *path, char *name, char *
     if( ld == NULL ) {
         nofile = FALSE; /* We're gonna need the file anyway */
     } else {
-        IOModuleBase = OpenModule( ld, PPTBase );
+        IOModuleBase = OpenModule( ld, 0L, PPTBase );
         if(IOModuleBase) {
             nofile = IOInquire( PPTX_NoFile, PPTBase );
             CloseModule(IOModuleBase,PPTBase);
@@ -503,7 +503,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *PPTBase, char *path, char *name, char *
 
             D(bug("\tRecognised file type, now loading...\n"));
 
-            IOModuleBase = OpenModule( ld, PPTBase );
+            IOModuleBase = OpenModule( ld, 0L, PPTBase );
 
             if(IOModuleBase) {
                 D(APTR foo);
