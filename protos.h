@@ -1,7 +1,7 @@
 /*
     Hand - made prototypes for PPT
 
-    $Id: protos.h,v 1.20 1998/12/20 19:10:55 jj Exp $
+    $Id: protos.h,v 1.21 1999/02/20 22:37:06 jj Exp $
 */
 
 #ifndef PROTOS_H
@@ -59,7 +59,7 @@ extern Class                *DropAreaClass, *PaletteClass, *RenderAreaClass, *To
 
 extern BOOL                 MasterQuit;
 
-extern struct MsgPort       *MainIDCMPPort;
+extern struct MsgPort       *MainIDCMPPort, *AppIconPort;
 
 extern struct Hook          HelpHook;
 extern AMIGAGUIDECONTEXT    helphandle;
