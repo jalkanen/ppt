@@ -2,6 +2,8 @@
     PROJECT: ppt
     MODULE:  external.c
 
+    $Id: external.c,v 1.2 1995/09/06 23:35:32 jj Exp $
+
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
 
