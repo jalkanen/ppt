@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 5.0 1998/12/15 23:24:20 jj Exp $
+    $Id: rexx.c,v 5.1 1999/02/25 20:20:24 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -1470,6 +1470,7 @@ void rx_author( PPTREXXARGS *ra, struct RexxMsg *rm )
 
 ///
 
+/// DoRexxCommand()
 /*
     Dispatch commands. Return TRUE for immediate commands.
 */
@@ -1582,9 +1583,8 @@ fail:
 
     return TRUE;
 }
-
-
-
+///
+/// HandleRexxCommands( struct RexxHost *)
 /*
     Main AREXX event dispatcher.
 
@@ -1646,6 +1646,7 @@ void HandleRexxCommands( struct RexxHost *host )
         } /* if !replymsg */
     }
 }
+///
 
 /*
     Use to put a pseudo rexx command into the queue.  This is necessary
@@ -1851,6 +1852,7 @@ VOID EmptyRexxWaitItemList(VOID)
 }
 /*-------------------------------------------------------------------------*/
 
+/// SetRexxVariable
 /****u* pptsupport/SetRexxVariable *******************************************
 *
 *   NAME
@@ -1873,7 +1875,8 @@ VOID EmptyRexxWaitItemList(VOID)
 *       value - the string value
 *
 *   RESULT
-*       Returns the same return values as amiga.lib/SetRexxVar().
+*       Returns the same return values as amiga.lib/SetRexxVar(),
+*       that is, 0 for success, and != 0 for failure.
 *
 *   EXAMPLE
 *
@@ -1901,12 +1904,16 @@ LONG ASM SetRexxVariable( REGPARAM(a0,FRAME *,frame),
     PPTREXXARGS *ra;
     LONG res = 0;
 
+    D(bug("SetRexxVariable( frame=%08lX, var='%s', value='%s'\n", frame, var, value));
+
     if( ra = FindRexxWaitItemFrame( frame ) ) {
         res = SetRexxVar( ra->msg, var, value, strlen(value) );
+        D(bug("\tSetRexxVar() = %ld\n",res));
     }
 
     return res;
 }
+///
 
 /*-------------------------------------------------------------------------*/
 /// Handling of REXX messages to be sent.
