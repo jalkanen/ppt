@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.30 1999/03/31 13:28:34 jj Exp $
+    $Id: prefs.c,v 6.0 1999/09/05 02:23:19 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -87,6 +87,7 @@ const char *PrefsOptions[] = {
     "BEGINTOOLBAR",
     "DITHERPREVIEW",
     "TIPNUMBER",
+    "SPLASH",
     NULL,
 };
 
@@ -121,7 +122,8 @@ typedef enum {
     SAVEPALETTEREQUESTER,
     BEGINTOOLBAR,
     DITHERPREVIEW,
-    TIPNUMBER
+    TIPNUMBER,
+    SPLASH
 } Option;
 
 
@@ -208,6 +210,7 @@ VOID InitPrefs( PREFS *p )
     p->confirm          = DEFAULT_CONFIRM;
     p->ditherpreview    = FALSE;
     p->tipnumber        = DEFAULT_TIPNUMBER;
+    p->splash           = TRUE;
     SetPreviewSize( p );
 }
 
@@ -387,6 +390,15 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                         D(bug("Flushlibs mode : %d\n", p->expungelibs ));
                         break;
 
+                    case SPLASH:
+                        if( strncmp( s, "TRUE", 4 ) == 0 ) {
+                            p->splash = TRUE;
+                        } else {
+                            p->splash = FALSE;
+                        }
+                        D(bug("Splash screen : %d\n", p->splash ));
+                        break;
+
                     case CONFIRMREQUESTERS:
                         if( strncmp( s, "TRUE", 4 ) == 0 ) {
                             p->confirm = TRUE;
@@ -523,7 +535,6 @@ int SavePrefs( GLOBALS *g, char *pfile )
     PREFS *p = g->userprefs;
     DISPLAY *d = g->maindisp;
     struct IBox ib;
-    ULONG top,width,height,left;
 
     fh = Open( pfile ? pfile : DEFAULT_PREFS_FILE, MODE_NEWFILE );
     if(fh) {
@@ -544,6 +555,7 @@ int SavePrefs( GLOBALS *g, char *pfile )
         WritePrefByID(fh,EXTPRIORITY,"%d",p->extpriority);
         WritePrefByID(fh,PREVIEWSIZE,"%d",p->previewmode);
         WritePrefByID(fh,TIPNUMBER,"%d",p->tipnumber);
+        WritePrefByID(fh,SPLASH,"%s",p->splash ? "TRUE" : "FALSE" );
 
         if(p->mainfont)
             WritePrefByID( fh, MAINFONT, "%s %d",p->mainfont->ta_Name,p->mainfont->ta_YSize);
