@@ -1,5 +1,5 @@
 /*
-    $Id: dispdevs.c,v 1.17 1998/12/15 21:22:41 jj Exp $
+    $Id: dispdevs.c,v 1.18 1999/03/31 13:25:39 jj Exp $
 
     Has code for different display devices.
 
@@ -251,6 +251,8 @@ PERROR Device_BitMappedScreenOpen( struct RenderObject *rdo )
             SA_AutoScroll, TRUE,
             SA_Behind, TRUE,
             SA_Overscan, OSCAN_TEXT,
+            SA_Title, "PPT Render",
+            SA_ShowTitle, FALSE,
             TAG_END };
 
     D(bug("BitMapScreenOpen()\n"));
@@ -295,7 +297,7 @@ PERROR Device_BitMappedScreenOpen( struct RenderObject *rdo )
             WA_Width, 0,
             WA_Left, 0, WA_Top,0,
             WA_IDCMP, NULL, /* Set IDCMP later */
-            // WA_ScreenTitle, NULL,
+            WA_ScreenTitle, NULL,
             // WA_Title, NULL,
             TAG_END, 0L };
 
