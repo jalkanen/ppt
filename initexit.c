@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 6.2 1999/12/15 00:17:29 jj Exp $
+    $Id: initexit.c,v 6.3 2000/04/16 22:09:13 jj Exp $
 
     Initialization and exit code.
 */
@@ -487,7 +487,7 @@ int Initialize( void )
     struct DiskObject *diskobj = NULL;
     struct EasyStruct es = {
         sizeof(struct EasyStruct),0L,"PPT library request",
-        "Sorry, but I need %s.library V%ld+","Gotcha"
+        "Sorry, but I need %s.library V%ld.%ld+","Gotcha"
     };
 
     D(bug("Initialize()\n"));
@@ -525,7 +525,16 @@ int Initialize( void )
 
     if( (BGUIBase = OpenLibrary( BGUINAME, BGUI_VERSION_REQUIRED )) == NULL) {
         D(bug("\t\tFAILED!\n"));
-        EasyRequest(NULL, &es, NULL, "bgui", BGUI_VERSION_REQUIRED );
+        EasyRequest(NULL, &es, NULL, "bgui", BGUI_VERSION_REQUIRED, BGUI_REVISION_REQUIRED );
+        pfree(globals->maindisp);
+        pfree(globals->userprefs);
+        pfree(globals);
+        exit(RETURN_FAIL);
+    }
+
+    if( BGUIBase->lib_Revision < BGUI_REVISION_REQUIRED ) {
+        D(bug("\t\tREV FAILED!\n"));
+        EasyRequest(NULL, &es, NULL, "bgui", BGUI_VERSION_REQUIRED, BGUI_REVISION_REQUIRED );
         pfree(globals->maindisp);
         pfree(globals->userprefs);
         pfree(globals);
@@ -534,7 +543,7 @@ int Initialize( void )
 
     if( (GadToolsBase = OpenLibrary( "gadtools.library", 37L )) == NULL ) {
         D(bug("Could not open gadtools\n"));
-        EasyRequest(NULL, &es, NULL, "gadtools", 37L );
+        EasyRequest(NULL, &es, NULL, "gadtools", 37L, 0L );
         pfree(globals->maindisp);
         pfree(globals->userprefs);
         pfree(globals);
