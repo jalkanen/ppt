@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.24 1998/06/30 20:02:24 jj Exp $
+    $Id: prefs.c,v 1.25 1998/11/08 00:48:21 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -48,6 +48,9 @@
 
 PREFS tmpprefs;
 DISPLAY tmpdisp;
+struct PPTFileRequester gvLoadFileReq    = { 10, 10, 100, 200 },
+                        gvPaletteOpenReq = { 10, 10, 100, 200 },
+                        gvPaletteSaveReq = { 10, 10, 100, 200 };
 
 const char prefs_init_blurb[] =
     "; PPT v"VERSION" configuration file\n"
@@ -81,6 +84,9 @@ const char *optionstrings[] = {
     "EXTPRIORITY",
     "PREVIEWSIZE",
     "CONFIRMREQUESTERS",
+    "OPENFILEREQUESTER",
+    "OPENPALETTEREQUESTER",
+    "SAVEPALETTEREQUESTER",
     NULL,
 };
 
@@ -109,7 +115,10 @@ typedef enum {
     EXTNICEVAL,
     EXTPRIORITY,
     PREVIEWSIZE,
-    CONFIRMREQUESTERS
+    CONFIRMREQUESTERS,
+    OPENFILEREQUESTER,
+    OPENPALETTEREQUESTER,
+    SAVEPALETTEREQUESTER
 } Option;
 
 
@@ -195,6 +204,35 @@ VOID InitPrefs( PREFS *p )
     SetPreviewSize( p );
 }
 
+Local
+VOID ReadWindowPrefs( const char *s, struct WindowPrefs *p )
+{
+    sscanf( s, "%hd/%hd/%hd/%hd", &p->initialpos.Left,
+                                  &p->initialpos.Top,
+                                  &p->initialpos.Width,
+                                  &p->initialpos.Height );
+
+    D(bug("Window at (%d,%d), width = %d, height = %d\n",
+          p->initialpos.Left, p->initialpos.Top,
+          p->initialpos.Width, p->initialpos.Height ));
+}
+
+/*
+    Temporary kludge until ASLREQ_Bounds is gettable
+ */
+Local
+VOID WriteASLPrefs( BPTR fh, Option id, Object *Req )
+{
+    LONG top, left, width, height;
+
+    GetAttr( ASLREQ_Left, Req, (ULONG*) &left );
+    GetAttr( ASLREQ_Top, Req, (ULONG*)&top );
+    GetAttr( ASLREQ_Width, Req, (ULONG*)&width );
+    GetAttr( ASLREQ_Height, Req, (ULONG*) &height );
+
+    WritePrefByID( fh, id, "%d/%d/%d/%d",left,top,width,height);
+}
+
 
 /*
     Loads user preferences from the given file. If pfile == NULL,
@@ -233,11 +271,13 @@ int LoadPrefs( GLOBALS *g, char *pfile )
          *  We'll now reset some prefs.
          */
 
-        framew.initialopen = FALSE;
-        toolw.initialopen = FALSE;
+        framew.prefs.initialopen = FALSE;
+        toolw.prefs.initialopen = FALSE;
 
         while(FGets(fh,buf,PPBUFLEN)) {
-            buf[strlen(buf)-1] = '\0'; /* Remove the final CR */
+            if( buf[strlen(buf)-1] = '\n' )
+                buf[strlen(buf)-1] = '\0'; /* Remove the final CR */
+
             s = strtok(buf,"= \t"); /* Skips all whitespaces as well */
             if(s) { /* It was an option! */
                 s = strtok(NULL,"\n"); /* This has the added benefit of removing the CR from the end.*/
@@ -341,77 +381,33 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                         break;
 
                     case FRAMESWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &framew.initialpos.Left,
-                                                  &framew.initialpos.Top,
-                                                  &framew.initialpos.Width,
-                                                  &framew.initialpos.Height );
-                        D(bug("Frames window at (%d,%d), width = %d, height = %d\n",
-                               framew.initialpos.Left, framew.initialpos.Top,
-                               framew.initialpos.Width, framew.initialpos.Height ));
-
-                        framew.initialopen = TRUE;
+                        ReadWindowPrefs( s, &framew.prefs );
+                        framew.prefs.initialopen = TRUE;
                         break;
 
                     case TOOLWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &toolw.initialpos.Left,
-                                                  &toolw.initialpos.Top,
-                                                  &toolw.initialpos.Width,
-                                                  &toolw.initialpos.Height );
-                        D(bug("Tool window at (%d,%d), width = %d, height = %d\n",
-                               toolw.initialpos.Left, toolw.initialpos.Top,
-                               toolw.initialpos.Width, toolw.initialpos.Height ));
-
-
-                        toolw.initialopen = TRUE;
+                        ReadWindowPrefs( s, &toolw.prefs );
+                        toolw.prefs.initialopen = TRUE;
                         break;
 
                     case SELECTWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &selectw.initialpos.Left,
-                                                  &selectw.initialpos.Top,
-                                                  &selectw.initialpos.Width,
-                                                  &selectw.initialpos.Height );
-                        D(bug("Select window at (%d,%d), width = %d, height = %d\n",
-                               selectw.initialpos.Left, selectw.initialpos.Top,
-                               selectw.initialpos.Width, selectw.initialpos.Height ));
-
-
-                        selectw.initialopen = TRUE;
+                        ReadWindowPrefs( s, &selectw.prefs );
+                        selectw.prefs.initialopen = TRUE;
                         break;
 
                     case EFFECTSWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &extf.initialpos.Left,
-                                                  &extf.initialpos.Top,
-                                                  &extf.initialpos.Width,
-                                                  &extf.initialpos.Height );
-                        D(bug("Effects window at (%d,%d), width = %d, height = %d\n",
-                               extf.initialpos.Left, extf.initialpos.Top,
-                               extf.initialpos.Width, extf.initialpos.Height ));
-
-                        extf.initialopen = TRUE;
+                        ReadWindowPrefs( s, &extf.prefs );
+                        extf.prefs.initialopen = TRUE;
                         break;
 
                     case LOADERSWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &extl.initialpos.Left,
-                                                  &extl.initialpos.Top,
-                                                  &extl.initialpos.Width,
-                                                  &extl.initialpos.Height );
-                        D(bug("Loaders window at (%d,%d), width = %d, height = %d\n",
-                               extl.initialpos.Left, extl.initialpos.Top,
-                               extl.initialpos.Width, extl.initialpos.Height ));
-
-                        extl.initialopen = TRUE;
+                        ReadWindowPrefs( s, &extl.prefs );
+                        extl.prefs.initialopen = TRUE;
                         break;
 
                     case SCRIPTSWINDOW:
-                        sscanf( s, "%hd/%hd/%hd/%hd", &exts.initialpos.Left,
-                                                  &exts.initialpos.Top,
-                                                  &exts.initialpos.Width,
-                                                  &exts.initialpos.Height );
-                        D(bug("Scripts window at (%d,%d), width = %d, height = %d\n",
-                               exts.initialpos.Left, exts.initialpos.Top,
-                               exts.initialpos.Width, exts.initialpos.Height ));
-
-                        exts.initialopen = TRUE;
+                        ReadWindowPrefs( s, &exts.prefs );
+                        exts.prefs.initialopen = TRUE;
                         break;
 
                     case EXTSTACKSIZE:
@@ -456,6 +452,18 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                         }
                         break;
 
+                    case OPENFILEREQUESTER:
+                        ReadWindowPrefs( s, &gvLoadFileReq.prefs );
+                        break;
+
+                    case OPENPALETTEREQUESTER:
+                        ReadWindowPrefs( s, &gvPaletteOpenReq.prefs );
+                        break;
+
+                    case SAVEPALETTEREQUESTER:
+                        ReadWindowPrefs( s, &gvPaletteSaveReq.prefs );
+                        break;
+
                     case GOID_UNKNOWN:
                         D(bug("Unknown gobble %s\n",buf));
                         break;
@@ -490,6 +498,7 @@ int SavePrefs( GLOBALS *g, char *pfile )
     PREFS *p = g->userprefs;
     DISPLAY *d = g->maindisp;
     struct IBox ib;
+    ULONG top,width,height,left;
 
     fh = Open( pfile ? pfile : DEFAULT_PREFS_FILE, MODE_NEWFILE );
     if(fh) {
@@ -561,6 +570,20 @@ int SavePrefs( GLOBALS *g, char *pfile )
             GetAttr(WINDOW_Bounds, exts.Win, (ULONG *) &ib );
             WritePrefByID( fh, SCRIPTSWINDOW, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
         }
+
+#if 0
+        GetAttr( ASLREQ_Bounds, gvLoadFileReq.Req, (ULONG *)&ib );
+        WritePrefByID( fh, OPENFILEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
+
+        GetAttr( ASLREQ_Bounds, gvPaletteOpenReq.Req, (ULONG *)&ib );
+        WritePrefByID( fh, OPENPALETTEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
+
+        GetAttr( ASLREQ_Bounds, gvPaletteSaveReq.Req, (ULONG *)&ib );
+        WritePrefByID( fh, SAVEPALETTEREQUESTER, "%d/%d/%d/%d",ib.Left,ib.Top,ib.Width,ib.Height);
+#endif
+        WriteASLPrefs( fh, OPENFILEREQUESTER, gvLoadFileReq.Req );
+        WriteASLPrefs( fh, OPENPALETTEREQUESTER, gvPaletteOpenReq.Req );
+        WriteASLPrefs( fh, SAVEPALETTEREQUESTER, gvPaletteSaveReq.Req );
 
         Close(fh);
         res = PERR_OK;
