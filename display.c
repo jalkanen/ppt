@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.54 1998/08/14 19:28:41 jj Exp $
+    $Id: display.c,v 1.55 1998/10/14 20:33:20 jj Exp $
 
     Contains display routines.
 
@@ -1360,6 +1360,10 @@ struct Screen *OpenMainScreen( DISPLAY *d )
 
     D(bug("OpenMainScreen()\n"));
 
+    /*
+     *  Open screen!
+     */
+
     foo = OpenScreenTags( NULL,
         SA_Width,       d->width,
         SA_Height,      d->height,
@@ -1372,7 +1376,7 @@ struct Screen *OpenMainScreen( DISPLAY *d )
         SA_Font,        globals->userprefs->mainfont,
         // SA_SysFont,     1, /* Use preferred font. BUG: should also be saved.*/
         SA_Type,        PUBLICSCREEN,
-        SA_PubName,     "PPT",
+        SA_PubName,     PPTPUBSCREENNAME,
         SA_ErrorCode,   &errcode,
         // SA_Interleaved, TRUE,
         SA_SharePens,   TRUE, /* Allow externals to use our colormaps */
