@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.57 1998/12/07 23:55:28 jj Exp $
+    $Id: display.c,v 1.58 1998/12/12 13:37:06 jj Exp $
 
     Contains display routines.
 
@@ -42,6 +42,10 @@
 #ifndef CLIB_ALIB_PROTOS_H
 #include <clib/alib_protos.h>
 #endif
+
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
 ///
 
 /*----------------------------------------------------------------------*/
@@ -213,12 +217,11 @@ void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtB
 
     depth = GetMinimumDepth( frame->disp->ncolors );
 
-
-    if(frame->disp->dispid & EXTRAHALFBRITE_KEY)
+    if( (frame->disp->dispid != INVALID_ID) && (frame->disp->dispid & EXTRAHALFBRITE_KEY) )
         depth++; /* EHB is not used with depths > 5 */
 
     if( GFXV39 ) {
-        ida[2].ti_Data = depth;
+        ida[2].ti_Data = (depth > 8) ? 8 : depth;
         id = BestModeIDA( ida );
         D(bug("\t\tBestModeIDA() suggests modeid %08X for this display\n",id));
     } else {
@@ -235,28 +238,38 @@ void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtB
             id &= LACE_KEY;
     }
 
-    /* BUG: Does not allow for cybergraphics */
+    /*
+     *  Check for AGA, which allows all display modes to have depths upto 8.
+     *  Do also a check for CyberGfx, which is our preferred mode.
+     */
 
-    if( frame->pix->origdepth > 8 ) {
-        id |= HAM_KEY;
+    if( CyberGfxBase ) {
+        if( IsCyberModeID( id ) ) {
+            LONG d;
+
+            d = GetCyberIDAttr( CYBRIDATTR_DEPTH, id );
+            if( d > 8 ) {
+                depth = 8;
+            }
+        }
+    } else {
+        if( frame->pix->origdepth > 8 ) {
+            id |= HAM_KEY;
+        }
+
+        if( IS_AGA ) {
+            if(depth > 8)
+                depth = 8;
+        } else {
+            if(depth > 4)
+                depth = 4; /* BUG: Not true for lower screen modes. */
+        }
     }
 
     if(ModeNotAvailable( id ) != NULL)
         id = DEFAULT_MONITOR_ID; /* Use PAL or NTSC, as required */
 
     id &= ~(EXTRAHALFBRITE_KEY);
-
-    /*
-     *  Check for AGA, which allows all display modes to have depths upto 8
-     */
-
-    if( IS_AGA ) {
-        if(depth > 8)
-            depth = 8;
-    } else {
-        if(depth > 4)
-            depth = 4; /* BUG: Not true for lower screen modes. */
-    }
 
     D(bug("\tReturning modeid=0x%08X, depth=%u\n",id,depth));
 
