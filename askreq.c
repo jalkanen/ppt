@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.28 1998/06/28 23:12:15 jj Exp $
+    $Id: askreq.c,v 1.29 1998/09/20 00:35:38 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -172,7 +172,8 @@ Prototype ASM PERROR AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6)
 *           are:
 *
 *           ARCHECKBOX_Selected (BOOL) - TRUE, if the original state is
-*               selected; FALSE otherwise.
+*               selected; FALSE otherwise.  If this tag does not exist,
+*               the default is taken from the AROBJ_Value field.
 *
 *           The AROBJ_Value - field is set upon return to != 0, if the
 *           gadget was set, 0 otherwise.
@@ -184,7 +185,8 @@ Prototype ASM PERROR AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6)
 *               of strings, containing the labels of different choices.
 *
 *           ARCYCLE_Active (LONG) - which one of the choices should be active
-*               upon startup.  Default 0.
+*               upon startup.  Defaults to whatever AROBJ_Value field
+*               is currently pointing at.
 *
 *           ARCYCLE_Popup (BOOL) - TRUE, if the cycle object should be
 *               a popup menu variant.  Default is FALSE.
@@ -498,6 +500,15 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
 
         case AR_CheckBoxObject: {
             Object *cbox;
+            ULONG  selected;
+
+            if( t = FindTagItem( ARCHECKBOX_Selected, list ) ) {
+                selected = t->ti_Data;
+            } else if (t = FindTagItem( AROBJ_Value, list ) ) {
+                selected = *((ULONG *)(t->ti_Data));
+            } else {
+                selected = FALSE; // Default
+            }
 
             obj = MyHGroupObject,
                 VarSpace(DEFAULT_WEIGHT),
@@ -505,7 +516,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
                     cbox = MyCheckBoxObject, GA_ID, id,
                         Label( (STRPTR) GetTagData( AROBJ_Label, NULL, list )), Place( PLACE_LEFT ),
                         ButtonFrame,
-                        GA_Selected, GetTagData( ARCHECKBOX_Selected, FALSE, list ),
+                        GA_Selected, selected,
                         helptext ? TAG_IGNORE : TAG_SKIP,1,
                             BT_HelpText, helptext,
                         helpnode ? TAG_IGNORE : TAG_SKIP,2,
@@ -525,11 +536,21 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             break;
         }
 
-        case AR_CycleObject:
+        case AR_CycleObject: {
+            ULONG active;
+
+            if( t = FindTagItem( ARCYCLE_Active, list ) ) {
+                active = t->ti_Data;
+            } else if (t = FindTagItem( AROBJ_Value, list ) ) {
+                active = *((ULONG *)(t->ti_Data));
+            } else {
+                active = 0; // Default
+            }
+
             obj = MyCycleObject, GA_ID, id,
                 Label( (STRPTR) GetTagData( AROBJ_Label, NULL, list )), Place(PLACE_LEFT),
                 ButtonFrame,
-                CYC_Active, GetTagData( ARCYCLE_Active, 0, list ),
+                CYC_Active, active,
                 CYC_Labels, GetTagData( ARCYCLE_Labels, NULL, list ),
                 CYC_Popup,  GetTagData( ARCYCLE_Popup,  FALSE, list ),
                 helptext ? TAG_IGNORE : TAG_SKIP,1,
@@ -545,6 +566,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             }
 
             break;
+        }
 
         default:
             Req(NEGNUL, NULL, XGetStr(MSG_AR_UNKNOWNTYPE),tag->ti_Tag );
