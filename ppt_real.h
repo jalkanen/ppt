@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 2.5 $
-        $Date: 1997/01/17 23:36:28 $
+    $Revision: 3.0 $
+        $Date: 1997/01/17 23:48:10 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 2.5 1997/01/17 23:36:28 jj Exp $
+    $Id: ppt_real.h,v 3.0 1997/01/17 23:48:10 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -613,6 +613,8 @@ struct LocaleString {
 /*------------------------------------------------------------------*/
 /* Generic constants that might be of use */
 
+/*!!PRIVATE*/
+
 /*  The progress is measured in between these values. Give to
     UpdateProgress() a value between these values.
  */
@@ -620,6 +622,7 @@ struct LocaleString {
 #define MINPROGRESS         0     /* Nothing ready*/
 #define MAXPROGRESS         1000  /* 100 % done */
 
+/*!!PUBLIC*/
 
 /*------------------------------------------------------------------*/
 /* Global tags for external programs. */
@@ -635,10 +638,7 @@ struct LocaleString {
 
 #define PPTX_Version            ( GTAGBASE + 1 ) /* UWORD */
 #define PPTX_Revision           ( GTAGBASE + 2 ) /* UWORD */
-#define PPTX_VerStr             ( GTAGBASE + 3 ) /* "$VER: blahblah" */
 #define PPTX_Name               ( GTAGBASE + 4 ) /* UBYTE * */
-#define PPTX_Init               ( GTAGBASE + 5 ) /* FPTR. OBSOLETE */
-#define PPTX_Purge              ( GTAGBASE + 6 ) /* FPTR. OBSOLETE */
 #define PPTX_InfoTxt            ( GTAGBASE + 7 ) /* STRPTR */
 #define PPTX_Author             ( GTAGBASE + 8 ) /* STRPTR */
 #define PPTX_ReqKickVersion     ( GTAGBASE + 9 ) /* UWORD */
@@ -652,11 +652,7 @@ struct LocaleString {
     Loader specifig tags
  */
 
-#define PPTX_Info               ( GTAGBASE + 100 ) /* FPTR. OBSOLETE */
-#define PPTX_Load               ( GTAGBASE + 101 ) /* FPTR/BOOL */
-#define PPTX_SaveTrueColor      ( GTAGBASE + 102 ) /* FPTR. OBSOLETE */
-#define PPTX_SaveColorMapped    ( GTAGBASE + 103 ) /* FPTR. OBSOLETE */
-#define PPTX_Check              ( GTAGBASE + 104 ) /* FPTR. OBSOLETE */
+#define PPTX_Load               ( GTAGBASE + 101 ) /* BOOL */
 #define PPTX_NoFile             ( GTAGBASE + 105 ) /* BOOL */
 #define PPTX_PreferredPostFix   ( GTAGBASE + 106 ) /* STRPTR */
 #define PPTX_PostFixPattern     ( GTAGBASE + 107 ) /* STRPTR */
@@ -665,9 +661,8 @@ struct LocaleString {
     Effect specific tags
  */
 
-// #define PPTX_Exec               ( GTAGBASE + 200 ) /* FPTR. OBSOLETE */
-#define PPTX_EasyExec           ( GTAGBASE + 201 ) /* FPTR */
-#define PPTX_EasyTitle          ( GTAGBASE + 202 ) /* FPTR */
+#define PPTX_EasyExec           ( GTAGBASE + 201 ) /* FPTR. OBSOLETE */
+#define PPTX_EasyTitle          ( GTAGBASE + 202 ) /* FPTR. OBSOLETE */
 #define PPTX_NoNewFrame         ( GTAGBASE + 203 ) /* BOOL */
 
 
@@ -675,11 +670,6 @@ struct LocaleString {
     These tags can be passed to externals upon execution.
  */
 
-//#define PPTX_ErrMsg             ( GTAGBASE + 1000 ) /* OBSOLETE */
-#define PPTX_BitPlanes          ( GTAGBASE + 1001 ) /* UWORD , # of bitplanes to be saved */
-#define PPTX_ColorMap8          ( GTAGBASE + 1002 ) /* UBYTE * */
-#define PPTX_PlanePtrs          ( GTAGBASE + 1003 ) /* ULONG **, pointer to bitplane data */
-//#define PPTX_ErrCode            ( GTAGBASE + 1004 ) /* OBSOLETE! */
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
 
 
