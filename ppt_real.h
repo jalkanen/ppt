@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.12 1996/10/10 19:04:12 jj Exp $
+    $Id: ppt_real.h,v 1.13 1996/10/28 13:12:16 jj Exp $
 
     Main definitions for PPT.
 
@@ -296,7 +296,6 @@ typedef struct {
 #define CMAP_FORCEPALETTE       2   /* Forces the colormap named in palettepath  */
 
 
-
 /*
     This structure contains the necessary information on how to deal with
     information windows.
@@ -371,9 +370,11 @@ typedef struct Frame_t {
     BOOL            zooming;        /* TRUE, if the zoom gadgets were updated by the program,
                                        not the user. BUG: Is there really no other way? */
 
+    BOOL            loading;        /* TRUE, if this frame is currently being loaded */
+
     ID              attached;       /* Simple attachment list. End with 0L */
 
-
+    struct EClockVal eclock;
 } FRAME;
 
 /*
@@ -514,6 +515,8 @@ typedef struct {
     BOOL            opened;         /* TRUE, if the libbases were opened. */
 
 /* PPT hyper-private experimental fields start here. Don't even think about reading. */
+
+    struct Device   *lb_Timer;
 
 } EXTBASE;
 
