@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.17 1999/03/14 21:05:32 jj Exp $
+#       $Id: dmakefile,v 1.18 1999/05/30 18:17:24 jj Exp $
 #
 #####################################################################
 #
@@ -169,7 +169,7 @@ SRCS = initexit.c \
        load.c \
        edit.c \
        frame.c \
-#       main.c \
+       main.c \
 #       select.c \
        input.c \
        toolbar.c \
@@ -179,7 +179,7 @@ SRCS = initexit.c \
        askreq.c gui.c extensions.c dropareaclass.c renderareaclass.c colors.c
 
 # These are compiled with profiling on
-PROFSRCS = main.c select.c
+PROFSRCS = dummy.c select.c rectangleselect.c ellipseselect.c pointselect.c
 
 # These are not compiled with optimization on.
 
@@ -390,13 +390,13 @@ ext :
 
 # Make prototypes file
 
-proto : $(SRCS)
-        makeproto -o machine-protos.h $(SRCS)
+proto : $(SRCS) $(PROFSRCS)
+        makeproto -o machine-protos.h $(SRCS) $(PROFSRCS)
 
 # Makes a backup from everything except for object files.
 
 backup :
-        lha -r u $(BACKUPDIR)ppt.lha ~((pptd|ppt|ppt020|#?.(o|lnk|gst|effect|iomod|debug|library|library_e)))
+        lha -re u $(BACKUPDIR)ppt.lha ~((pptd|ppt|ppt020|#?.(o|lnk|gst|effect|iomod|debug|library|library_e)))
         @beep
 
 # RCS update
@@ -473,6 +473,12 @@ pragmas:
 
 # This will build the ppt catalog strings
 
+ppt_cat.c : Catalogs/ppt.cd
+        FlexCat Catalogs/ppt.cd ppt_cat.c=Catalogs/ppt_c.sd
+
+ppt_cat.h : Catalogs/ppt.cd
+        FlexCat Catalogs/ppt.cd ppt_cat.h=Catalogs/ppt_h.sd
+
 locale: catcode catalogs
 
 catcode:
@@ -482,6 +488,7 @@ catcode:
 catalogs:
         cd Catalogs
         FlexCat ppt.cd suomi/ppt.ct CATALOG suomi/ppt.catalog
+        cd /
 
 refreshcatalogs:
         cd Catalogs
@@ -571,4 +578,7 @@ bguilibs :
 
 namerelease :
         rcs -n$(RELEASE): *.[ch] dmakefile install ReleaseNotes Catalogs/ppt.cd Docs/#?.guide
+
+showsizes : showsizes.c
+        $(CC) $(CFLAGS) %(right) LINK
 
