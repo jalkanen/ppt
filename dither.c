@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.4 1995/09/23 22:02:29 jj Exp $
+    $Id: dither.c,v 1.5 1995/12/31 14:35:51 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -63,10 +63,14 @@ VOID Dither_None( struct RenderObject *rdo )
         UWORD pixcode;
         UBYTE red,green,blue;
 
+        rdo->currentcolumn = col;
+
         red   = *cp++;
         green = *cp++;
         blue  = *cp++;
+
         pixcode = (*rdo->GetColor)( rdo, red, green, blue );
+
         dcp[col] = (UBYTE)pixcode;
     }
 }
@@ -82,6 +86,8 @@ VOID Dither_NoneGray( struct RenderObject *rdo )
     for( col = 0; col < width; col++ ) {
         UWORD pixcode;
         UBYTE gray;
+
+        rdo->currentcolumn = col;
 
         gray   = *cp++;
 
@@ -192,6 +198,7 @@ PERROR Dither_FSD( struct RenderObject *rdo )
 
 /*
     Execution
+
 */
 VOID Dither_FS( struct RenderObject *rdo )
 {
@@ -220,15 +227,27 @@ VOID Dither_FS( struct RenderObject *rdo )
         errorptr = fs->fserrors + MULU16((width+1),pixelsize);
         fs->odd_row = FALSE;
     } else {
+        UBYTE renderq = rdo->frame->disp->renderq;
+
         dir = 1; dir3 = 3;
         errorptr = fs->fserrors;
-        fs->odd_row = TRUE;
+
+        /*
+         *  We'll change the direction only when the rendermode is not HAM, since
+         *  in these modes the pixel value depends from the pixel left of the
+         *  current position.
+         */
+
+        if( renderq != RENDER_HAM6 && renderq != RENDER_HAM8 )
+            fs->odd_row = TRUE;
     }
     cur0 = cur1 = cur2 = 0; /* Zero error values */
     belowerr0 = belowerr1 = belowerr2 = 0;
     bpreverr0 = bpreverr1 = bpreverr2 = 0;
 
     for( col = width; col > 0; col-- ) {
+
+        rdo->currentcolumn = width-col;
 
         cur0 = (cur0 + errorptr[dir3+0] + 8) >> 4;
         cur1 = (cur1 + errorptr[dir3+1] + 8) >> 4;
