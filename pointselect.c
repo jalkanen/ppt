@@ -6,7 +6,7 @@
     here for easier profiling.  This code is always run
     on the main task.
 
-    $Id: pointselect.c,v 1.2 1999/06/15 12:50:29 jj Exp $
+    $Id: pointselect.c,v 1.3 1999/09/05 17:08:59 jj Exp $
 
  */
 
@@ -43,9 +43,10 @@ VOID DrawPickPointSelector(FRAME *frame, WORD mousex, WORD mousey)
     SetDrPt(win->RPort, (UWORD) frame->disp->selpt);    // Uses just lower 16 bits
 
     Move( win->RPort, mousex, yoffset );
-    Draw( win->RPort, mousex, winright );
+    Draw( win->RPort, mousex, winbottom );
+
     Move( win->RPort, xoffset, mousey );
-    Draw( win->RPort, winbottom, mousey );
+    Draw( win->RPort, winright, mousey );
 }
 ///
 
