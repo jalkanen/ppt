@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.11 1997/08/30 21:33:30 jj Exp $
+    $Id: frame.c,v 2.12 1997/08/30 22:44:23 jj Exp $
 
     This contains frame handling routines
 
@@ -900,6 +900,10 @@ BOOL IsAttached( FRAME *frame, ID srcid )
     return FALSE;
 }
 
+/*
+    This makes a full duplicate of the frame data.
+ */
+
 PERROR CopyFrameData( FRAME *frame, FRAME *newframe, BOOL showprogress, EXTBASE *ExtBase )
 {
     UBYTE *buf;
@@ -1008,6 +1012,11 @@ FRAME *FindFrame( REG(d0) ULONG seekid )
             return ((FRAME *)nd);
         }
         nd = nn;
+    }
+
+    if( clipframe && (clipframe->ID == seekid) ) {
+        UNLOCKGLOB();
+        return clipframe;
     }
 
     UNLOCKGLOB();
