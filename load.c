@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.8 1997/05/06 00:02:45 jj Exp $
+    $Id: load.c,v 2.9 1997/05/11 16:09:39 jj Exp $
 
     Code for loaders...
 */
@@ -533,12 +533,16 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
             if(!fh) {
                 errcode = IoErr();
                 Fault( errcode, "", ec, 79 );
-                XReq(NEGNUL,NULL,
-                    ISEQ_C ISEQ_HIGHLIGHT "ERROR!" ISEQ_TEXT
-                    "\nFailed to open file\n"
-                    "'%s'\n"
-                    "due to:\nError %ld %s", fullname, errcode, ec );
-                res = PERR_WONTOPEN;
+                if( rexx ) {
+                    SetErrorCode( frame, PERR_FILEOPEN );
+                } else {
+                    XReq(NEGNUL,NULL,
+                        ISEQ_C ISEQ_HIGHLIGHT "ERROR!" ISEQ_TEXT
+                        "\nFailed to open file\n"
+                        "'%s'\n"
+                        "due to:\nError %ld %s", fullname, errcode, ec );
+                }
+                res = PERR_FILEOPEN;
                 goto errexit;
             }
             D(bug("\tOpened file\n"));
