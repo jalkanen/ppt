@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.6 1996/05/13 00:14:59 jj Exp $
+    $Id: infowin.c,v 1.7 1996/08/24 16:23:48 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -88,6 +88,9 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
          *  BUG: Should create the infowindow, if it does not exist
          */
         if( iw->WO_win && !iw->win ) {
+
+            UpdateInfoWindow( iw, ExtBase );
+
             if( (iw->win = WindowOpen( iw->WO_win )) == NULL) {
                 res = PERR_WINDOWOPEN;
             }
@@ -102,17 +105,24 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 
 VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
+    APTR SysBase = ExtBase->lb_Sys;
+
     D(bug("CloseInfoWindow(%08X)\n",iw));
+
+    LOCKGLOB();
 
     if( iw ) {
         /*
          *  Do the window AND the window object exist?
          */
         if( iw->WO_win && iw->win ) {
+
             WindowClose( iw->WO_win );
             iw->win = NULL;
         }
     }
+
+    UNLOCKGLOB();
 }
 
 /*
@@ -123,9 +133,12 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 {
     FRAME *frame;
-    APTR   IntuitionBase = ExtBase->lb_Intuition;
+    APTR   IntuitionBase = ExtBase->lb_Intuition,
+           SysBase = ExtBase->lb_Sys;
 
     D(bug("DeleteInfoWindow( %08X )\n",iw));
+    LOCKGLOB();
+
     if(iw) {
         frame = iw->myframe;
 
@@ -137,6 +150,8 @@ void DeleteInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 
         pfree(iw);
     }
+
+    UNLOCKGLOB();
 }
 
 
@@ -254,13 +269,20 @@ void UpdateInfoWindow( INFOWIN *iw, EXTDATA *xd )
         WINDOW_ScreenTitle, NULL,
         TAG_DONE, 0L
     };
-    FRAME *f = iw->myframe;
 
-    if(f) {
-        tags[0].ti_Data = f->disp->title;
-        tags[1].ti_Data = f->disp->scrtitle;
-        SetAttrsA( iw->WO_win, tags );
+    LOCKGLOB();
+
+    if( iw != NULL ) {
+        FRAME *f = iw->myframe;
+
+        if(f) {
+            tags[0].ti_Data = f->disp->title;
+            tags[1].ti_Data = f->disp->scrtitle;
+            SetAttrsA( iw->WO_win, tags );
+        }
     }
+
+    UNLOCKGLOB();
 }
 
 /*
@@ -286,9 +308,13 @@ VOID DisableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
         TAG_DONE, 0L
     };
 
+    LOCKGLOB();
+
     if( iw ) {
         SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
     }
+
+    UNLOCKGLOB();
 }
 
 /*
@@ -303,8 +329,12 @@ VOID EnableInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
         TAG_DONE, 0L
     };
 
+    LOCKGLOB();
+
     if( iw ) {
         SetGadgetAttrsA( GAD(iw->GO_Break),iw->win, NULL, tags );
     }
+
+    UNLOCKGLOB();
 }
 
