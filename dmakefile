@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.10 1997/01/12 00:19:50 jj Exp $
+#       $Id: dmakefile,v 1.11 1997/02/23 15:14:59 jj Exp $
 #
 #####################################################################
 #
@@ -51,7 +51,7 @@ RMFILE = T:rdefs.m
 #   Example files. These are currently scanned for autodoc
 #   entries
 EXAMPLES  = $(EXTSRCDIR)/sample_effect/sample_effect.c \
-            $(EXTSRCDIR)/sample_loader/sample_loader.c
+            $(EXTSRCDIR)/sample_loader/loader.c
 
 
 #####################################################################
@@ -141,7 +141,7 @@ SRCS = initexit.c debug.c load.c edit.c frame.c main.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
        render.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
-       ppt_cat.c askreq.c gui.c
+       ppt_cat.c askreq.c gui.c extensions.c
 
 # These are not compiled with optimization on.
 
@@ -321,6 +321,11 @@ dist : all release $(DISTDIR) docs
         Copy $(MAINDIR)/ppt_dir.info /PPT.info
         lha -r u $(ARCHIVEDIR)PPT_dist.lha $(DISTDIR)/#? /PPT.info
         @beep
+
+strip :
+        $(STRIP)
+        Copy $(RMAIN).strip $(RMAIN)
+        Delete $(RMAIN).strip
 
 $(DISTDIR) : $(DISTDIR)
         MakeDir $(DISTDIR)
