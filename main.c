@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.86 1998/06/28 23:22:20 jj Exp $
+    $Id: main.c,v 1.87 1998/06/29 22:31:54 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -429,7 +429,9 @@ VOID UpdateMainWindow( FRAME *frame )
         EnableMenuItem( MID_CORRECTASPECT );
         EnableMenuItem( MID_EDITINFO );
 
+#ifdef USE_OLD_ALPHA
         if (alpha) EnableMenuItem( MID_REMOVEALPHA );
+#endif
 
         EnableMenuItem( MID_PROCESS );
         if( frame->currext ) EnableMenuItem( MID_BREAK );
@@ -466,7 +468,9 @@ VOID UpdateMainWindow( FRAME *frame )
         DisableMenuItem( MID_CROP );
         DisableMenuItem( MID_ZOOMIN );
         DisableMenuItem( MID_ZOOMOUT );
+#ifdef USE_OLD_ALPHA
         DisableMenuItem( MID_REMOVEALPHA );
+#endif
         DisableMenuItem( MID_CORRECTASPECT );
         DisableMenuItem( MID_EDITINFO );
 
@@ -708,6 +712,10 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             } else {
                 UpdatePrefsWindow( globals->userprefs );
             }
+            break;
+
+        case MID_NEW:
+            RunLoad( NULL, "Plain", NULL );
             break;
 
         case MID_LOADNEW:
@@ -1041,8 +1049,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             }
             break;
 
-        case MID_REMOVEALPHA:
 #ifdef USE_OLD_ALPHA
+        case MID_REMOVEALPHA:
             if( FrameFree(frame) ) {
                 if( frame->alpha ) {
                     if( Req( GetFrameWin(frame), GetStr(MSG_YESNO_GAD),
@@ -1055,8 +1063,8 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                     Req( GetFrameWin(frame), NULL, "\nThis frame has no alpha channel!\n" );
                 }
             }
-#endif
             break;
+#endif
 
         /*
          *  Windows menu
@@ -3310,7 +3318,7 @@ int main(int argc, char **argv)
 
     globsigmask = 0L;
 
-    UpdateStartupWindow( "Loading external loaders..." );
+    UpdateStartupWindow( "Loading external I/O modules..." );
     FetchExternals(globals->userprefs->modulepath,NT_LOADER);
     UpdateStartupWindow( "Loading external effects..." );
     FetchExternals(globals->userprefs->modulepath,NT_EFFECT);
