@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 6.1 1999/10/02 16:33:07 jj Exp $
+    $Id: askreq.c,v 6.2 2000/04/15 18:37:29 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -391,7 +391,7 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
                 StartMember,
                     Integer = MyStringObject, GA_ID, 1000+id, /* BUG */
                         RidgeFrame,
-                        STRINGA_MinCharsVisible,4,
+                        STRINGA_MinCharsVisible,6,
                         STRINGA_MaxChars,       8, /* BUG: Should adjust according to the max/min values. */
                         STRINGA_LongVal,        level,
                         STRINGA_IntegerMin,     min,
