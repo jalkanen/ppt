@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE:  message.h
 
-    $Revision: 1.1 $
-        $Date: 1997/01/06 18:32:00 $
+    $Revision: 1.2 $
+        $Date: 1997/05/27 22:20:56 $
       $Author: jj $
 
     This file contains declarations for the message passing
@@ -31,15 +31,17 @@
 struct PPTMessage {
     struct Message  msg;
     FRAME           *frame;         /* Who does this message concern? */
-    ULONG           code;           /* Unique code. */
+    ULONG           code;           /* Unique code.  See below. */
     APTR            data;           /* code-dependent.  Not recommended reading for small children. */
 };
 
-/*!!PRIVATE*/
 
 /*
- *   Message codes.
+ *   Message codes for the PPTMessage.code field.
  */
+
+/*!!PRIVATE*/
+
 #define PPTMSGF_DONE            0x80000000 /* Set, if the message contains a death msg */
 
 #define PPTMSG_EFFECTDONE       (PPTMSGF_DONE + 0x01)
@@ -47,9 +49,13 @@ struct PPTMessage {
 #define PPTMSG_RENDERDONE       (PPTMSGF_DONE + 0x03)
 #define PPTMSG_SAVEDONE         (PPTMSGF_DONE + 0x04)
 
+/*!!PUBLIC*/
+
 #define PPTMSG_LASSO_RECT       0x10L
 #define PPTMSG_PICK_POINT       0x11L
 #define PPTMSG_FIXED_RECT       0x12L
+
+/*!!PRIVATE*/
 
 #define PPTMSG_STOP_INPUT       0x100L
 #define PPTMSG_ACK_INPUT        0x101L
@@ -58,6 +64,7 @@ struct PPTMessage {
 #define PPTMSG_CLOSEINFOWINDOW  0x201L
 #define PPTMSG_UPDATEINFOWINDOW 0x202L
 #define PPTMSG_UPDATEPROGRESS   0x203L        /* Is really a ProgressMsg (see below) */
+
 
 /*
  *  This message contains enough info to update the progress
@@ -85,15 +92,22 @@ struct ProgressMsg {
  *  StartInput().
  */
 
+
+/* PPTMSG_PICK_POINT */
+
 struct gPointMessage {
     struct PPTMessage   msg;
     WORD                x, y;
 };
 
+/* PPTMSG_LASSO_RECT */
+
 struct gRectMessage {
     struct PPTMessage   msg;
     struct IBox         dim;
 };
+
+/* PPTMSG_FIXED_RECT */
 
 struct gFixRectMessage {
     struct PPTMessage   msg;
