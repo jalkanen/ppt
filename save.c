@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.4 1995/09/24 17:38:08 jj Exp $
+    $Id: save.c,v 1.5 1996/02/23 13:24:31 jj Exp $
 */
 
 #include <defs.h>
@@ -26,7 +26,7 @@
 
 #include <stdlib.h>
 
-extern    void      SavePicture( __A0 UBYTE *, __D0 ULONG );
+extern    VOID      SavePicture( REG(a0) UBYTE *, REG(d0) ULONG );
 Prototype PERROR    RunSave( FRAME *, UBYTE * );
 
 /*----------------------------------------------------------------------*/
@@ -59,10 +59,10 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 
     LOCKGLOB();
 
-    if( frame->selbox.MinX != ~0 && frame->selstatus & 0x01) {
+    if( frame->selbox.MinX != ~0 && (frame->selstatus & SELF_RECTANGLE)) {
         DrawSelectBox( frame, frame->selbox.MinX, frame->selbox.MinY,
                               frame->selbox.MaxX, frame->selbox.MaxY );
-        frame->selstatus = 0xFF;
+        frame->selstatus &= ~(SELF_RECTANGLE);
     }
 
     if(argstr)
@@ -73,7 +73,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
     D(bug("Running save, see save.log for log info\n"));
 
 #ifdef DEBUG_MODE
-    p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, TRUE, NP_Output, Open("dtmp:save.log",MODE_NEWFILE),
+    p = CreateNewProcTags( NP_Entry, SavePicture, NP_Cli, FALSE, NP_Output, OpenDebugFile( DFT_Save ),
                            NP_CloseOutput,TRUE, NP_Name, frame->nd.ln_Name,
                            NP_Priority, -1, NP_Arguments, argbuf,
                            NP_StackSize, EXTERNAL_STACKSIZE, TAG_END );
@@ -128,7 +128,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
      */
 
     if(mode == SAVE_TRUECOLOR) {
-        volatile auto __D0 int (*X_SaveT)( __D0 BPTR, __A0 FRAME *, __A1 struct TagItem *, __A6 EXTDATA * );
+        volatile auto REG(d0) int (*X_SaveT)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
 
         X_SaveT = (FPTR) GetTagData( PPTX_SaveTrueColor, NULL, ld->info.tags );
 
@@ -142,7 +142,7 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
             D(bug("+-+-+-+-+-\n"));
         }
     } else { /* COLORMAPPED */
-        volatile auto __D0 int (*X_SaveC)( __D0 BPTR, __A0 FRAME *, __A1 struct TagItem *, __A6 EXTDATA * );
+        volatile auto REG(d0) int (*X_SaveC)( REG(d0) BPTR, REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTDATA * );
 
         X_SaveC = (FPTR) GetTagData( PPTX_SaveColorMapped, NULL, ld->info.tags );
 
@@ -166,13 +166,14 @@ void DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, EXTDATA *xd )
      *  Show error message, if needed.
      */
 
-    if( frame->lasterror )
-        frame->lasterror = PERR_OK;
-    else {
-        if(res != PERR_OK && res != PERR_CANCELED) {
-            XReq( GetFrameWin(frame), NULL, "\nError while saving : %s\n", ErrorMsg( res ));
-        }
+    SetErrorCode( frame, res ); /* BUG: This is a kludge, as the save routines should do it. */
+
+    if( frame->doerror && frame->errorcode != PERR_BREAK && frame->errorcode != PERR_CANCELED)
+    {
+        XReq( GetFrameWin(frame), NULL, "\nError while saving : %s\n", GetErrorMsg( frame, xd ));
     }
+
+    ClearError( frame );
 
     /*
      *  Close file and delete it if anything went wrong
@@ -238,26 +239,67 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
         case GID_SW_CANCEL:
         case IDCMP_CLOSEWINDOW:
             return 1;
+
         case GID_SW_SAVE:
             if( entry = (APTR) FirstSelected( gads->Format )) {
+
+                /*
+                 *  Fetch the loader and mode
+                 */
+
                 SHLOCKGLOB();
                 ld = (LOADER *) FindName( &globals->loaders, entry );
                 UNLOCKGLOB();
                 GetAttr( MX_Active, gads->Mode, &activemode );
+
+                /*
+                 *  Get the path
+                 */
+
+                GetAttr( STRINGA_TextVal, gads->Name, &file );
+                strcpy( frame->fullname, file );
+
+                /*
+                 *  Close window and save
+                 */
+
                 WindowClose( gads->Win );
                 DoTheSave( frame, ld, activemode, xd );
                 return 1;
             }
             break;
+
+        case GID_SW_FILE:
+            break;
+
         case GID_SW_GETFILE:
+            char tmppath[MAXPATHLEN], *s;
+            struct TagItem t[3] = {
+                ASLFR_InitialFile, NULL,
+                ASLFR_InitialDrawer, NULL,
+                TAG_END
+            };
+
+            /*
+             *  First, make sure the path is correct.
+             */
+
+            GetAttr( STRINGA_TextVal, gads->Name, &file );
+
+            strcpy(tmppath, file);
+            s = PathPart(tmppath);
+            *s = '\0';
+            t[1].ti_Data = (ULONG) tmppath;
+            t[0].ti_Data = (ULONG) FilePart(file);
+            SetAttrsA( gads->Frq, t );
+
             if(DoRequest( gads->Frq ) == FRQ_OK) {
                 GetAttr( FRQ_Path, gads->Frq, &file );
-                strcpy(frame->fullname, file);
-                D(bug("Got new file name %s\n",frame->fullname ));
                 XSetGadgetAttrs( xd, (struct Gadget *)gads->Name, gads->win, NULL,
-                                 INFO_TextFormat, frame->fullname, TAG_END );
+                                 STRINGA_TextVal, file, TAG_END );
             }
             break;
+
         case GID_SW_SAVERS:
             if( entry = (APTR) FirstSelected( gads->Format )) {
                 SHLOCKGLOB();
@@ -281,9 +323,9 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, EXTDATA *xd )
     BUG: REXX control handling could be prettier.
 */
 
-__geta4 void SavePicture( __A0 UBYTE *argvect, __D0 ULONG len )
+SAVEDS VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
 {
-    char path[256], *s;
+    char path[MAXPATHLEN], *s;
     struct SaveWin gads;
     ULONG sigmask, sig, rc, sttags[] = { ASLFR_InitialDrawer, NULL, TAG_END };
     BOOL quit = FALSE;
@@ -309,7 +351,7 @@ __geta4 void SavePicture( __A0 UBYTE *argvect, __D0 ULONG len )
         frame = (FRAME *) *( (ULONG *)optarray[0]);
         if( optarray[1] ) { /* PATH existed */
             dpath = (UBYTE *)optarray[1];
-            loader = (LOADER *) FindName( &globals->loaders, (UBYTE *)optarray[2] );
+            loader = (LOADER *) FindIName( &globals->loaders, (UBYTE *)optarray[2] );
             if(!loader) {
                 D(bug("\tFindName() failed\n"));
                 goto errorexit;
