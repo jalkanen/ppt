@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 6.3 1999/10/14 16:20:44 jj Exp $
+    $Id: main.c,v 6.4 1999/11/02 21:39:13 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1534,6 +1534,51 @@ int HandleSelectIDCMP( ULONG rc )
                 UpdateIWSelbox( frame, TRUE );
             }
 
+            break;
+
+        case GID_SELECT_CIRCLEX:
+            if( frame ) {
+                GetAttr( STRINGA_LongVal, selectw.CircleX, &t );
+
+                EraseSelection( frame );
+
+                CLAMP(t,0,frame->pix->width-1);
+                frame->selection.circlex = t;
+
+                LassoCircleMakeBoundingBox( frame );
+                DrawSelection( frame, 0L );
+                UpdateIWSelbox( frame, TRUE );
+            }
+            break;
+
+        case GID_SELECT_CIRCLEY:
+            if( frame ) {
+                GetAttr( STRINGA_LongVal, selectw.CircleY, &t );
+
+                EraseSelection( frame );
+
+                CLAMP(t,0,frame->pix->height-1);
+                frame->selection.circley = t;
+
+                LassoCircleMakeBoundingBox( frame );
+                DrawSelection( frame, 0L );
+                UpdateIWSelbox( frame, TRUE );
+            }
+            break;
+
+        case GID_SELECT_CIRCLERADIUS:
+            if( frame ) {
+                GetAttr( STRINGA_LongVal, selectw.CircleRadius, &t );
+
+                EraseSelection( frame );
+
+                CLAMP(t,0,MAX_WIDTH);
+                frame->selection.circleradius = t;
+
+                LassoCircleMakeBoundingBox( frame );
+                DrawSelection( frame, 0L );
+                UpdateIWSelbox( frame, TRUE );
+            }
             break;
 
         case GID_SELECT_PAGE:
