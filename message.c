@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 2.2 1997/06/07 21:21:26 jj Exp $
+    $Id: message.c,v 2.3 1997/08/31 20:53:35 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -435,6 +435,7 @@ VOID SetupFrameForInput( struct PPTMessage *pmsg )
 
     if( f->selectmethod == GINP_FIXED_RECT ) {
         f->fixrect = ((struct gFixRectMessage *)pmsg)->dim;
+        DrawSelectBox( f, DSBF_FIXEDRECT);
     }
 
     ChangeBusyStatus( f, BUSY_READONLY );
@@ -474,6 +475,7 @@ VOID ClearFrameInput( FRAME *f )
 
     D(bug("ClearFrameInput(%08X)\n",f));
 
+    RemoveSelectBox( f );
     LOCK(f);
     f->selectmethod = GINP_LASSO_RECT;
     f->selectdata   = NULL;
