@@ -3,7 +3,7 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.27 1999/02/14 19:40:46 jj Exp $
+   $Id: render.c,v 1.28 1999/02/18 11:09:12 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
@@ -11,7 +11,7 @@
 /*----------------------------------------------------------------------*/
 
 #undef FAST_QUICKMAP           /* Use assembler code in QuickRender()? */
-
+#define FAST_QUICKMAP_DEEP     /* How about for deep screens? */
 
 /*----------------------------------------------------------------------*/
 /* Includes */
@@ -995,7 +995,7 @@ ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
                         row + qra->top, qra->winwidth, 1, RECTFMT_ARGB);
 #else
 
-# ifdef FAST_QUICKMAP
+# ifdef FAST_QUICKMAP_DEEP
         QuickMapARGBDeepRow(cp + MULU16(zb->Left, 3), qra->pixelrow,
                             qra->winwidth, zb->Width, ALPHA_GRAY_HIGH, ALPHA_GRAY_LOW, row);
 # else
