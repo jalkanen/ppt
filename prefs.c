@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.23 1998/01/04 16:37:01 jj Exp $
+    $Id: prefs.c,v 1.24 1998/06/30 20:02:24 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -80,6 +80,7 @@ const char *optionstrings[] = {
     "EXTNICEVAL",
     "EXTPRIORITY",
     "PREVIEWSIZE",
+    "CONFIRMREQUESTERS",
     NULL,
 };
 
@@ -107,7 +108,8 @@ typedef enum {
     STARTUPDIR,
     EXTNICEVAL,
     EXTPRIORITY,
-    PREVIEWSIZE
+    PREVIEWSIZE,
+    CONFIRMREQUESTERS
 } Option;
 
 
@@ -170,25 +172,26 @@ void WritePrefByID( BPTR fh, Option id, const char *c, ... )
 Local
 VOID InitPrefs( PREFS *p )
 {
-    p->extstacksize = DEFAULT_EXTSTACK;
+    p->extstacksize     = DEFAULT_EXTSTACK;
     strcpy(p->vmdir, DEFAULT_VM_DIR);
-    p->vmbufsiz = DEFAULT_VM_BUFSIZ;
+    p->vmbufsiz         = DEFAULT_VM_BUFSIZ;
     p->mainfont = p->listfont = NULL;
-    p->pubscrname= NULL;
-    p->maxundo = DEFAULT_MAXUNDO;
-    p->mfontname[0] = '\0';
-    p->lfontname[0] = '\0';
+    p->pubscrname       = NULL;
+    p->maxundo          = DEFAULT_MAXUNDO;
+    p->mfontname[0]     = '\0';
+    p->lfontname[0]     = '\0';
     p->progress_filesize = DEFAULT_PROGRESS_FILESIZE;
-    p->progress_step = DEFAULT_PROGRESS_STEP;
-    p->colorpreview = FALSE;
+    p->progress_step    = DEFAULT_PROGRESS_STEP;
+    p->colorpreview     = FALSE;
     strcpy( p->modulepath, DEFAULT_MODULEPATH );
-    p->expungelibs  = FALSE;
+    p->expungelibs      = FALSE;
     strcpy( p->rexxpath, DEFAULT_REXXPATH );
     strcpy( p->startupdir, DEFAULT_STARTUPDIR );
     strcpy( p->startupfile, DEFAULT_STARTUPFILE );
-    p->extniceval = DEFAULT_EXTNICEVAL;
-    p->extpriority = DEFAULT_EXTPRIORITY;
-    p->previewmode   = DEFAULT_PREVIEWMODE;
+    p->extniceval       = DEFAULT_EXTNICEVAL;
+    p->extpriority      = DEFAULT_EXTPRIORITY;
+    p->previewmode      = DEFAULT_PREVIEWMODE;
+    p->confirm          = DEFAULT_CONFIRM;
     SetPreviewSize( p );
 }
 
@@ -326,6 +329,15 @@ int LoadPrefs( GLOBALS *g, char *pfile )
                             p->expungelibs = FALSE;
                         }
                         D(bug("Flushlibs mode : %d\n", p->expungelibs ));
+                        break;
+
+                    case CONFIRMREQUESTERS:
+                        if( strncmp( s, "TRUE", 4 ) == 0 ) {
+                            p->confirm = TRUE;
+                        } else {
+                            p->confirm = FALSE;
+                        }
+                        D(bug("Confirm mode : %d\n", p->confirm ));
                         break;
 
                     case FRAMESWINDOW:
@@ -491,6 +503,7 @@ int SavePrefs( GLOBALS *g, char *pfile )
         WritePrefByID(fh,MAXUNDO,"%u",p->maxundo );
         WritePrefByID(fh,COLORPREVIEW,"%s",p->colorpreview ? "TRUE" : "FALSE" );
         WritePrefByID(fh,FLUSHLIBS,"%s",p->expungelibs ? "TRUE" : "FALSE" );
+        WritePrefByID(fh,CONFIRMREQUESTERS,"%s",p->confirm ? "TRUE" : "FALSE" );
         WritePrefByID(fh,EXTSTACKSIZE,"%u",p->extstacksize);
         WritePrefByID(fh,EXTNICEVAL,"%d",p->extniceval);
         WritePrefByID(fh,EXTPRIORITY,"%d",p->extpriority);
