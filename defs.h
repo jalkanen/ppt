@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.26 1998/08/23 23:13:53 nobody Exp $
+    $Id: defs.h,v 1.27 1998/10/14 20:31:21 nobody Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -213,6 +213,7 @@ enum DebugFile_T {
 #define DEFAULT_CONFIRM     TRUE
 
 #define VM_FILENAME         "PPT_VM_FILE"
+#define PPTPUBSCREENNAME    "PPT"
 
 /* This gives the amount of days after which PPT starts to complain
    about expiration */
