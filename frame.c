@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.0 1996/11/27 22:23:15 jj Exp $
+    $Id: frame.c,v 2.1 1996/11/28 23:18:26 jj Exp $
 
     This contains frame handling routines
 
@@ -251,8 +251,8 @@ PERROR AddFrame( FRAME *frame )
 
     LOCKGLOB();
     AddTail( &globals->frames, (struct Node *)frame );
-    AddEntryVisible( NULL, globals->LV_frames, frame->nd.ln_Name, LVAP_SORTED );
-    RefreshList( MAINWIN, globals->LV_frames );
+    AddEntryVisible( NULL, framew.Frames, frame->nd.ln_Name, LVAP_SORTED );
+    RefreshList( framew.win, framew.Frames );
     UNLOCKGLOB();
 
     return PERR_OK;
@@ -282,12 +282,12 @@ void DeleteFrame( FRAME *f )
 
         LOCK(f);
 
-        entry = (APTR)FirstEntry(globals->LV_frames);
+        entry = (APTR)FirstEntry(framew.Frames);
         while( entry && (strcmp(entry,f->nd.ln_Name) != 0) )
-            entry = (APTR)NextEntry(globals->LV_frames, entry);
+            entry = (APTR)NextEntry(framew.Frames, entry);
 
         if(entry) {
-            RemoveEntryVisible( MAINWIN, globals->LV_frames, entry );
+            RemoveEntryVisible( framew.win, framew.Frames, entry );
             UpdateMainWindow( NULL ); /* Removes the data */
         }
 
