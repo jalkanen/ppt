@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.9 1997/06/07 21:20:36 jj Exp $
+    $Id: frame.c,v 2.10 1997/07/12 21:47:50 jj Exp $
 
     This contains frame handling routines
 
@@ -1127,6 +1127,7 @@ SAVEDS ASM FRAME *MakeFrame( REG(a0) FRAME *old, REG(a6) EXTBASE *ExtBase )
         d->depth       = 1;
         d->ncolors     = 2;
         d->selpt       = 0xF0F0F0F0;
+        d->saved_cmap  = CMAP_NONE;
     } else {
         /*
          *  We will initialize this as if this was a completely new frame,
