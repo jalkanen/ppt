@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 5.3 $
-        $Date: 1999/03/31 13:23:37 $
+    $Revision: 5.4 $
+        $Date: 1999/05/30 18:11:39 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 5.3 1999/03/31 13:23:37 jj Exp $
+    $Id: ppt_real.h,v 5.4 1999/05/30 18:11:39 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -458,6 +458,55 @@ struct PreviewFrame {
     struct Window   *pf_win;
 };
 
+struct MouseLocationMsg {
+    WORD            mousex, mousey; /* Mouse coords */
+    WORD            xloc, yloc;     /* Image coords */
+};
+
+/*
+    Contains the data for a selection.
+
+    Point is defined in graphics/gfx.h
+ */
+
+struct Selection {
+    ULONG           selectmethod;
+    UBYTE           selstatus;      /* see defs.h */
+
+    Point           *vertices;
+    LONG            nVertices;
+
+    struct MsgPort  *selectport;    /* Where the messages should be sent */
+
+    /*
+     *  Hook functions
+     */
+
+    VOID            (*ButtonDown)(struct Frame_t *,struct MouseLocationMsg *);
+    VOID            (*ControlButtonDown)(struct Frame_t *,struct MouseLocationMsg *);
+    VOID            (*ButtonUp)(struct Frame_t *,struct MouseLocationMsg *);
+    VOID            (*MouseMove)(struct Frame_t *,struct MouseLocationMsg *);
+    VOID            (*DrawSelection)(struct Frame_t *,ULONG);
+    VOID            (*EraseSelection)(struct Frame_t *);
+    BOOL            (*IsInArea)(struct Frame_t *,struct MouseLocationMsg *);
+
+    /*
+     *  GINP_FIXED_RECT
+     */
+
+    struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
+    WORD            fixoffsetx,     /* Hold the offset of the mouse relative */
+                    fixoffsety;     /* to the corner */
+
+    /*
+     *  GINP_LASSO_CIRCLE
+     */
+
+    WORD            circlex,        /* These hold GINP_LASSO_CIRCLE data */
+                    circley;        /* First, the center, then the radius */
+    WORD            circleradius;
+
+};
 
 /*!!PUBLIC*/
 
@@ -474,7 +523,8 @@ typedef struct Frame_t {
     struct Process  *currproc;      /* Points to current owning process. */
     PIXINFO         *pix;           /* Picture data.  See above. */
     DISPLAY         *disp;          /* This is the display window. See above. */
-    struct Rectangle selbox;        /* This contains the area currently selected. */
+    struct Rectangle selbox;        /* This contains the bounding box of the area
+                                       currently selected. */
 
     /* All data beyond this point is PRIVATE! */
     /*!!PRIVATE*/
@@ -492,7 +542,6 @@ typedef struct Frame_t {
     INFOWIN         *mywin;         /* This frame's infowindow. NULL, if not yet created */
     APTR            renderobject;   /* see render.h */
 
-    UBYTE           selstatus;      /* see defs.h */
     UBYTE           reqrender;      /* != 0, if a render has been requested but not made */
     BOOL            doerror;        /* TRUE, if the error has not been displayed yet */
 
@@ -513,8 +562,6 @@ typedef struct Frame_t {
                                          End the list with 0L. */
 #endif
 
-    ULONG           selectmethod;
-    struct MsgPort  *selectport;    /* Where the messages should be sent */
 
     struct IBox     zoombox;
     BOOL            zooming;        /* TRUE, if the zoom gadgets were updated by the program,
@@ -526,22 +573,11 @@ typedef struct Frame_t {
 
     struct EClockVal eclock;
 
-    /*
-     *  The following few fields are reserved for the selection methods.  They
-     *  hold different values depending on the frame->selectmethod, above.
-     */
-
-    struct IBox     fixrect;        /* Holds GINP_FIXED_RECT data */
-    WORD            fixoffsetx,     /* Hold the offset of the mouse relative */
-                    fixoffsety;     /* to the corner */
-
-    WORD            circlex,        /* These hold GINP_LASSO_CIRCLE data */
-                    circley;        /* First, the center, then the radius */
-    WORD            circleradius;
-
     struct EditWindow_T *editwin;      /* Info editing window */
 
     struct PreviewFrame preview;
+
+    struct Selection selection;     /* See above for definition */
 
 #ifdef DEBUG_MODE
     BPTR            debug_handle;   /* The debug output of this task */
