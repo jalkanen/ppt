@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.97 1998/11/08 00:46:24 jj Exp $
+    $Id: main.c,v 1.98 1998/12/12 13:38:09 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1578,12 +1578,14 @@ int HandlePrefsIDCMP( ULONG rc )
             break;
 
         case GID_PW_GETFONT:
+            BusyAllWindows(globxd);
             if(AslRequestTags(fontreq, ASLFR_Screen, MAINSCR, TAG_DONE )) {
                 strcpy(tmpprefs.mfont.ta_Name,fontreq->fo_Attr.ta_Name);
                 tmpprefs.mfont.ta_YSize = fontreq->fo_Attr.ta_YSize;
                 tmpprefs.mainfont = &(tmpprefs.mfont);
                 UpdateFontPrefs(&tmpprefs);
             }
+            AwakenAllWindows(globxd);
             break;
 
         case GID_PW_GETLISTFONT:
@@ -1606,6 +1608,7 @@ int HandlePrefsIDCMP( ULONG rc )
             break;
 
         case GID_PW_GETVMDIR:
+            BusyAllWindows(globxd);
             if(AslRequestTags( filereq, ASLFR_DrawersOnly, TRUE,
                                         ASLFR_InitialDrawer, tmpprefs.vmdir,
                                         ASLFR_Screen, MAINSCR,
@@ -1615,6 +1618,7 @@ int HandlePrefsIDCMP( ULONG rc )
                 SetGadgetAttrs( GAD(prefsw.VMDir), prefsw.win, NULL,
                                 STRINGA_TextVal, tmpprefs.vmdir, TAG_DONE );
             }
+            AwakenAllWindows(globxd);
             break;
 
         case GID_PW_MAXUNDO:
@@ -2546,6 +2550,7 @@ int HandleDispPrefsWindowIDCMP( FRAME *frame, ULONG rc )
                 ASLSM_InitialDisplayWidth,  d->width,
                 ASLSM_InitialDisplayHeight, d->height,
                 ASLSM_InitialDisplayDepth,  d->depth,
+                ASLSM_MaxDepth,             8, /* Filter out deep screenmodes */
                 TAG_END );
 
             if( res ) {
