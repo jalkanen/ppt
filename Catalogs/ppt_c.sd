@@ -9,7 +9,7 @@
    This is a special version of the code included in the
    FlexCat package, tuned for PPT performance.
 
-   $Id: ppt_c.sd,v 1.2 1996/10/08 20:30:36 jj Exp $
+   $Id: ppt_c.sd,v 6.0 2000/01/04 21:41:12 jj Exp $
 
 ****************************************************************/
 
@@ -27,9 +27,9 @@
 
 
 /*  Prototypes  */
-Prototype VOID   Open%bCatalog(struct Locale *, STRPTR, EXTBASE *);
-Prototype VOID   Close%bCatalog( EXTBASE * );
-Prototype STRPTR Get%bString( struct LocaleString *, EXTBASE *);
+Prototype VOID   Open%bCatalog(struct Locale *, STRPTR, struct PPTBase *);
+Prototype VOID   Close%bCatalog( struct PPTBase * );
+Prototype const char *Get%bString( const struct LocaleString *, struct PPTBase *);
 
 
 static LONG %b_Version = %v;
@@ -37,9 +37,9 @@ static const STRPTR %b_BuiltInLanguage = (const STRPTR) %l;
 
 const struct LocaleString %i_LS = { %d, %s };
 
-VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
+VOID Open%bCatalog(struct Locale *loc, STRPTR language, struct PPTBase *PPTBase)
 {
-    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
     struct TagItem tags[] = {
         OC_BuiltInLanguage, 0L,
         TAG_IGNORE, 0L,
@@ -47,10 +47,10 @@ VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
         TAG_DONE
     };
 
-    Close%bCatalog( ExtBase ); /* Not needed if the programmer pairs Open%bCatalog
+    Close%bCatalog( PPTBase ); /* Not needed if the programmer pairs Open%bCatalog
                                   and Close%bCatalog right, but does no harm.  */
 
-    if (LocaleBase != NULL  &&  ExtBase->catalog == NULL) {
+    if (LocaleBase != NULL  &&  PPTBase->catalog == NULL) {
         if (language) {
             tags[1].ti_Tag  = OC_Language;
             tags[1].ti_Data = (LONG) language;
@@ -59,33 +59,33 @@ VOID Open%bCatalog(struct Locale *loc, STRPTR language, EXTBASE *ExtBase)
         tags[0].ti_Data = (ULONG) %b_BuiltInLanguage;
         tags[2].ti_Data = %b_Version;
 
-        ExtBase->catalog = OpenCatalogA(loc, (STRPTR) "%b.catalog", tags );
+        PPTBase->catalog = OpenCatalogA(loc, (STRPTR) "%b.catalog", tags );
 
     }
 }
 
-VOID Close%bCatalog( EXTBASE *ExtBase )
+VOID Close%bCatalog( struct PPTBase *PPTBase )
 {
-    struct Library *LocaleBase = ExtBase->lb_Locale;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
 
     if (LocaleBase != NULL) {
-        CloseCatalog(ExtBase->catalog);
+        CloseCatalog(PPTBase->catalog);
     }
-    ExtBase->catalog = NULL;
+    PPTBase->catalog = NULL;
 }
 
 /*
  *  A standard routine.
  */
 
-STRPTR Get%bString(struct LocaleString *fcstr, EXTBASE *ExtBase)
+const char *Get%bString( const struct LocaleString *fcstr, struct PPTBase *PPTBase)
 {
-    struct Library *LocaleBase = ExtBase->lb_Locale;
-    STRPTR msg;
+    struct Library *LocaleBase = PPTBase->lb_Locale;
+    const char *msg;
 
     if( fcstr ) {
-        if( ExtBase->catalog && LocaleBase ) {
-            msg = GetCatalogStr(ExtBase->catalog, fcstr->ID, fcstr->Str);
+        if( PPTBase->catalog && LocaleBase ) {
+            msg = GetCatalogStr(PPTBase->catalog, fcstr->ID, fcstr->Str);
         } else {
             msg = fcstr->Str;
         }
