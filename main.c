@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.89 1998/07/01 21:36:53 jj Exp $
+    $Id: main.c,v 1.90 1998/07/01 22:19:47 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -516,10 +516,8 @@ VOID AreaDrop( FRAME *frame, FRAME *drop )
 
     if( FrameFree( frame ) && FrameFree( drop ) ) {
 
-        ans = Req(GetFrameWin(frame), "Alpha|Composite|Cancel",
-                  "\nWhat should I do with the item you dropped?\n"
-                  "     a) Add As Alpha Channel\n"
-                  "     b) Composite it to the image\n" );
+        ans = Req(GetFrameWin(frame), GetStr(mALPHA_COMPOSITE_CANCEL),
+                                      GetStr(mFRAMEDROPPED) );
 
         switch(ans) {
             case 1: /* Alpha */
@@ -635,10 +633,12 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                     TAG_DONE
                 };
                 struct TagItem renamewin[] = {
-                    AR_Text,         (ULONG) ISEQ_C"\nPlease enter the new project name:\n",
+                    AR_Text,         NULL,
                     AR_StringObject, NULL,
                     TAG_DONE
                 };
+
+                renamewin[0].ti_Data = (ULONG) GetStr( mPLEASE_ENTER_NEW_NAME );
 
                 /*
                  *  Set up the rename buffer.
@@ -1035,7 +1035,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
         case MID_PROCESS:
             if(FrameFree(frame)) {
                 if(RunFilter( frame, NULL ) != PERR_OK)
-                    Req(win,NULL,"\nWARNING!\n\nCouldn't spawn a new process\n");
+                    Req(win,NULL,GetStr(MSG_PERR_NO_NEW_PROCESS) );
             }
             break;
 
@@ -1113,7 +1113,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
         case MID_LOADERS:
             if( !(extl.Win) ) {
-                if( extl.Win = GimmeExtInfoWindow( "Loaders", "Open", &extl ) ) {
+                if( extl.Win = GimmeExtInfoWindow( GetStr(mLOADERS), GetStr(MSG_LOAD_GAD), &extl ) ) {
                     // SetAttrs( extl.Win, BT_HelpNode, "PPT.guide/LoadersWindow", TAG_DONE );
 
                     if( extl.initialpos.Height )
@@ -1145,7 +1145,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
         case MID_EFFECTS:
             if( !extf.Win ) {
-                if( extf.Win = GimmeExtInfoWindow( "Effects", "Go!", &extf ) ) {
+                if( extf.Win = GimmeExtInfoWindow( GetStr(mEFFECTS), GetStr(mGO), &extf ) ) {
                     if( extf.initialpos.Height )
                         SetAttrs( extf.Win, WINDOW_Bounds, &extf.initialpos, TAG_DONE );
 
@@ -1174,7 +1174,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
 
         case MID_REXXWINDOW:
             if( !exts.Win ) {
-                if( exts.Win = GimmeExtInfoWindow( "Scripts", "Execute", &exts ) ) {
+                if( exts.Win = GimmeExtInfoWindow( GetStr(mSCRIPTS), GetStr(MSG_EXECUTE_GAD), &exts ) ) {
                     if( exts.initialpos.Height )
                         SetAttrs( exts.Win, WINDOW_Bounds, &exts.initialpos, TAG_DONE );
 
@@ -1693,10 +1693,7 @@ int HandlePrefsIDCMP( ULONG rc )
                         if( depth > 8 && tmpdisp.depth < depth ) {
                             tmpdisp.depth = depth;
                             if( DOCONFIRM ) {
-                                Req(NEGNUL,NULL,ISEQ_C"\nHi- and Truecolor CyberGFX screens are\n"
-                                                "always used to their full potential.  So,\n"
-                                                "I am using a %ld -bit depth, even if you\n"
-                                                "specified otherwise.\n", depth );
+                                Req(NEGNUL,NULL,GetStr(mCGX_HI_AND_TRUECOLOR_SCREENS), depth );
                             }
                         }
                     }
@@ -1766,8 +1763,7 @@ int HandlePrefsIDCMP( ULONG rc )
                 if( strcmp( tmpprefs.vmdir, globals->userprefs->vmdir ) != 0 ||
                     tmpprefs.vmbufsiz != globals->userprefs->vmbufsiz)
                 {
-                    Req( NEGNUL, NULL, "\nNOTE:  Some of the settings cannot\n"
-                                       "be used until PPT is next started.\n\n" );
+                    Req( NEGNUL, NULL, GetStr( mSOME_SETTINGS_CANT_BE_USED) );
                     kludgevm = TRUE;
                 }
 
@@ -1783,10 +1779,7 @@ int HandlePrefsIDCMP( ULONG rc )
                         if( OpenDisplay() != PERR_OK ) {
                             Panic("Unable to open screen and can't even fall back to original!");
                         } else {
-                            Req(NEGNUL,NULL, ISEQ_C ISEQ_B "\nERROR!\n\n" ISEQ_N
-                                            "I couldn't open the screen you specified.\n"
-                                            "Try again, but this time try a different\n"
-                                            "screenmode or a smaller screen.\n");
+                            Req(NEGNUL,NULL, GetStr( mTRY_A_SMALLER_SCREEN ) );
                         }
                     }
 
@@ -1804,7 +1797,7 @@ int HandlePrefsIDCMP( ULONG rc )
 
                 if( rc == GID_PW_SAVE ) {
                     if(SavePrefs( globals, NULL ) != PERR_OK ) {
-                        Req(NEGNUL,NULL,"\nWARNING: Couldn't save preferences!\n");
+                        Req(NEGNUL,NULL,GetStr(mCOULDNT_SAVE_PREFERENCES) );
                     }
                 }
 
@@ -1974,7 +1967,7 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
                             sprintf(str,"%s",ext->diskname);
                         }
                         if( !SendRexxCommand( rxhost, str, NULL ) )
-                            Req(NEGNUL,NULL,"\nFailed to start REXX script!\n");
+                            Req(NEGNUL,NULL,GetStr(mFAILED_TO_START_SCRIPT) );
                         break;
                 }
 
@@ -2307,8 +2300,8 @@ int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
             break;
 
         case GID_EDIT_EXTNEW:
-            s = "«Empty»";
-            entry = "«New»";
+            s = GetStr(mEXTENSION_EMPTY);
+            entry = GetStr(mEXTENSION_NEW);
             if(AddExtension( ew->frame, entry, s, strlen(s)+1, EXTF_CSTRING, globxd ) == PERR_OK ) {
                 SetGadgetAttrs(GAD(ew->ExtName), ew->win, NULL, GA_Disabled, FALSE, STRINGA_TextVal, entry, TAG_DONE);
                 SetGadgetAttrs(GAD(ew->ExtValue), ew->win, NULL, GA_Disabled, FALSE, STRINGA_TextVal, s, TAG_DONE);
@@ -2323,9 +2316,8 @@ int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
 
         case GID_EDIT_EXTREMOVE:
             GetAttr( STRINGA_TextVal, ew->ExtName, (ULONG *) &s );
-            if( !DOCONFIRM || Req( GetFrameWin(ew->frame), "Remove|Cancel",
-                                   ISEQ_C"\nAre you sure you wish to remove extension\n"
-                                   "called '%s'?\n", s ) ) {
+            if( !DOCONFIRM || Req( GetFrameWin(ew->frame), GetStr(mREMOVE_CANCEL),
+                                   GetStr(mSURE_TO_REMOVE_EXTENSION) ) ) {
 
                 RemoveExtension( ew->frame, s, globxd );
                 RemoveSelected( ew->win, ew->ExtList );
@@ -2355,7 +2347,7 @@ int HandleEditIDCMP( EDITWIN *ew, ULONG rc )
                             sfree(buf);
                         }
                     } else {
-                        SetGadgetAttrs(GAD(ew->ExtValue), ew->win, NULL, GA_Disabled, TRUE, STRINGA_TextVal, "«uneditable»", TAG_DONE );
+                        SetGadgetAttrs(GAD(ew->ExtValue), ew->win, NULL, GA_Disabled, TRUE, STRINGA_TextVal, GetStr(mEXTENSION_UNEDITABLE), TAG_DONE );
                     }
                 } else {
                     InternalError("ExtList out of sync!");
@@ -2605,7 +2597,7 @@ int HandleDispPrefsWindowIDCMP( FRAME *frame, ULONG rc )
 
             res = AslRequestTags( req,
                 ASLSM_Screen, MAINSCR,
-                ASLSM_TitleText,            "Select screen mode",
+                ASLSM_TitleText,            GetStr(mSELECT_SCREEN_MODE),
                 ASLSM_InitialDisplayID,     d->dispid,
                 ASLSM_InitialDisplayWidth,  d->width,
                 ASLSM_InitialDisplayHeight, d->height,
@@ -3328,27 +3320,21 @@ int main(int argc, char **argv)
 
     globsigmask = 0L;
 
-    UpdateStartupWindow( "Loading external I/O modules..." );
+    UpdateStartupWindow( GetStr(mLOADING_IO_MODULES) );
     FetchExternals(globals->userprefs->modulepath,NT_LOADER);
-    UpdateStartupWindow( "Loading external effects..." );
+    UpdateStartupWindow( GetStr(mLOADING_EFFECTS) );
     FetchExternals(globals->userprefs->modulepath,NT_EFFECT);
-    UpdateStartupWindow( "Loading external scripts..." );
+    UpdateStartupWindow( GetStr(mLOADING_SCRIPTS) );
     FetchExternals(globals->userprefs->rexxpath,NT_SCRIPT);
 
     CloseStartupWindow();
 
     if( IsListEmpty( &globals->loaders ) ) {
-        Req(NEGNUL,"Whoops","\n"ISEQ_C ISEQ_B ISEQ_HIGHLIGHT"WARNING!\n\n" ISEQ_TEXT
-                        "I could not locate any loaders.  It may be\n"
-                        "that the module directory is lost or\n"
-                        "the internal paths are set wrong.\n" );
+        Req(NEGNUL,GetStr(mWHOOPS),GetStr(mCOULD_NOT_LOCATE_ANY_LOADERS) );
     }
 
     if( IsListEmpty( &globals->effects ) ) {
-        Req(NEGNUL,"Whoops","\n"ISEQ_C ISEQ_B ISEQ_HIGHLIGHT"WARNING!\n\n" ISEQ_TEXT
-                        "I could not locate any effects.  It may be\n"
-                        "that the module directory is lost or\n"
-                        "the internal paths are set wrong.\n" );
+        Req(NEGNUL,GetStr(mWHOOPS),GetStr(mCOULD_NOT_LOCATE_ANY_EFFECTS) );
     }
 
     /*
