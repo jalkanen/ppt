@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 5.1 1999/02/25 20:20:24 jj Exp $
+    $Id: rexx.c,v 6.0 1999/10/14 16:21:58 jj Exp $
 
     AREXX interface to PPT. Parts of this code are originally
     from ArexxBox, by Michael Balzer.
@@ -576,7 +576,7 @@ void rx_askreq( PPTREXXARGS *ra, struct RexxMsg *rm )
                 if(!CheckPtr(labels,"REXX/AR_CycleObject labels") )
                     break;
 
-                for(j = 0; labels[j] == NULL; j++) {
+                for(j = 0; labels[j] != NULL; j++) {
                     D(bug("\tReleasing label @%08X\n",labels[j]));
                     sfree(labels[j]);
                 }
