@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.6 1999/01/13 22:58:00 jj Exp $
+    $Id: toolbar.c,v 1.7 1999/02/21 21:00:17 jj Exp $
 
     Grumble...
 
@@ -39,15 +39,14 @@
 #include <datatypes/pictureclass.h>
 #include <proto/datatypes.h>
 
-#include "bitmapclass.h" // BUG
 #include "pragmas/bguibitmap_pragmas.h"
 ///
 
 /*------------------------------------------------------------------*/
 
-#define TextItem(x)   { (x), TIT_TEXT,  NULL, NULL, NULL }
-#define PicItem(x,a)  { (x), TIT_IMAGE, a, NULL, NULL }
-#define EndItem       { 0L,  TIT_END, NULL, NULL, NULL }
+#define TextItem(x)   { (x), TIT_TEXT,  NULL, NULL, NULL, NULL }
+#define PicItem(x,a)  { (x), TIT_IMAGE, a,    NULL, NULL, NULL }
+#define EndItem       { 0L,  TIT_END,   NULL, NULL, NULL, NULL }
 
 #define BUFLEN 80
 #define DEFAULT_TOOLBAR_WIDTH   200
@@ -61,12 +60,52 @@ Class *ToolbarClass, *ToolItemClass = NULL, *BGUIBitmapClass = NULL;
 struct Library *BGUIBitmapBase = NULL;
 
 /*
- *  This list contains the different things.
+ *  This list contains the actual toolbar.
  */
 
-struct ToolbarItem PPTToolbar[MAX_TOOLBARSIZE+1] = {
-    TextItem( MID_LOADNEW ),
-    TextItem( MID_PROCESS ),
+LONG PPTToolbarConfig[MAX_TOOLBARSIZE+1] = {
+    MID_LOADNEW,
+    MID_PROCESS,
+    -1
+};
+
+/*
+ *  This list contains the available toolbar items.  It also
+ *  contains their localized labels, file names (for images)
+ *  etc.  It does not, however, contain the gadgets, since
+ *  they're compiled on the PPTToolbar.
+ */
+
+struct ToolbarItem ToolbarList[] = {
+    PicItem(MID_NEW,            "New" ),
+    PicItem(MID_LOADNEW,        "Load" ),
+    PicItem(MID_LOADAS,         "Load" ),
+    PicItem(MID_SAVEAS,         "Save" ),
+    PicItem(MID_DELETE,         "Close" ),
+    PicItem(MID_RENAME,         "Rename" ),
+    PicItem(MID_HIDE,           "HideShow" ),
+    TextItem(MID_QUIT),
+
+    PicItem(MID_UNDO,           "Undo"),
+    PicItem(MID_CUT,            "Cut" ),
+    TextItem(MID_CUTFRAME),
+    PicItem(MID_COPY,           "Copy" ),
+    PicItem(MID_PASTE,          "Paste" ),
+
+    PicItem(MID_ZOOMIN,         "ZoomIn" ),
+    PicItem(MID_ZOOMOUT,        "ZoomOut" ),
+    PicItem(MID_SELECTALL,      "SelectAll" ),
+    PicItem(MID_EDITINFO,       "Info" ),
+    PicItem(MID_SETRENDER,      "RenderPrefs" ),
+    PicItem(MID_RENDER,         "Render" ),
+    PicItem(MID_CLOSERENDER,    "RenderClose" ),
+    PicItem(MID_CORRECTASPECT,  "CorrectAspect" ),
+    PicItem(MID_EDITPALETTE,    "Palette" ),
+    TextItem(MID_LOADPALETTE),
+    TextItem(MID_SAVEPALETTE),
+
+    PicItem(MID_PROCESS,        "Process" ),
+    PicItem(MID_BREAK,          "Break" ),
     EndItem
 };
 
@@ -91,39 +130,6 @@ enum {
     TO_IMAGE,
     TO_TEXT
 } ToolbarOption;
-
-const LONG AvailableButtons[] = {
-    MID_NEW,
-    MID_LOADNEW,
-    MID_LOADAS,
-    MID_SAVEAS,
-    MID_DELETE,
-    MID_RENAME,
-    MID_HIDE,
-    MID_QUIT,
-
-    MID_UNDO,
-    MID_CUT,
-    MID_CUTFRAME,
-    MID_COPY,
-    MID_PASTE,
-
-    MID_ZOOMIN,
-    MID_ZOOMOUT,
-    MID_SELECTALL,
-    MID_EDITINFO,
-    MID_SETRENDER,
-    MID_RENDER,
-    MID_CLOSERENDER,
-    MID_CORRECTASPECT,
-    MID_EDITPALETTE,
-    MID_LOADPALETTE,
-    MID_SAVEPALETTE,
-
-    MID_PROCESS,
-    MID_BREAK,
-    -1L
-};
 
 /*
  *  Toolbar class data.
@@ -324,6 +330,20 @@ AddItems( Class *cl, Object *obj, TD *td, Object **tb )
 }
 ///
 
+/// ToolbarSet()
+ULONG STATIC ASM
+ToolbarSet( REGPARAM(a0,Class *,cl),
+            REGPARAM(a2,Object *,obj),
+            REGPARAM(a1,struct opSet *,ops) )
+{
+    TD      *td = (TD *)INST_DATA(cl,obj);
+    ULONG   rc;
+
+    rc = DoSuperMethodA( cl, obj, (Msg) ops );
+
+    return rc;
+}
+///
 /// ToolbarNew()
 
 ULONG STATIC ASM
@@ -333,8 +353,6 @@ ToolbarNew( REGPARAM(a0,Class *,cl),
 {
     TD      *td;
     struct TagItem *tag, *tags = ops->ops_AttrList, *tstate;
-    int    c = 0, item = 0;
-    BOOL   quit = FALSE;
     ULONG rc;
 
     D(bug("Toolbar: OM_NEW\n"));
@@ -375,8 +393,7 @@ ToolbarDispose( REGPARAM(a0,Class *,cl),
                 REGPARAM(a2,Object *,obj),
                 REGPARAM(a1,Msg,msg) )
 {
-    TD *td = (TD*)INST_DATA(cl,obj);
-    int i;
+    // TD *td = (TD*)INST_DATA(cl,obj);
 
     D(bug("Toolbar: OM_DISPOSE\n"));
 
@@ -396,8 +413,10 @@ Prototype PERROR ReadToolbarConfig( BPTR fh );
 PERROR ReadToolbarConfig( BPTR fh )
 {
     UBYTE buf[ BUFLEN+1 ], *s;
-    struct ToolbarItem *tbi = PPTToolbar;
+    struct ToolbarItem *tbi;
     char *tail;
+    int  item = 0;
+    ULONG gid;
 
     D(bug("BEGIN_TOOLBAR\n"));
 
@@ -408,27 +427,36 @@ PERROR ReadToolbarConfig( BPTR fh )
         if( s ) {
             switch( GetOptID( ToolbarOptions, s ) ) {
                 case TO_END:
-                    tbi->ti_Type = TIT_END;
+                    PPTToolbarConfig[item] = -1;
                     return PERR_OK;
 
                 case TO_IMAGE:
                     s = strtok( NULL, " \t\n" ); /* s = 2nd arg */
-                    tbi->ti_Type = TIT_IMAGE;
-                    tbi->ti_GadgetID = strtol( s, &tail, 0 );
-                    s = strtok( NULL, "\n" ); /* s = 3rd arg */
-                    if( tbi->ti_FileName = smalloc( strlen(s) + 1 ) )
-                        strcpy( tbi->ti_FileName, s );
+                    gid = strtol( s, &tail, 0 );
 
-                    D(bug("\tRead in image gadget %lu (file=%s)\n",tbi->ti_GadgetID,tbi->ti_FileName));
-                    tbi++;
+                    if( tbi = FindToolbarGID( ToolbarList, gid ) ) {
+                        tbi->ti_Type = TIT_IMAGE;
+                        s = strtok( NULL, "\n" ); /* s = 3rd arg */
+                        PutFileNameToolItem( tbi, NULL, s );
+                        D(bug("\tRead in image gadget %lu (file=%s)\n",tbi->ti_GadgetID,tbi->ti_FileName));
+                        PPTToolbarConfig[item++] = gid;
+                    } else {
+                        D(bug("\tIllegal toolbar gid %lu\n",gid));
+                    }
                     break;
 
                 case TO_TEXT:
                     s = strtok( NULL, " \t\n" ); /* s = 2nd arg */
-                    tbi->ti_Type = TIT_TEXT;
-                    tbi->ti_GadgetID = strtol( s, &tail, 0 );
-                    D(bug("\tRead in gadget %lu\n",tbi->ti_GadgetID));
-                    tbi++;
+                    gid = strtol( s, &tail, 0 );
+
+                    if( tbi = FindToolbarGID( ToolbarList, gid ) ) {
+                        tbi->ti_Type = TIT_TEXT;
+                        D(bug("\tRead in gadget %lu\n",tbi->ti_GadgetID));
+                        PPTToolbarConfig[item++] = gid;
+                    } else {
+                        D(bug("\tIllegal toolbar gid %lu\n",gid));
+                    }
+
                     break;
 
                 case GOID_COMMENT:
@@ -445,28 +473,37 @@ PERROR ReadToolbarConfig( BPTR fh )
 ///
 /// WriteToolbarConfig()
 Prototype PERROR WriteToolbarConfig( BPTR fh );
-
+/*
+ *  Writes the tool bar configuration to the given filehandle.
+ *  BUG: image file names should be quote-enclosed
+ */
 PERROR WriteToolbarConfig( BPTR fh )
 {
-    struct ToolbarItem *tbi = PPTToolbar;
     char buf[BUFLEN];
+    struct ToolbarItem *tbi;
+    int  i = 0;
 
     FPuts( fh, "BEGINTOOLBAR\n" );
 
-    while( tbi->ti_Type != TIT_END ) {
-        switch( tbi->ti_Type ) {
-            case TIT_TEXT:
-                sprintf( buf, "    TEXT %lu\n", tbi->ti_GadgetID );
-                FPuts( fh, buf );
-                break;
+    while( PPTToolbarConfig[i] != -1 ) {
 
-            case TIT_IMAGE:
-                sprintf( buf, "    IMAGE %lu %s\n", tbi->ti_GadgetID, tbi->ti_FileName );
-                FPuts( fh, buf );
-                break;
+        if( tbi = FindToolbarGID( ToolbarList, PPTToolbarConfig[i] ) ) {
 
+            switch( tbi->ti_Type ) {
+                case TIT_TEXT:
+                    sprintf( buf, "    TEXT %lu\n", tbi->ti_GadgetID );
+                    FPuts( fh, buf );
+                    break;
+
+                case TIT_IMAGE:
+                    sprintf( buf, "    IMAGE %lu %s\n", tbi->ti_GadgetID, tbi->ti_FileName );
+                    FPuts( fh, buf );
+                    break;
+
+            }
         }
-        tbi++;
+
+        i++;
     }
     FPuts( fh, "END\n" );
 
@@ -476,6 +513,7 @@ PERROR WriteToolbarConfig( BPTR fh )
 
 /// Class Initialization
 STATIC DPFUNC ClassFunc[] = {
+    OM_SET,             (FUNCPTR)ToolbarSet,
     OM_NEW,             (FUNCPTR)ToolbarNew,
     OM_DISPOSE,         (FUNCPTR)ToolbarDispose,
     TOOLM_ADDSINGLE,    (FUNCPTR)ToolbarAddSingle,
@@ -538,9 +576,9 @@ struct NewMenu *FindNewMenuItemName( struct NewMenu *menus, STRPTR name )
 ///
 
 /// FindInToolbar()
-Prototype struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid );
+Prototype struct ToolbarItem *FindToolbarGID( struct ToolbarItem *head, ULONG gid );
 
-struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid )
+struct ToolbarItem *FindToolbarGID( struct ToolbarItem *head, ULONG gid )
 {
     int i;
 
@@ -550,9 +588,9 @@ struct ToolbarItem *FindInToolbar( struct ToolbarItem *head, ULONG gid )
     return NULL;
 }
 
-Prototype struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name );
+Prototype struct ToolbarItem *FindToolbarName( struct ToolbarItem *head, STRPTR name );
 
-struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name )
+struct ToolbarItem *FindToolbarName( struct ToolbarItem *head, STRPTR name )
 {
     int i;
 
@@ -563,6 +601,7 @@ struct ToolbarItem *FindInToolbarName( struct ToolbarItem *head, STRPTR name )
 }
 ///
 
+#if 0
 /// InsertToolItem()
 /*
  *  Inserts a tool bar item onto the list.  Also updates visuals.
@@ -609,8 +648,32 @@ VOID RemoveToolItem( struct ToolbarItem *toolbar, struct ToolbarItem *tb )
     RemoveEntryVisible( prefsw.win, prefsw.ToolbarList, tb->ti_Label );
 }
 ///
+#endif
 
-/// SetupToolbarList()
+/// RebuildToolbarFromListview( Object *list )
+Prototype VOID RebuildToolbarFromListview( Object *list );
+
+VOID RebuildToolbarFromListview( Object *list )
+{
+    APTR entry;
+
+    if( entry = (APTR)DoMethod( list, LVM_FIRSTENTRY, NULL, 0L ) ) {
+        int item = 0;
+        struct ToolbarItem *ti;
+
+        do {
+            if( entry ) {
+                ti = FindToolbarName( ToolbarList, entry );
+                PPTToolbarConfig[item++] = ti->ti_GadgetID;
+            }
+            entry = (APTR)DoMethod( list, LVM_NEXTENTRY, entry, 0L );
+        } while( entry );
+        PPTToolbarConfig[item] = -1;
+    }
+}
+///
+
+/// VOID SetupToolbarList(VOID)
 /*
  *  Go through the toolbar settings and set up the lists.
  */
@@ -618,14 +681,11 @@ Prototype VOID SetupToolbarList(VOID);
 
 VOID SetupToolbarList(VOID)
 {
-    struct ToolbarItem *tooldata = PPTToolbar;
+    struct ToolbarItem *tooldata = ToolbarList, *ti;
     int item = 0;
     LONG barcode;
     struct NewMenu *nm;
     D(APTR b);
-
-    SetGadgetAttrs( GAD(prefsw.ToolItemType), prefsw.win, NULL,
-                    MX_DisableButton, 1, TAG_DONE );
 
     D(bug("SetupToolbarList()\n"));
     D(b = StartBench());
@@ -634,13 +694,32 @@ VOID SetupToolbarList(VOID)
      *  First, go through the menu items and place them on the bigger listview.
      */
 
-    while( (barcode = AvailableButtons[item]) > 0 ) {
+    item = 0;
+    while( tooldata[item].ti_Type != TIT_END ) {
+        int i;
 
-        nm = (APTR)FindNewMenuItem( PPTMenus, barcode );
-        if( nm ) {
-            if( !FindInToolbar( tooldata, barcode ) ) {
-                AddEntry( NULL, prefsw.AvailButtons, nm->nm_Label, LVAP_TAIL );
-            }
+        /*
+         *  Check if it's on the list of things to be added to the listview
+         */
+
+        for( i = 0; PPTToolbarConfig[i] > 0 && PPTToolbarConfig[i] != tooldata[item].ti_GadgetID; i++ );
+        if( PPTToolbarConfig[i] < 0 ) {
+            D(bug("AddEntry(%08x=%s)\n",&tooldata[item],tooldata[item].ti_Label ));
+            AddEntry( NULL, prefsw.AvailButtons, tooldata[item].ti_Label, LVAP_TAIL );
+        }
+        item++;
+    }
+
+    /*
+     *  Now, set up the current list
+     */
+
+    item = 0;
+    while( (barcode = PPTToolbarConfig[item]) > 0 ) {
+
+        if( ti = FindToolbarGID( ToolbarList, barcode ) ) {
+            D(bug("AddEntry(%08x=%s)\n",ti,ti->ti_Label ));
+            AddEntry( NULL, prefsw.ToolbarList, ti->ti_Label, LVAP_TAIL );
         }
 
         item++;
@@ -648,15 +727,6 @@ VOID SetupToolbarList(VOID)
 
     SortList( NULL, prefsw.AvailButtons );
 
-    /*
-     *  Now, set up the original list.
-     */
-    item = 0;
-    while( tooldata[item].ti_Type != TIT_END ) {
-        D(bug("AddEntry(%08x=%s)\n",&tooldata[item],tooldata[item].ti_Label ));
-        AddEntry( NULL, prefsw.ToolbarList, tooldata[item].ti_Label, LVAP_TAIL );
-        item++;
-    }
     D(StopBench(b));
     D(bug("...finished building toolbar list\n"));
 }
@@ -703,6 +773,86 @@ int HandleToolIDCMP( ULONG rc )
 }
 ///
 
+/// PERROR PutFileNameToolItem( struct ToolbarItem *ti, STRPTR path, STRPTR filename );
+
+Prototype PERROR PutFileNameToolItem( struct ToolbarItem *ti, STRPTR path, STRPTR filename );
+
+PERROR PutFileNameToolItem( struct ToolbarItem *ti, STRPTR path, STRPTR filename )
+{
+    int len = 0;
+    char *fn = NULL;
+
+    if( path ) {
+        len = strlen(path) + strlen(filename) + 16;
+        if(fn = smalloc( len )) {
+            strcpy( fn, path );
+            AddPart( fn, filename, len );
+        }
+    } else {
+        len = strlen(filename) + 1;
+        if( fn = smalloc(len) ) {
+            strcpy( fn, filename );
+        }
+    }
+
+    if( fn ) {
+        if( ti->ti_FileName ) sfree( ti->ti_FileName );
+        ti->ti_FileName = fn;
+        D(bug("\tAllocated %lu bytes from %08X for filename\n", len, ti->ti_FileName));
+        return PERR_OK;
+    } else {
+        return PERR_OUTOFMEMORY;
+    }
+}
+///
+
+/// GimmeToolbar()
+Object *GimmeToolBar( LONG *toolbar )
+{
+    Object *tb;
+    struct ToolbarItem *ti;
+
+    D(bug("GimmeToolbar( %08X )\n",toolbar));
+
+    if( tb = NewObject( ToolbarClass, NULL, TAG_DONE ) ) {
+        int i;
+
+        for(i = 0; toolbar[i] != -1; i++ ) {
+
+            if( ti = FindToolbarGID( ToolbarList, toolbar[i] ) ) {
+
+                /*
+                 *  Is there a default filename?  How about a user-specified one?
+                 */
+
+                if( !ti->ti_FileName && ti->ti_DefaultFileName ) {
+                    PutFileNameToolItem( ti, DEFAULT_TOOLBARDIR, ti->ti_DefaultFileName );
+                }
+
+                /*
+                 *  Allocate object
+                 */
+
+                if( ti->ti_Gadget = NewObject( ToolItemClass, NULL,
+                                               Label( ti->ti_Label ),
+                                               BT_ToolTip, ti->ti_Label,
+                                               (ti->ti_Type == TIT_IMAGE) ? TAG_IGNORE : TAG_SKIP, 1,
+                                               TOOLITEM_FileName, ti->ti_FileName,
+                                               TOOLITEM_Screen, MAINSCR,
+                                               GA_ID, ti->ti_GadgetID,
+                                               TAG_DONE ) )
+                {
+                    DoMethod( tb, TOOLM_ADDSINGLE, NULL, ti->ti_Gadget, TASNUM_LAST, 0L );
+                }
+            } else {
+                InternalError("Toolbar list out of sync!");
+            }
+        }
+    }
+
+    return tb;
+}
+///
 /// GimmeToolBarWindow()
 /*
     This creates and opens the tool bar window.
@@ -767,24 +917,7 @@ PERROR GimmeToolBarWindow( VOID )
         return PERR_WINDOWOPEN;
     }
 
-
-    if( toolw.GO_ToolBar = NewObject( ToolbarClass, NULL, TAG_DONE ) ) {
-        int i;
-
-        for(i = 0; PPTToolbar[i].ti_Type != TIT_END; i++ ) {
-
-            if( PPTToolbar[i].ti_Gadget = NewObject( ToolItemClass, NULL,
-                                                     Label( PPTToolbar[i].ti_Label ),
-                                                     BT_ToolTip, PPTToolbar[i].ti_Label,
-                                                     TOOLITEM_Screen, MAINSCR,
-                                                     TOOLITEM_FileName, PPTToolbar[i].ti_FileName,
-                                                     GA_ID, PPTToolbar[i].ti_GadgetID,
-                                                     TAG_DONE ) )
-            {
-                DoMethod( toolw.GO_ToolBar, TOOLM_ADDSINGLE, NULL, PPTToolbar[i].ti_Gadget, TASNUM_LAST, 0L );
-            }
-        }
-    }
+    toolw.GO_ToolBar = GimmeToolBar(PPTToolbarConfig);
 
     /*
      *  The window itself. The area is attached onto it.
@@ -829,6 +962,31 @@ PERROR GimmeToolBarWindow( VOID )
 }
 ///
 
+/*
+ *  This is a kludge to reopen the toolbar window
+ *  when screen is changed to make sure the BITMAP_Screen
+ *  is set correctly for icons
+ */
+
+Prototype PERROR RebuildToolbarWindow(VOID);
+
+PERROR RebuildToolbarWindow(VOID)
+{
+    int i;
+
+    DisposeObject( toolw.Win );
+    toolw.Win = NULL;
+
+    for( i = 0; ToolbarList[i].ti_Type != TIT_END; i++ )
+        ToolbarList[i].ti_Gadget = NULL;
+
+    if( GimmeToolBarWindow() == PERR_OK ) {
+        toolw.win = WindowOpen( toolw.Win );
+        return PERR_OK;
+    }
+    return PERR_ERROR;
+}
+
 /// LocalizeToolbar()
 Prototype PERROR LocalizeToolbar(VOID);
 
@@ -837,10 +995,10 @@ PERROR LocalizeToolbar(VOID)
     int item = 0;
     struct NewMenu *nm;
 
-    while( PPTToolbar[item].ti_Type != TIT_END ) {
-        nm = (APTR)FindNewMenuItem( PPTMenus, PPTToolbar[item].ti_GadgetID );
+    while( ToolbarList[item].ti_Type != TIT_END ) {
+        nm = (APTR)FindNewMenuItem( PPTMenus, ToolbarList[item].ti_GadgetID );
         if( nm ) {
-            PPTToolbar[item].ti_Label = nm->nm_Label;
+            ToolbarList[item].ti_Label = nm->nm_Label;
         }
 
         item++;
@@ -849,7 +1007,7 @@ PERROR LocalizeToolbar(VOID)
     return PERR_OK;
 }
 ///
-
+/// FreeToolbar()
 Prototype VOID FreeToolbar(VOID);
 
 VOID FreeToolbar(VOID)
@@ -857,11 +1015,13 @@ VOID FreeToolbar(VOID)
     int item = 0;
     struct NewMenu *nm;
 
-    while( PPTToolbar[item].ti_Type != TIT_END ) {
-        if( PPTToolbar[item].ti_FileName ) sfree( PPTToolbar[item].ti_FileName );
+    while( ToolbarList[item].ti_Type != TIT_END ) {
+        if( ToolbarList[item].ti_FileName ) sfree( ToolbarList[item].ti_FileName );
+        ToolbarList[item].ti_Gadget = NULL;
         item++;
     }
 }
+///
 
 /// UpdateMouseLocation()
 /*
