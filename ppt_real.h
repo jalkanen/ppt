@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.8 1996/01/27 12:13:22 jj Exp $
+    $Id: ppt_real.h,v 1.9 1996/09/17 20:30:10 jj Exp $
 
     Main definitions for PPT.
 
@@ -42,11 +42,15 @@
 #endif
 
 #ifndef LIBRARIES_BGUI_H
-#include <bgui.h>
+#include <libraries/bgui.h>
 #endif
 
 #ifndef LIBRARIES_LOCALE_H
 #include <libraries/locale.h>
+#endif
+
+#ifndef ASKREQ_H
+#include "askreq.h"
 #endif
 
 /*------------------------------------------------------------------*/
@@ -77,13 +81,6 @@ typedef ULONG       ID;             /* Identification code */
 /* This macro gives the row length. OBSOLETE */
 #define ROWLEN(a) \
     ( ((PIXINFO *)(a))->bytes_per_row )
-
-/* These three macros exist for simplicity. They are used
-   for locking the global base. BUG: should really not be here */
-
-#define LOCKGLOB()    ObtainSemaphore( &globals->phore )
-#define SHLOCKGLOB()  ObtainSemaphoreShared( &globals->phore )
-#define UNLOCKGLOB()  ReleaseSemaphore( &globals->phore )
 
 /* Main window and main screen */
 
@@ -130,6 +127,9 @@ typedef struct {
     BPTR            seglist;    /* Actual code */
     struct TagItem  *tags;
     ULONG           usecount;
+    BOOL            islibrary;  /* If != 0, this is a newstyle library */
+    UBYTE           diskname[40];/* The real name on disk. */
+    UBYTE           realname[40];/* The name by which this is known */
 } EXTERNAL;
 
 
@@ -227,6 +227,12 @@ typedef struct {
 /*
     The display structure contains necessary info to open a given
     screen/display.
+
+    NOTE: Do not keep here anything that is not shared between
+          instances, as this structure is passed down to the child.
+
+    NB: If you make any modifications, please check MakeFrame() to see
+        what should be done with the new fields.
  */
 
 typedef struct {
@@ -244,16 +250,18 @@ typedef struct {
     UBYTE           renderq;    /* See below */
     UBYTE           dither;     /* Dithering method. */
     UBYTE           cmap_method;/* See below */
-    Object          *Win, *RenderArea; /* For quick display windows, ONLY! */
-    APTR            *visualinfo;/* Visualinfo pointer for this screen */
-    struct Menu     *menustrip; /* GadTools menustrip for the real window */
+    Object          *Win, *RenderArea, /*  For quick display windows, */
+                    *GO_BottomProp,    /*  ONLY */
+                    *GO_RightProp;
     APTR            lock;       /* NULL, if window is not busy */
     char            title[WINTITLELEN];  /* Reserved for window title */
     char            scrtitle[SCRTITLELEN]; /* Reserved for screen title */
     struct Hook     qhook;      /* Quickrender hook for areashow */
+    struct Hook     prophook;   /* Dispwindow border gadget hook */
     VMHANDLE        *bitmaphandle;  /* Rendering on disk utilizes this handle */
     UBYTE           palettepath[MAXPATHLEN]; /* Keeps the pointer at the palette */
     BOOL            forcebw;    /* TRUE, if Force Black/White is enabled */
+
 } DISPLAY;
 
 /* Dithering methods. FS only currently implemented. */
@@ -298,6 +306,7 @@ typedef struct {
                     *GO_status,
                     *GO_Break;
     ULONG           id;             /* PRIVATE */
+    struct SignalSemaphore lock;
 } INFOWIN;
 
 
@@ -310,7 +319,7 @@ typedef struct {
 
 typedef struct Frame_t {
     struct Node     nd;             /* PRIVATE! */
-    char            fullname[MAXPATHLEN]; /* Complete name, including path etc.*/
+    char            path[MAXPATHLEN];/* Just the path-part.*/
     char            name[NAMELEN];  /* The name of the frame, as seen in main display */
     LOADER          *origtype;      /* Points to the loader that originally loaded this frame */
     EXTERNAL        *currext;       /* NULL, if not busy right now. May be ~0, if the external is not yet known */
@@ -322,6 +331,10 @@ typedef struct Frame_t {
     /* All data beyond this point is PRIVATE! */
 
     ULONG           busy;           /* See below for definitions */
+    LONG            busycount;      /* Number of times this item is busy with non-exclusive locks */
+
+    struct SignalSemaphore lock;    /* Used to arbitrate access to this structure */
+
     ID              ID;             /* Frame ID, an unique code that will last.*/
     struct DispPrefsWindow *dpw;    /* Display prefs window. May be NULL */
     struct PaletteWindow *pw;       /* Palette window. May be NULL */
@@ -344,6 +357,17 @@ typedef struct Frame_t {
     ID              alphaparents[10]; /* All the frames this frames is an alpha channel to.
                                          End the list with 0L. */
 
+    ULONG           selectmethod;
+    APTR            selectdata;
+    struct MsgPort  *selectport;    /* Where the messages should be sent */
+
+    struct IBox     zoombox;
+    BOOL            zooming;        /* TRUE, if the zoom gadgets were updated by the program,
+                                       not the user. BUG: Is there really no other way? */
+
+    ID              attached;       /* Simple attachment list. End with 0L */
+
+
 } FRAME;
 
 /*
@@ -351,7 +375,8 @@ typedef struct Frame_t {
 */
 
 #define BUSY_NOT                0L  /* Frame is not busy */
-#define BUSY_READONLY           1L  /* Frame is busy, but can be read. */
+#define BUSY_READONLY           1L  /* Frame is busy, but can be read.
+                                       Non-exclusive in nature. */
 /* The following are reserved for the externals. */
 #define BUSY_LOADING            2L
 #define BUSY_SAVING             3L
@@ -382,6 +407,9 @@ typedef struct {
     struct TextFont *maintf;        /* These two are the same as the TextAttr - structs */
     struct TextFont *listtf;        /* above, but these contain valid pointers. */
 
+    UWORD           progress_step;
+    ULONG           progress_filesize;
+
     /*
      *  OK, this is not a pretty solution, but here are embedded the
      *  TextAttr - and font name fields.
@@ -392,6 +420,10 @@ typedef struct {
 
     char            mfontname[NAMELEN];
     char            lfontname[NAMELEN];
+
+    BOOL            colorpreview;   /* TRUE, if the user wants to have a color prview */
+
+    UBYTE           modulepath[MAXPATHLEN]; /* All the modules reside here. */
 
 } PREFS;
 
@@ -418,6 +450,7 @@ typedef struct {
     Object          *WO_main;       /* Main window object */
     Object          *LV_frames;
     struct List     tempframes;
+    struct Process  *maintask;
 } GLOBALS;
 
 
@@ -441,11 +474,11 @@ typedef struct {
 
     GLOBALS         *g;             /* Pointer to PPT global variables */
     struct MsgPort  *mport;         /* Your own message port */
-    struct Library  *lb_Sys;        /* Exec.library */
+    struct ExecBase *lb_Sys;        /* Exec.library */
     struct Library  *lb_Intuition;
     struct Library  *lb_Utility;
     struct Library  *lb_Gfx;        /* Graphics.library */
-    struct Library  *lb_DOS;
+    struct DosLibrary *lb_DOS;
     struct Library  *lb_BGUI;       /* bgui.library */
     struct Library  *lb_GadTools;   /* gadtools.library */
 
@@ -486,47 +519,6 @@ struct LocaleString {
     LONG    ID;
     STRPTR  Str;
 };
-
-/*------------------------------------------------------------------------*/
-/*
-    Here are the declarations for PPT GUI builder.
-*/
-
-
-#define AR_Dummy            (TAG_USER+0x8000000)
-#define AR_Title            (AR_Dummy + 1)  /* STRPTR */
-#define AR_Text             (AR_Dummy + 2)  /* STRPTR */
-#define AR_Positive         (AR_Dummy + 3)  /* STRPTR */
-#define AR_Negative         (AR_Dummy + 4)  /* STRPTR */
-#define AR_Dimensions       (AR_Dummy + 5)  /* struct IBox * */
-
-/* Values from AR_Dummy + 6 to AR_Dummy + 99 reserved */
-
-#define AR_ObjectMin        (AR_Dummy + 100)    /* PRIVATE */
-#define AR_SliderObject     (AR_Dummy + 100)    /* struct TagItem * */
-#define AR_StringObject     (AR_Dummy + 101)    /* struct TagItem * */
-#define AR_ToggleObject     (AR_Dummy + 102)    /* struct TagItem * */
-#define AR_ObjectMax        (AR_Dummy + 499)
-
-/*
- *  Generic tags for objects
- */
-
-#define AROBJ_Value         (AR_Dummy + 500)    /* APTR */
-#define AROBJ_Label         (AR_Dummy + 501)    /* STRPTR */
-
-/* Slider value objects tag values. */
-
-#define ARSLIDER_Min        (AR_Dummy + 1000)   /* LONG */
-#define ARSLIDER_Max        (AR_Dummy + 1001)   /* LONG */
-#define ARSLIDER_Default    (AR_Dummy + 1002)   /* LONG */
-
-/* String object tag values */
-
-#define ARSTRING_InitialString (AR_Dummy + 1100) /* STRPTR */
-#define ARSTRING_MaxChars   (AR_Dummy + 1101)    /* LONG */
-
-#define MAX_AROBJECTS 30 /* Maximum amount of objects you may create */
 
 
 /*------------------------------------------------------------------*/
@@ -657,11 +649,34 @@ struct PPTMessage {
 
 #define PPTMSG_EFFECTDONE   1L      /* External has died. data contains a
                                        pointer to a new frame. */
-#define PPTMSG_PICKPOINT    2L      /* NOP */
-#define PPTMSG_LOADDONE     3L      /* NOP */
-#define PPTMSG_RENDERDONE   4L      /* NOP */
+#define PPTMSG_LOADDONE     3L
+#define PPTMSG_RENDERDONE   4L
 #define PPTMSG_SAVEDONE     5L      /* Save complete. */
+#define PPTMSG_LASSO_RECT   10L
+#define PPTMSG_PICK_POINT   11L
+#define PPTMSG_FIXED_RECT   12L
 
+/*------------------------------------------------------------------*/
+/* The input handler system */
+
+/* Codes for GetInput() */
+
+#define GINP_LASSO_RECT      0
+#define GINP_PICK_POINT      1
+#define GINP_FIXED_RECT      2
+
+struct gPoint {
+    WORD            x, y;
+};
+
+struct gRect {
+    struct IBox     dim;
+};
+
+struct gFixRect {
+    WORD            x, y; /* Topleft coords */
+    struct IBox     dim;  /* Dimensions of the fixed box */
+};
 
 #endif /* PPT_H */
 
