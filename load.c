@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.11 1997/05/27 22:23:54 jj Exp $
+    $Id: load.c,v 2.12 1997/08/30 21:35:14 jj Exp $
 
     Code for loaders...
 */
@@ -138,12 +138,12 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
                            NP_Output, frame->debug_handle = OpenDebugFile( DFT_Load ),
                            NP_CloseOutput,TRUE, NP_Name, "PPT_Load",
                            NP_StackSize, globals->userprefs->extstacksize,
-                           NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
+                           NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
 #else
     p = CreateNewProcTags( NP_Entry, LoadPicture, NP_Cli, FALSE, NP_Output, Open("NIL:",MODE_NEWFILE),
                            NP_CloseOutput, TRUE, NP_Name, "PPT_Load",
                            NP_StackSize, globals->userprefs->extstacksize,
-                           NP_Priority, -1, NP_Arguments, argbuf, TAG_END );
+                           NP_Priority, globals->userprefs->extpriority, NP_Arguments, argbuf, TAG_END );
 #endif
 
     if(!p) {
