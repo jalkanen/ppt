@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.2 1997/12/06 22:50:26 jj Exp $
+    $Id: frame.c,v 4.3 1998/01/04 16:33:34 jj Exp $
 
     This contains frame handling routines
 
@@ -365,7 +365,7 @@ void DeleteFrame( FRAME *f )
         }
 
         entry = (APTR)FirstEntry(framew.Frames);
-        while( entry && (strcmp(entry,f->nd.ln_Name) != 0) )
+        while( entry && (strcmp(ParseListEntry(entry),f->nd.ln_Name) != 0) )
             entry = (APTR)NextEntry(framew.Frames, entry);
 
         if(entry) {
