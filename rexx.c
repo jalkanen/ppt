@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 6.3 1999/11/28 18:44:53 jj Exp $
+    $Id: rexx.c,v 6.4 1999/12/15 00:18:34 jj Exp $
 
     AREXX interface to PPT. Based heavily on ArexxBox
     by Michael Baltzer.
@@ -1735,6 +1735,8 @@ void HandleRexxCommands( struct RexxHost *host )
 /*
     Use to put a pseudo rexx command into the queue.  This is necessary
     if PPT starts an effect by using its own internal args.
+
+    Command must exist.
 
     See Composite() for example.
 
