@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 6.2 1999/11/28 18:23:43 jj Exp $
+    $Id: rexx.c,v 6.3 1999/11/28 18:44:53 jj Exp $
 
     AREXX interface to PPT. Based heavily on ArexxBox
     by Michael Baltzer.
@@ -1969,8 +1969,8 @@ VOID EmptyRexxWaitItemList(VOID)
 *       value - the string value
 *
 *   RESULT
-%ld\n",res));  @    }  8    return res;(}-€    ///€   /*è   *
-*       that is, 0 for success, and != 0 for failure.
+*       Returns standard boolean values, that is, 0 for success,
+*       and != 0 for failure.
 *
 *   EXAMPLE
 *
