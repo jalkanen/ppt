@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.52 1998/06/30 20:01:07 jj Exp $
+    $Id: gui.c,v 1.53 1998/09/20 00:36:31 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -221,7 +221,11 @@ const char *save_mode_labels[] = {
 };
 
 /* This is the screentitle */
+#ifdef DEBUG_MODE
+const char *std_ppt_blurb = "PPT "RELEASE" (v"VERSION").   "COPYRIGHT" - DO NOT DISTRIBUTE!";
+#else
 const char *std_ppt_blurb = "PPT "RELEASE" (v"VERSION").   "COPYRIGHT;
+#endif
 
 char workbuf[MAXPATHLEN+1],undobuf[MAXPATHLEN+1];
 ///

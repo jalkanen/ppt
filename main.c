@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.94 1998/09/05 12:21:12 nobody Exp $
+    $Id: main.c,v 1.95 1998/09/20 00:36:57 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -99,7 +99,7 @@ GLOBALS *globals;
 EXTBASE *globxd;
 const char verstr[] = "$VER: PPT v"VERSION" "__AMIGADATE__". "
 #if defined(DEBUG_MODE)
-    "(debug version)";
+    "(debug version - distribution prohibited)";
 #else
 #if defined(_M68020)
     "(68020+ optimized version)";
@@ -709,7 +709,9 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                  COPYRIGHT, VERSION, RELEASE,
                  VERSDATE,
 #ifdef DEBUG_MODE
-                 ISEQ_B"\n* Debug code has been compiled in *\n"ISEQ_N,
+                 ISEQ_B"\n* Debug code has been compiled in *\n"
+                 "\nDO NOT SPREAD!!!\n"
+                 ISEQ_N,
 #else
                  "\n",
 #endif
