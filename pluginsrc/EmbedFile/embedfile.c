@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: embedfile.c,v 1.2 1998/02/26 19:46:27 jj Exp $
+    $Id: embedfile.c,v 1.3 1998/12/10 21:44:51 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -14,68 +14,10 @@
 
 #undef DEBUG_MODE
 
-/*
-    First, some compiler stuff to make this compile on SAS/C too.
-*/
+#include <pptplugin.h>
 
-#ifdef _DCC
-#define SAVEDS __geta4
-#define ASM
-#define REG(x) __ ## x
-#define FAR    __far
-#define INLINE
-#else
-#define SAVEDS __saveds
-#define ASM    __asm
-#define REG(x) register __ ## x
-#define FAR    __far
-#define INLINE __inline
-#endif
-
-#ifdef DEBUG_MODE
-#define D(x)    x;
-#define bug     PDebug
-#else
-#define D(x)
-#define bug     a_function_that_does_not_exist
-#endif
-
-
-/*
-    Here are some includes you might find useful. Actually, not all
-    of them are required, but I find it easier to delete extra files
-    than add up forgotten ones.
-*/
-
-#ifndef UTILITY_TAGITEM_H
-#include <utility/tagitem.h>
-#endif
-
-#include <libraries/bgui.h>
-#include <libraries/bgui_macros.h>
 #include <libraries/asl.h>
 
-#include <clib/alib_protos.h>
-
-#include <proto/exec.h>
-#include <proto/intuition.h>
-#include <proto/utility.h>
-#include <proto/dos.h>
-#include <proto/bgui.h>
-
-/*
-    These are required, however. Make sure that these are in your include path!
-*/
-
-#include <ppt.h>
-#include <pragmas/pptsupp_pragmas.h>
-
-/*
-    Just some extra, again.
-*/
-
-#include <stdio.h>
-#include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -86,11 +28,6 @@
 /*----------------------------------------------------------------------*/
 /* Defines */
 
-/*
-    You should define this to your module name. Try to use something
-    short, as this is the name that is visible in the PPT filter listing.
-*/
-
 #define MYNAME      "EmbedFile"
 
 #define DESBLOCKSIZE 24 /* For 3-des */
@@ -98,8 +35,7 @@
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, EXTBASE *ExtBase );
-
+VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, struct PPTBase *PPTBase );
 
 /*----------------------------------------------------------------------*/
 /* Global variables. Generally, you should keep these to the minimum,
@@ -139,6 +75,9 @@ const struct TagItem MyTagArray[] = {
 
     PPTX_ColorSpaces,   CSF_RGB|CSF_GRAYLEVEL,
 
+#ifdef _PPC
+    PPTX_CPU,           (ULONG)AFF_PPC,
+#endif
     TAG_END, 0L
 };
 
@@ -154,43 +93,59 @@ int desCounter;
 
 #ifdef __SASC
 /* Disable SAS/C control-c handling. */
+#ifndef __PPC__
 void __regargs __chkabort(void) {}
+#endif
 void __regargs _CXBRK(void) {}
 #endif
 
-
 /*
-    This routine is called upon the OpenLibrary() the software
-    makes.  You could use this to open up your own libraries
-    or stuff.
+ *  PowerPC definitions, otherwise they won't compile.
+ */
 
-    Return 0 if everything went OK or something else if things
-    failed.
-*/
+#ifdef __PPC__
+#include <powerup/ppclib/interface.h>
 
-SAVEDS ASM int __UserLibInit( REG(a6) struct Library *EffectBase )
+struct TagItem *__MyTagArray = MyTagArray;
+void *__LIBEffectExec = EffectExec;
+void *__LIBEffectInquire = EffectExec;
+
+extern _m68kDoMethodA();
+
+__inline ULONG DoMethodA( Object *obj, Msg msg )
 {
-    return 0;
+    struct Caos c;
+
+    c.caos_Un.Function = (APTR)_m68kDoMethodA;
+    c.M68kCacheMode = IF_CACHEFLUSHALL;
+    c.PPCCacheMode  = IF_CACHEFLUSHALL;
+    c.a0 = (ULONG)obj;
+    c.a1 = (ULONG)msg;
+
+    return PPCCallM68k( &c );
 }
 
-
-SAVEDS ASM VOID __UserLibCleanup( REG(a6) struct Library *EffectBase )
+ULONG DoMethod(Object *obj, ULONG MethodID, ... )
 {
+    return DoMethodA( obj, (Msg)&MethodID );
 }
 
-SAVEDS ASM ULONG LIBEffectInquire( REG(d0) ULONG attr, REG(a5) EXTBASE *ExtBase )
+#else /* 68k code */
+#endif
+
+EFFECTINQUIRE(attr,PPTBase,EffectBase)
 {
     return TagData( attr, MyTagArray );
 }
 
-ULONG ReqA( EXTBASE *ExtBase, UBYTE *gadgets, UBYTE *body, ULONG *args )
+ULONG ReqA( struct PPTBase *PPTBase, UBYTE *gadgets, UBYTE *body, ULONG *args )
 {
-    struct Library          *BGUIBase = ExtBase->lb_BGUI;
+    struct Library          *BGUIBase = PPTBase->lb_BGUI;
     struct bguiRequest      req = { 0L };
     ULONG                   res;
     struct Screen           *wscr = NULL;
 
-    wscr = ExtBase->g->maindisp->scr;
+    wscr = PPTBase->g->maindisp->scr;
 
     req.br_GadgetFormat     = gadgets;
     req.br_TextFormat       = body;
@@ -204,9 +159,9 @@ ULONG ReqA( EXTBASE *ExtBase, UBYTE *gadgets, UBYTE *body, ULONG *args )
     return res;
 }
 
-ULONG Req( EXTBASE *ExtBase, UBYTE *gadgets, UBYTE *body, ... )
+ULONG Req( struct PPTBase *PPTBase, UBYTE *gadgets, UBYTE *body, ... )
 {
-    return( ReqA( ExtBase, gadgets, body, (ULONG *) (&body +1) ) );
+    return( ReqA( PPTBase, gadgets, body, (ULONG *) (&body +1) ) );
 }
 
 
@@ -225,11 +180,11 @@ BOOL EncryptInit( char *passphrase )
     return TRUE;
 }
 
-VOID EncryptFinish( FRAME *frame, EXTBASE *ExtBase )
+VOID EncryptFinish( FRAME *frame, struct PPTBase *PPTBase )
 {
     ULONG key[96] = {0};
 
-    OutputBuffer( frame, desBuffer, desCounter, ExtBase );
+    OutputBuffer( frame, desBuffer, desCounter, PPTBase );
     use3key( key ); /* Make sure the key is deleted */
     return;
 }
@@ -238,7 +193,7 @@ VOID EncryptFinish( FRAME *frame, EXTBASE *ExtBase )
  *  Writes the encrypted data out
  */
 
-VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, EXTBASE *ExtBase )
+VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, struct PPTBase *PPTBase )
 {
     int i, byte;
     ULONG row, col;
@@ -273,7 +228,7 @@ VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, EXTBASE *ExtBase )
     }
 }
 
-PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
+PERROR PutByte( FRAME *frame, UBYTE b, struct PPTBase *PPTBase )
 {
     UBYTE tmpbuffer[DESBLOCKSIZE];
     desBuffer[desCounter++] = b;
@@ -281,7 +236,7 @@ PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
     if( desCounter == DESBLOCKSIZE ) {
         D3des( desBuffer, tmpbuffer );
         // bcopy( desBuffer, tmpbuffer, DESBLOCKSIZE );
-        OutputBuffer( frame, tmpbuffer, DESBLOCKSIZE, ExtBase );
+        OutputBuffer( frame, tmpbuffer, DESBLOCKSIZE, PPTBase );
         desCounter = 0;
     }
     return PERR_OK;
@@ -292,7 +247,7 @@ PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
  *  BUG: This assumes all components are 8 bit wide
  */
 
-PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
+PERROR PutByte( FRAME *frame, UBYTE b, struct PPTBase *PPTBase )
 {
     ULONG row, col;
     UBYTE *cp, comps = frame->pix->components, v;
@@ -324,37 +279,37 @@ PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
 }
 #endif
 
-PERROR PutString( FRAME *frame, STRPTR s, EXTBASE *ExtBase )
+PERROR PutString( FRAME *frame, STRPTR s, struct PPTBase *PPTBase )
 {
     PERROR res = PERR_OK;
 
     while(*s && (res == PERR_OK) ) {
-        res = PutByte(frame, *s++, ExtBase);
+        res = PutByte(frame, *s++, PPTBase);
     }
     return res;
 }
 
-PERROR PutLong( FRAME *frame, LONG number, EXTBASE *ExtBase )
+PERROR PutLong( FRAME *frame, LONG number, struct PPTBase *PPTBase )
 {
     PERROR res;
 
-    res=PutByte( frame, (UBYTE)( (number >> 24) & 0xFF), ExtBase );
-    res=PutByte( frame, (UBYTE)( (number >> 16) & 0xFF), ExtBase );
-    res=PutByte( frame, (UBYTE)( (number >> 8) & 0xFF), ExtBase );
-    res=PutByte( frame, (UBYTE)( (number >> 0) & 0xFF), ExtBase );
+    res=PutByte( frame, (UBYTE)( (number >> 24) & 0xFF), PPTBase );
+    res=PutByte( frame, (UBYTE)( (number >> 16) & 0xFF), PPTBase );
+    res=PutByte( frame, (UBYTE)( (number >> 8) & 0xFF), PPTBase );
+    res=PutByte( frame, (UBYTE)( (number >> 0) & 0xFF), PPTBase );
 
     return res;
 }
 
-FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *ExtBase )
+FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, struct PPTBase *PPTBase )
 {
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     BPTR fh, lock;
     FRAME *res = frame;
     LONG c, msgsize, coversize, filesize;
     struct FileInfoBlock *fib;
 
-    if(MakeKeyMaterial( frame, passphrase, ExtBase ) != PERR_OK)
+    if(MakeKeyMaterial( frame, passphrase, PPTBase ) != PERR_OK)
         return NULL;
 
     EncryptInit( passphrase );
@@ -377,22 +332,22 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
 
                         /* First, the cookie */
 
-                        PutByte( frame, 0x4d, ExtBase );
-                        PutByte( frame, 0xa0, ExtBase );
+                        PutByte( frame, 0x4d, PPTBase );
+                        PutByte( frame, 0xa0, PPTBase );
 
                         /* A status byte, unused */
-                        PutByte( frame, 0, ExtBase );
+                        PutByte( frame, 0, PPTBase );
 
-                        PutString( frame, FilePart(v->filename), ExtBase );
-                        PutByte( frame, '\0', ExtBase );
-                        PutLong( frame, fib->fib_Size, ExtBase );
+                        PutString( frame, FilePart(v->filename), PPTBase );
+                        PutByte( frame, '\0', PPTBase );
+                        PutLong( frame, fib->fib_Size, PPTBase );
 
                         while( (c = FGetC(fh)) != -1) {
                             if(Progress( frame, count++ )) {
                                 res = NULL;
                                 break;
                             }
-                            PutByte( frame, (UBYTE)c, ExtBase );
+                            PutByte( frame, (UBYTE)c, PPTBase );
                         }
 
                         FinishProgress( frame );
@@ -420,10 +375,10 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
         res = NULL;
     }
 
-    EncryptFinish( frame, ExtBase );
+    EncryptFinish( frame, PPTBase );
 
     if( res ) {
-        Req( ExtBase, "OK", "\n"ISEQ_C ISEQ_B"Embedding information:\n\n"
+        Req( PPTBase, "OK", "\n"ISEQ_C ISEQ_B"Embedding information:\n\n"
                             ISEQ_N ISEQ_L
                             "File length:     %lu bytes\n"
                             "Cover size:      %lu bytes\n"
@@ -436,13 +391,11 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
     return res;
 }
 
-SAVEDS ASM FRAME *LIBEffectExec( REG(a0) FRAME *frame,
-                                 REG(a1) struct TagItem *tags,
-                                 REG(a5) EXTBASE *ExtBase )
+EFFECTEXEC(frame,tags,PPTBase,EffectBase)
 {
-    struct Library *BGUIBase = ExtBase->lb_BGUI;
-    struct IntuitionBase *IntuitionBase = ExtBase->lb_Intuition;
-    struct DosLibrary *DOSBase = ExtBase->lb_DOS;
+    struct Library *BGUIBase = PPTBase->lb_BGUI;
+    struct IntuitionBase *IntuitionBase = PPTBase->lb_Intuition;
+    struct DosLibrary *DOSBase = PPTBase->lb_DOS;
     ULONG *args;
     PERROR res = PERR_OK;
     struct Values *opt, v = {""};
@@ -466,8 +419,8 @@ SAVEDS ASM FRAME *LIBEffectExec( REG(a0) FRAME *frame,
         if(s = PathPart(tfile)) *s = '\0';
 
         freq = FileReqObject,
-            ASLFR_Screen,       ExtBase->g->maindisp->scr,
-            ASLFR_Locale,       ExtBase->locale,
+            ASLFR_Screen,       PPTBase->g->maindisp->scr,
+            ASLFR_Locale,       PPTBase->locale,
             ASLFR_InitialDrawer,tfile,
             ASLFR_InitialFile,  FilePart( v.filename ),
             ASLFR_TitleText,    "Select file to embed",
@@ -494,7 +447,7 @@ SAVEDS ASM FRAME *LIBEffectExec( REG(a0) FRAME *frame,
                            AR_HelpNode, "effects.guide/EmbedObject",
                            TAG_DONE) == PERR_OK )
         {
-            frame = EmbedFile(frame, &v, passphrase, ExtBase);
+            frame = EmbedFile(frame, &v, passphrase, PPTBase);
         } else {
             frame = NULL;
         }
