@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.111 1999/05/30 18:13:59 jj Exp $
+    $Id: main.c,v 1.112 1999/07/11 23:21:32 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -76,6 +76,30 @@
 /* Types */
 
 /*------------------------------------------------------------------------*/
+/// Internal prototypes
+
+extern int              main(int, char **);
+Local void              HandleAppMsg( const struct AppMessage * );
+Local void              UpdateDispPrefsWindow( FRAME * );
+Local ASM ULONG         LoadHookFunc( REGDECL(a0,struct Hook *),
+                                      REGDECL(a2,Object *),
+                                      REGDECL(a1,struct FileRequester *) );
+
+#ifdef _DCC
+Local int               wbmain( struct WBStartup * );
+#endif
+VOID SetSelboxActive( BOOL act );
+
+///
+
+/*------------------------------------------------------------------------*/
+/* External prototypes */
+
+Prototype VOID          DoMainList( const FRAME * );
+Prototype VOID          UpdateMainWindow( FRAME * );
+
+
+/*------------------------------------------------------------------------*/
 /// Global variables
 
 GLOBALS *globals;
@@ -108,6 +132,13 @@ struct MsgPort *MainIDCMPPort, *AppIconPort = NULL;
 BOOL loader_close = TRUE; /* TRUE, if the Loader window should be closed
                              after the first selection. */
 
+struct Hook gvMultiLoadHook = {
+    { 0 },
+    LoadHookFunc,
+    NULL,
+    NULL
+};
+
 #ifdef DEBUG_MODE
 BPTR debug_fh, old_fh;
 #endif
@@ -115,25 +146,6 @@ BPTR debug_fh, old_fh;
 
 /*------------------------------------------------------------------------*/
 /*  Internal variables */
-
-/*------------------------------------------------------------------------*/
-/// Internal prototypes
-
-extern int              main(int, char **);
-Local void              HandleAppMsg( const struct AppMessage * );
-Local void              UpdateDispPrefsWindow( FRAME * );
-#ifdef _DCC
-Local int               wbmain( struct WBStartup * );
-#endif
-VOID SetSelboxActive( BOOL act );
-
-///
-
-/*------------------------------------------------------------------------*/
-/* External prototypes */
-
-Prototype VOID          DoMainList( const FRAME * );
-Prototype VOID          UpdateMainWindow( FRAME * );
 
 /*------------------------------------------------------------------------*/
 /* Code */
@@ -549,6 +561,26 @@ VOID AreaDrop( FRAME *frame, FRAME *drop )
 }
 ///
 /// HandleAppMsg()
+
+Local
+int LoadWBArgList( struct WBArg *list, int numEntries )
+{
+    struct WBArg *ap;
+    char name[MAXPATHLEN+1];
+    int i;
+
+    for( ap = list, i = 0; i < numEntries; i++, ap++ ) {
+        NameFromLock( ap->wa_Lock, name, MAXPATHLEN );
+        D(bug("\tap->wa_Name = %s, name = %s\n",ap->wa_Name, name));
+        AddPart( name, ap->wa_Name, MAXPATHLEN );
+        if(strlen(ap->wa_Name) > 0) { /* Currently, no directories are allowed */
+            RunLoad(name,NULL,NULL);
+        } else {
+            Req( NEGNUL, NULL, GetStr( MSG_IS_A_DIRECTORY ), name );
+        }
+    }
+    return 0L;
+}
 /*
     Does exactly what the name implies. User may activate this
     function by dropping an icon in PPT main window.
@@ -557,10 +589,6 @@ VOID AreaDrop( FRAME *frame, FRAME *drop )
 Local
 void HandleAppMsg( const struct AppMessage *apm )
 {
-    struct WBArg *ap;
-    int i;
-    char name[MAXPATHLEN+1];
-
     D(bug("HandleAppMsg()\n"));
 
     /*
@@ -572,17 +600,25 @@ void HandleAppMsg( const struct AppMessage *apm )
         return;
     }
 
-    for( ap = apm->am_ArgList, i = 0; i < apm->am_NumArgs; i++, ap++) {
-        NameFromLock( ap->wa_Lock, name, MAXPATHLEN );
-        D(bug("\tap->wa_Name = %s, name = %s\n",ap->wa_Name, name));
-        AddPart( name, ap->wa_Name, MAXPATHLEN );
-        if(strlen(ap->wa_Name) > 0) { /* Currently, no directories are allowed */
-            RunLoad(name,NULL,NULL);
-        } else {
-            Req( NEGNUL, NULL, GetStr( MSG_IS_A_DIRECTORY ), name );
-        }
-    } /* for */
+    LoadWBArgList( apm->am_ArgList, apm->am_NumArgs );
 }
+
+/*
+ *  This handles loading multiple files at the same
+ *  time, called by the BGUI file requester.
+ */
+
+Local
+ULONG SAVEDS ASM LoadHookFunc( REGPARAM(a0,struct Hook *,hook),
+                               REGPARAM(a2,Object *,obj),
+                               REGPARAM(a1,struct FileRequester *,aslReq) )
+{
+    D(bug("LoadHookFunc()\n"));
+    LoadWBArgList( aslReq->fr_ArgList, aslReq->fr_NumArgs );
+
+    return 0L; /* Does not really matter */
+}
+
 ///
 
 /// HandleMenuIDCMP()
@@ -755,6 +791,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             break;
 
         case MID_LOADNEW:
+            SetAttrs( gvLoadFileReq.Req, FILEREQ_MultiHook, &gvMultiLoadHook, TAG_DONE );
             if( DoRequest(gvLoadFileReq.Req) == FRQ_OK ) {
                 /*
                  *  Fetch the paths and set up the defaults.
@@ -765,7 +802,6 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
                 GetAttr( FRQ_File, gvLoadFileReq.Req, (ULONG *)&path );
                 strncpy( globals->userprefs->startupfile, path, NAMELEN );
                 GetAttr( FRQ_Path, gvLoadFileReq.Req, (ULONG *)&path );
-                RunLoad( (char *)path, NULL, NULL);
             }
 
             break;
@@ -799,7 +835,7 @@ int HandleMenuIDCMP( ULONG rc, FRAME *frame, UBYTE type )
             if( frame->disp ) {
                 if( frame->disp->win ) {
                     HideDisplayWindow( frame );
-                    frame->selstatus = 0;
+                    frame->selection.selstatus = 0;
                     return HANDLER_DELETED; /* Signal: No longer exists */
                 } else {
                     ShowDisplayWindow( frame );
@@ -1385,6 +1421,7 @@ int HandleSelectIDCMP( ULONG rc )
     ULONG t;
     FRAME *frame = NULL;
     APTR entry;
+    extern UBYTE globalSelectMethod;
 
     /* BUG: Wastes CPU cycles, as this is not always needed */
 
@@ -1500,6 +1537,7 @@ int HandleSelectIDCMP( ULONG rc )
             if( frame ) {
                 GetAttr( PAGE_Active, selectw.Page, &t );
                 D(bug("\tNew select method: %lu\n",t));
+#if 0
                 EraseSelection( frame );
                 if( t ) {
                     D(bug("Changed into circle mode\n"));
@@ -1510,6 +1548,16 @@ int HandleSelectIDCMP( ULONG rc )
                 }
                 DrawSelection( frame, 0L );
                 UpdateIWSelbox( frame, TRUE );
+#else
+                switch(t) {
+                    case 0:
+                        globalSelectMethod = GINP_LASSO_RECT;
+                        break;
+                    case 1:
+                        globalSelectMethod = GINP_LASSO_CIRCLE;
+                        break;
+                }
+#endif
             }
             break;
 
@@ -2206,7 +2254,7 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
             /*
              *  Make sure the select box is on the window
              */
-            if( IsAreaSelected(frame) && !(frame->selstatus & SELF_DRAWN) ) {
+            if( IsAreaSelected(frame) && !(frame->selection.selstatus & SELF_DRAWN) ) {
                 DrawSelection( frame, 0L );
             }
             ClearMouseLocation();
@@ -2285,12 +2333,12 @@ int HandleQDispWindowIDCMP( FRAME *frame, ULONG rc )
                      *  erase the corner handles
                      */
 
-                    if( frame->selstatus & SELF_BUTTONDOWN ) {
+                    if( frame->selection.selstatus & SELF_BUTTONDOWN ) {
                         EraseSelection( frame );
                     } else {
-                        frame->selstatus |= SELF_BUTTONDOWN;
+                        frame->selection.selstatus |= SELF_BUTTONDOWN;
                         EraseSelection( frame );
-                        frame->selstatus &= ~SELF_BUTTONDOWN;
+                        frame->selection.selstatus &= ~SELF_BUTTONDOWN;
                     }
 
                     if( (frame->disp->selpt >>= 1) == (0xF0F0F0F0>>8) )
