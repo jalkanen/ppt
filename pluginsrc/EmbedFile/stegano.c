@@ -3,7 +3,7 @@
  *
  *  (C) Janne Jalkanen 1998
  *
- *  $Id: stegano.c,v 1.1 1998/01/10 20:33:49 jj Exp $
+ *  $Id: stegano.c,v 1.2 2000/11/17 03:12:18 jalkanen Exp $
  */
 
 /*-----------------------------------------------------------------*/
@@ -94,11 +94,11 @@ VOID NextBitLoc( ULONG *resx, ULONG *resy, UWORD width, UWORD height )
 }
 
 
-PERROR MakeKeyMaterial( FRAME *frame, UBYTE *passphrase, EXTBASE *ExtBase )
+PERROR MakeKeyMaterial( FRAME *frame, UBYTE *passphrase, struct PPTBase *PPTBase )
 {
     ROWPTR cp, tmprow;
     WORD row;
-    struct ExecBase *SysBase = ExtBase->lb_Sys;
+    struct ExecBase *SysBase = PPTBase->lb_Sys;
     SHA_INFO sha = {0};
     PERROR res = PERR_OK;
 
