@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 6.0 1999/09/06 21:17:38 jj Exp $
+    $Id: frame.c,v 6.1 1999/09/08 22:47:59 jj Exp $
 
     This contains frame handling routines
 
@@ -844,7 +844,7 @@ FRAME *UndoFrame( FRAME *currentframe )
      *  Since this is a new frame, we won't have a rectangle drawn for us.
      */
 
-    undoframe->selection.selstatus &= ~(SELF_RECTANGLE|SELF_BUTTONDOWN);
+    undoframe->selection.selstatus &= ~(SELF_DRAWN|SELF_BUTTONDOWN);
 
     return undoframe;
 }
