@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 1.2 1995/07/23 21:26:50 jj Exp $
+    $Id: save.c,v 1.3 1995/08/20 18:42:04 jj Exp $
 */
 
 #include <defs.h>
@@ -59,9 +59,6 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 
     LOCKGLOB();
 
-    if(frame->mywin)
-        PutIWToSleep(frame->mywin);
-
     if( frame->selbox.MinX != ~0 && frame->selstatus & 0x01) {
         DrawSelectBox( frame, frame->selbox.MinX, frame->selbox.MinY,
                               frame->selbox.MaxX, frame->selbox.MaxY );
@@ -86,7 +83,6 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
 #endif
     if(!p) {
         Req( GetFrameWin( frame ),NULL,"Couldn't spawn a new process");
-        if(frame->mywin) AwakenIW(frame->mywin);
         ReleaseFrame( frame );
         frame->selstatus = 0;
         return PERR_INITFAILED;

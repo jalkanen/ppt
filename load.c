@@ -2,6 +2,8 @@
     PROJECT: ppt
     MODULE : load.c
 
+    $Id: load.c,v 1.2 1995/08/20 18:40:48 jj Exp $
+
     Code for loaders...
 */
 
@@ -66,7 +68,6 @@ FRAME *RunLoad( char *fullname, UBYTE *argstr )
     char argbuf[ARGBUF_SIZE];
     struct Process *p;
     FRAME *frame;
-    INFOWIN *iw;
 
     D(bug("RunLoad()\n"));
 
@@ -77,13 +78,6 @@ FRAME *RunLoad( char *fullname, UBYTE *argstr )
 
     strcpy(frame->fullname,fullname);
     MakeFrameName( FilePart(fullname), frame->name, NAMELEN, globxd );
-//    DEBUG("** Oldname = %s, Newname = %s\n",FilePart(fullname),frame->name );
-
-    iw = pzmalloc( sizeof(INFOWIN) ); /* BUG: should check */
-    iw->myframe = frame;
-    frame->mywin = iw;
-    GimmeInfoWindow(globxd, iw); /* BUG: should check  */
-    PutIWToSleep(iw);
 
     if(argstr)
         sprintf(argbuf,"%lu PATH=\"%s\" ARGS=\"%s\"",frame,fullname,argstr);
@@ -101,7 +95,7 @@ FRAME *RunLoad( char *fullname, UBYTE *argstr )
 #endif
     if(!p) {
         Req(NEGNUL,NULL,"Couldn't spawn a new process");
-        DeleteInfoWindow(iw);
+        // DeleteInfoWindow(iw);
         ReleaseFrame( frame );
         RemFrame(frame,globxd);
         frame = NULL;
@@ -226,6 +220,8 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name )
 
     D(bug("DoTheLoad(%s,%s)\n",fullname,name));
 
+    OpenInfoWindow( frame->mywin, xd );
+
     fh = Open( fullname, MODE_OLDFILE );
     if( fh  ) {
         D(bug("\tFile opened, attempting to get type...\n"));
@@ -282,6 +278,8 @@ errexit:
         XReq(NEGNUL,NULL, "Failed to open file '%s' due to:\n"ISEQ_C"Error %ld %s", fullname, errcode, ec );
         res = PERR_WONTOPEN;
     }
+
+    CloseInfoWindow( frame->mywin, xd );
 
     return res;
 }
