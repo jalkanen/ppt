@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  misc.h
 
-    $Id: misc.h,v 1.15 1998/06/29 22:33:37 jj Exp $
+    $Id: misc.h,v 1.16 1998/06/30 19:58:22 jj Exp $
 
     Miscallaneous defines that should NOT be put into a
     pre-compiled area.
@@ -15,17 +15,12 @@
 
 #define InternalError( txt )   Debug_InternalError( txt, __FILE__, __LINE__ )
 
-#define STR(x) ((STRPTR)(x))
-
 /*------------------------------------------------------------------*/
 /* Temporary defines that do not warrant a full recompile now.
    Should be moved to defs.h / ppt_real.h when debugged. */
 
 #define ATTACH_SIMPLE       0x01
 #define ATTACH_ALPHA        0x02
-
-#define DSBF_INTERIM        (1<<0)
-#define DSBF_FIXEDRECT      (1<<1)
 
 /*------------------------------------------------------------------*/
 /* This is for memory debugging. I really would prefer Enforcer,
