@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 1.3 1995/10/02 21:35:09 jj Exp $
+    $Id: load.c,v 1.4 1995/10/05 21:17:35 jj Exp $
 
     Code for loaders...
 */
@@ -26,6 +26,8 @@
 #include <exec/memory.h>
 #endif
 
+#include <libraries/asl.h>
+
 #include <clib/utility_protos.h>
 #include <clib/alib_protos.h>
 
@@ -42,6 +44,10 @@ Prototype __D0 PERROR BeginLoad( __A0 FRAME *,  __A6 EXTDATA * );
 Prototype void        EndLoad( __A0 FRAME *, __A6 EXTDATA * );
 Prototype void        LoadPicture( __A0 UBYTE * );
 Prototype FRAME *     RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
+Prototype UBYTE *     AskFile( EXTBASE * );
+
+/*---------------------------------------------------------------------*/
+/* Global variables */
 
 
 /*---------------------------------------------------------------------*/
@@ -58,6 +64,71 @@ const char *external_patterns[] = {
 
 /*---------------------------------------------------------------------*/
 /* Code */
+
+/*
+    Ask for a file, then returning a full path to it. This routine does
+    remember old files. Returns NULL on error or if user cancelled.
+
+    BUG: Not re-entrant at the moment.
+    BUG: Should protect the variables with semaphores.
+
+    Don't forget to free the memory with sfree()!
+*/
+
+UBYTE *AskFile( EXTBASE *ExtBase )
+{
+    static char Drawer[MAXPATHLEN+1] = "Data:gfx/Pics"; /* BUG: */
+    static ULONG Top = 0, Left = 0, Height = 0, Width = 0;
+    Object *freq;
+    UBYTE *path, *buffer = NULL;
+
+    /*
+     *  Initialize default values.
+     */
+
+    if( Height == 0 ) Height = globals->maindisp->height * 3 / 4;
+    if( Width  == 0 ) Width  = globals->maindisp->width / 3;
+
+    freq = FileReqObject,
+        ASLFR_Window,           globals->maindisp->win,
+        ASLFR_InitialDrawer,    Drawer,
+        ASLFR_InitialHeight,    Height,
+        ASLFR_InitialWidth,     Width,
+        ASLFR_InitialTopEdge,   Top,
+        ASLFR_InitialLeftEdge,  Left,
+        EndObject;
+
+    if(freq) {
+
+        BusyAllWindows( ExtBase );
+
+        if( DoRequest( freq ) == FRQ_OK ) {
+            buffer = smalloc( MAXPATHLEN + 1 );
+            if(buffer) {
+                GetAttr( FRQ_Path, freq, &path );
+                strncpy( buffer, path, MAXPATHLEN );
+            }
+
+            /*
+             *  Save the requester attributes
+             */
+
+            GetAttr( FRQ_Drawer, freq, &path );
+            GetAttr( FRQ_Top, freq, &Top );
+            GetAttr( FRQ_Left, freq, &Left );
+            GetAttr( FRQ_Height, freq, &Height );
+            GetAttr( FRQ_Width, freq, &Width );
+
+            strncpy( Drawer, path, MAXPATHLEN );
+
+        }
+
+        AwakenAllWindows( ExtBase );
+        DisposeObject( freq );
+    }
+
+    return buffer;
+}
 
 /*
     Works as a front end to the LoadPicture() call. argstr is
@@ -239,8 +310,6 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *fullname, char *name, char *l
     D(bug("DoTheLoad(%s,%s,%s)\n",fullname ? fullname : "NULL",
                                   name ? name : "NULL",
                                   loadername ? loadername : "NULL" ));
-
-    OpenInfoWindow( frame->mywin, xd );
 
     /*
      *  Attempt to open the file, if one was specified.
