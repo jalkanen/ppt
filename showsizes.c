@@ -1,3 +1,10 @@
+/*
+ *  Shows PPT structure sizes
+ *
+ *  (C) Janne Jalkanen 1998
+ *
+ *  $Id: showsizes.c,v 1.2 1998/09/20 00:39:36 jj Exp $
+ */
 
 #include "defs.h"
 #include "ppt_real.h"
