@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : others.c
 
-    $Id: others.c,v 1.25 1998/12/20 19:12:57 jj Exp $
+    $Id: others.c,v 1.26 1999/02/21 20:33:47 jj Exp $
 
     This module contains those routines that do not
     clearly belong anywhere else.
@@ -301,6 +301,7 @@ ULONG XSetGadgetAttrs( EXTBASE *xd, struct Gadget *gad, struct Window *win, stru
     return(SetGadgetAttrsA( gad, win, req, (struct TagItem *)&tag1 ));
 }
 
+/// ULONG ReqA( struct Window *win, UBYTE *gadgets, UBYTE *body, ULONG *args )
 
 /*
     Show a simple requester. Currently stolen from bgui demos. If win ==
@@ -371,6 +372,8 @@ SAVEDS ULONG ReqA( struct Window *win, UBYTE *gadgets, UBYTE *body, ULONG *args 
     return res;
 
 }
+///
+/// ULONG Req( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 
 SAVEDS ULONG Req( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 {
@@ -388,11 +391,14 @@ SAVEDS ULONG Req( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 
     return res;
 }
+///
+/// ULONG XReq( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 
 SAVEDS ULONG XReq( struct Window *win, UBYTE *gadgets, UBYTE *body, ... )
 {
     return( ReqA( win, gadgets, body, (ULONG *) (&body +1) ) );
 }
+///
 
 /*
     This will call the appropriate hook for each of the windows
@@ -521,8 +527,10 @@ VOID DisableMenuItem( ULONG item )
 
     DoAllWindows( Hook_DisableMenuItem, &d, 0L, globxd );
 
-    if(tb = FindInToolbar( PPTToolbar, item) ) {
-        SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, TRUE, TAG_DONE);
+    if(tb = FindToolbarGID( ToolbarList, item) ) {
+        if( tb->ti_Gadget ) {
+            SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, TRUE, TAG_DONE);
+        }
     }
 }
 
@@ -535,8 +543,10 @@ VOID EnableMenuItem( ULONG item )
 
     d.item = item;
     DoAllWindows( Hook_DisableMenuItem, &d, 0L, globxd );
-    if(tb = FindInToolbar( PPTToolbar, item) ) {
-        SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, FALSE, TAG_DONE);
+    if(tb = FindToolbarGID( ToolbarList, item) ) {
+        if( tb->ti_Gadget ) {
+            SetGadgetAttrs( GAD(tb->ti_Gadget),prefsw.win, NULL, GA_Disabled, FALSE, TAG_DONE);
+        }
     }
 }
 
@@ -565,6 +575,7 @@ VOID CheckMenuItem( ULONG item, BOOL state )
 
 /*--------------------------------------------------------------------------*/
 
+/// int HowManyThreads( void )
 
 /*
     BUG: SHould not use Forbid()
@@ -586,6 +597,9 @@ int HowManyThreads( void )
     UNLOCKGLOB();
     return c;
 }
+///
+
+/// void Nag(void)
 
 /*
     If the specified time has passed, shows a nag requester
@@ -620,6 +634,7 @@ void Nag(void)
     }
 }
 #endif
+///
 /*-------------------------------------------------------------------------*/
 /*                                  END OF CODE                            */
 /*-------------------------------------------------------------------------*/
