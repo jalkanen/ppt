@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.29 1998/09/20 00:35:38 jj Exp $
+    $Id: askreq.c,v 1.30 1999/03/17 23:05:17 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -79,7 +79,6 @@ struct RealObject {
 /*----------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype ASM PERROR AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6) EXTBASE * );
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -318,6 +317,8 @@ Prototype ASM PERROR AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a6)
 *   maybe add AR_Gadgets with "OK|Really|Cancel" - style?
 * BUG: Should heed also the text height.
 */
+
+Prototype PERROR ASM AskReqA( REGDECL(a0,FRAME *), REGDECL(a1,struct TagItem *), REGDECL(a6,EXTBASE *) );
 
 Local
 Object *GetARObject( struct TagItem *tag, ULONG id,

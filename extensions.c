@@ -4,7 +4,7 @@
 
     This module contains both extensions and options routines.
 
-    $Id: extensions.c,v 1.7 1997/03/16 13:38:01 jj Exp $
+    $Id: extensions.c,v 1.8 1999/03/17 23:06:39 jj Exp $
 */
 
 #include "defs.h"
@@ -430,7 +430,7 @@ PERROR ReplaceExtensionData( struct Extension *en, APTR newdata, ULONG size, EXT
 *
 */
 
-Prototype ASM PERROR AddExtension( REG(a0) FRAME *, REG(a1) STRPTR, REG(a2) APTR, REG(d0) ULONG, REG(d1) ULONG, REG(a6) EXTBASE *);
+Prototype PERROR ASM AddExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGDECL(a2,APTR), REGDECL(d0,ULONG), REGDECL(d1,ULONG), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
 PERROR AddExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a2) APTR data,
@@ -507,7 +507,7 @@ PERROR AddExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a2) APTR dat
 *
 */
 
-Prototype ASM struct Extension *FindExtension( REG(a0) FRAME *, REG(a1) STRPTR, REG(a6) EXTBASE * );
+Prototype struct Extension * ASM FindExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
 struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *ExtBase )
@@ -575,7 +575,7 @@ struct Extension *FindExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(
 *
 */
 
-Prototype ASM PERROR RemoveExtension( REG(a0) FRAME *, REG(a1) STRPTR, REG(a6) EXTBASE * );
+Prototype PERROR ASM RemoveExtension( REGDECL(a0,FRAME *), REGDECL(a1,STRPTR), REGDECL(a6,EXTBASE *) );
 
 SAVEDS ASM
 PERROR RemoveExtension( REG(a0) FRAME *frame, REG(a1) STRPTR name, REG(a6) EXTBASE *ExtBase )
@@ -699,7 +699,7 @@ struct OptNode *AllocOptNode( STRPTR name, ULONG size, EXTBASE *ExtBase )
 */
 
 
-Prototype ASM PERROR PutOptions( REG(a0) STRPTR, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype PERROR ASM PutOptions( REG(a0) STRPTR, REG(a1) APTR, REG(d0) ULONG, REG(a6) EXTBASE * );
 
 SAVEDS ASM
 PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
@@ -779,7 +779,7 @@ PERROR PutOptions( REG(a0) STRPTR name, REG(a1) APTR data,
 *
 */
 
-Prototype ASM APTR GetOptions( REG(a0) STRPTR, REG(a6) EXTBASE *);
+Prototype APTR ASM GetOptions( REG(a0) STRPTR, REG(a6) EXTBASE *);
 
 SAVEDS ASM
 APTR GetOptions( REG(a0) STRPTR name, REG(a6) EXTBASE *ExtBase )

@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: colormap.c,v 1.11 1997/07/12 00:52:31 jj Exp $
+    $Id: colormap.c,v 1.12 1999/03/17 23:05:29 jj Exp $
 
     Contains routines to seek a given color in the current
     colorspace. Following colorspaces are implemented:
@@ -20,11 +20,11 @@
 /*--------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype ASM UWORD GetColor_Normal( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE );
-Prototype ASM UWORD GetColor_NormalGray( REG(a0) struct RenderObject *, REG(d0) UBYTE, REG(d1) UBYTE, REG(d2) UBYTE ) ;
-Prototype ASM UWORD GetColor_HAM( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE );
-Prototype ASM UWORD GetColor_HAM8( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE  );
-Prototype ASM UWORD GetColor_EHB( REG(a0) struct RenderObject *, REG(d0) UBYTE , REG(d1) UBYTE , REG(d2) UBYTE  );
+Prototype UWORD ASM GetColor_Normal( REGDECL(a0,struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE) , REGDECL(d2,UBYTE) );
+Prototype UWORD ASM GetColor_NormalGray( REGDECL(a0,struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) ) ;
+Prototype UWORD ASM GetColor_HAM( REGDECL(a0,struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
+Prototype UWORD ASM GetColor_HAM8( REGDECL(a0, struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
+Prototype UWORD ASM GetColor_EHB( REGDECL(a0,struct RenderObject *), REGDECL(d0,UBYTE), REGDECL(d1,UBYTE), REGDECL(d2,UBYTE) );
 
 /*--------------------------------------------------------------------*/
 /* Defines */

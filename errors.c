@@ -1,7 +1,7 @@
 /*
     PROJECT: ppt
 
-    $Id: errors.c,v 1.7 1998/09/05 11:33:25 jj Exp $
+    $Id: errors.c,v 1.8 1999/03/17 23:06:27 jj Exp $
 
     Error handling routines.
 */
@@ -15,13 +15,13 @@
 /*----------------------------------------------------------------------*/
 /* Prototypes */
 
-Prototype ASM VOID    SetErrorCode( REG(a0) FRAME *frame, REG(d0) PERROR error );
-Prototype ASM VOID    SetErrorMsg( REG(a0) FRAME *frame, REG(a1) UBYTE *error );
-Prototype ASM VOID    ShowError( REG(a0) FRAME *frame, REG(a6) EXTBASE * );
+Prototype VOID ASM   SetErrorCode( REGDECL(a0,FRAME *), REGDECL(d0,PERROR) );
+Prototype VOID ASM   SetErrorMsg( REGDECL(a0,FRAME *), REGDECL(a1,UBYTE *) );
+Prototype VOID ASM   ShowError( REGDECL(a0,FRAME *), REGDECL(a6,EXTBASE *) );
 Prototype UBYTE      *GetErrorMsg( FRAME *, EXTBASE * );
 Prototype VOID        ClearError( FRAME * );
 Prototype VOID        CopyError( FRAME *, FRAME * );
-Prototype ASM UBYTE  *ErrorMsg( REG(d0) ULONG, REG(a6) EXTBASE * );
+Prototype UBYTE * ASM ErrorMsg( REGDECL(d0,ULONG), REGDECL(a6,EXTBASE *) );
 
 /*----------------------------------------------------------------------*/
 /* Code */
