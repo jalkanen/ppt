@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.13 1997/08/31 20:47:28 jj Exp $
+    $Id: frame.c,v 2.14 1997/09/07 21:08:29 jj Exp $
 
     This contains frame handling routines
 
@@ -31,7 +31,7 @@ Prototype VOID          RemoveAlpha( FRAME * );
 Prototype void          DeleteFrame( FRAME * );
 Prototype PERROR        ReplaceFrame( FRAME *old, FRAME *new );
 Prototype BOOL          FrameFree( FRAME * );
-Prototype struct Window *GetFrameWin( FRAME *frame  );
+Prototype struct Window *GetFrameWin( const FRAME *frame  );
 Prototype ASM FRAME *   NewFrame( REG(d0) ULONG, REG(d1) ULONG, REG(d2) UBYTE, REG(a6) EXTBASE * );
 Prototype PERROR        SetBuffers( FRAME *frame, EXTBASE *xd );
 Prototype ASM VOID      RemFrame( REG(a0) FRAME *, REG(a6) EXTBASE * );
@@ -792,7 +792,7 @@ BOOL FrameFree( FRAME *frame )
         - Main window
 */
 
-struct Window *GetFrameWin( FRAME *frame  )
+struct Window *GetFrameWin( const FRAME *frame  )
 {
     if(frame == NULL || frame == NEGNUL)
         return MAINWIN;
