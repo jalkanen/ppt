@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.113 1999/08/01 16:47:32 jj Exp $
+    $Id: main.c,v 6.0 1999/09/05 02:22:46 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1407,11 +1407,11 @@ VOID SetSelboxActive( BOOL act )
     SetGadgetAttrs( GAD(selectw.Rectangle), selectw.win, NULL,
                     GA_Disabled, !act,
                     TAG_DONE );
-#ifdef DEBUG_MODE
+
     SetGadgetAttrs( GAD(selectw.Circle), selectw.win, NULL,
                     GA_Disabled, !act,
                     TAG_DONE );
-#endif
+
 }
 
 
@@ -1805,6 +1805,11 @@ int HandlePrefsIDCMP( ULONG rc )
         case GID_PW_FLUSHLIBS:
             GetAttr( GA_Selected, prefsw.FlushLibs, &tmp );
             tmpprefs.expungelibs = tmp ? TRUE : FALSE;
+            break;
+
+        case GID_PW_SHOWSPLASH:
+            GetAttr( GA_Selected, prefsw.ShowSplash, &tmp );
+            tmpprefs.splash = tmp ? TRUE : FALSE;
             break;
 
         case GID_PW_SAVE:
