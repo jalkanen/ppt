@@ -1,0 +1,127 @@
+/*
+  $Id: FrameIt.prx 1.6 9th. June 2000 by Jules 888
+  My E-mail is JA888@shot.in2home.co.uk should you need to contact me.
+
+  Get the dimensions of the current frame.
+  Ask the user what the final size should be?
+  Contrast border; can only be used if the new height and width is
+  at least ten pixels larger in both directions.
+  The balance?
+  The type of background?
+  Then resize and roll the picture into place.
+
+  You use this script at your own risk to yourself and any data.
+ */
+/*
+ ------------------------------------------------------------------
+  I suggest you use this header as-is and add your own code below.
+ ------------------------------------------------------------------
+ */
+
+OPTIONS RESULTS
+SIGNAL ON ERROR
+IF ADDRESS() = REXX THEN DO
+  startedfromcli = 1
+  ADDRESS PPT
+END
+ELSE DO
+  startedfromcli = 0
+  ADDRESS PPT
+END
+RESULT = 'no result'
+
+/*
+ ---------------------
+  Add your code here.
+ ---------------------
+ */
+
+PARSE ARG FRAME
+
+IF DATATYPE(frame) ~= NUM THEN DO
+  RC  = 10
+  RC2 = "No frame selected"
+  SIGNAL ERROR
+END
+
+PPT_TO_FRONT
+
+FRAMEINFO FRAME STEM FINFO
+
+NFILE=FINFO.NAME ; WFILE=FINFO.WIDTH ; HFILE=FINFO.HEIGHT ; PFILE=FINFO.COLORSPACE
+
+SLD1.LABEL='Bottom border weight %' ; SLD1.TYPE=slider   ; SLD1.Min=10    ; SLD1.Max=90   ; SLD1.Default=60
+SLD2.LABEL='Left border weight %'   ; SLD2.TYPE=slider   ; SLD2.Min=10    ; SLD2.Max=90   ; SLD2.Default=50
+SLD3.LABEL='Required Width'         ; SLD3.TYPE=slider   ; SLD3.Min=WFILE ; SLD3.Max=4000 ; SLD3.Default=WFILE
+SLD4.LABEL='Required Height'        ; SLD4.TYPE=slider   ; SLD4.Min=HFILE ; SLD4.Max=4000 ; SLD4.Default=HFILE
+CYC1.LABELS="Black mount|White mount|Background"         ; CYC1.TYPE=CYCLE ; CYC1.POPUP=1
+BTN1.LABEL='Greyscale the image'    ; BTN1.TYPE=CHECKBOX ; BTN1.SELECTED=0
+BTN2.LABEL='Contrast border'        ; BTN2.TYPE=CHECKBOX ; BTN2.SELECTED=0
+
+ASKREQ '"Balancing your pictures borders"' POSITIVE '"Frame it"' NEGATIVE '"Leave it"' SLD1 SLD2 SLD3 SLD4 CYC1 BTN1 BTN2
+
+IF RESULT = 0 THEN DO
+
+BOBW=SLD1.VALUE ; /* Bottom border weight        */
+LEBW=SLD2.VALUE ; /* Left border weight          */
+REQW=SLD3.VALUE ; /* Required width              */
+REQH=SLD4.VALUE ; /* Required height             */
+CYCL=CYC1.VALUE ; /* Background fill             */
+GREY=BTN1.VALUE ; /* Greyscale                   */
+CONB=BTN2.VALUE ; /* Is a contrast border wanted */
+
+/*
+ ----------------------
+  Process the picture.
+ ----------------------
+ */
+
+/*
+ Contrast border
+ */
+SELECT
+  WHEN CYCL=1 THEN BGND=WHITE
+  WHEN CYCL=2 THEN BGND=BACKGROUND
+  OTHERWISE BGND=BLACK
+  END
+
+ IF CONB>=5 THEN DO
+  IF REQW>(WFILE+10) & REQH>(HFILE+10) THEN DO
+   IF BGND=WHITE THEN BG=BLACK
+                 ELSE BG=WHITE
+                 PROCESS FRAME RESIZE NEWWIDTH (WFILE+6) NEWHEIGHT (HFILE+6) FILL BG
+  END
+ END
+
+/*
+ Greyscale
+ */
+IF GREY  >= 5 & PFILE ~= "Greyscale" THEN DO
+  PROCESS FRAME GREYSCALE
+END
+
+/*
+ Border weight
+ */
+PROCESS FRAME RESIZE NEWWIDTH REQW NEWHEIGHT REQH FILL BGND
+SETAREA FRAME ALL
+PROCESS FRAME ROLL ((((REQW-WFILE)-(((REQW-WFILE)/100)*(100-LEBW)))-((REQW-WFILE)/2))%1) ((((REQH-HFILE)/2)-((REQH-HFILE)-(((REQH-HFILE)/100)*(100-BOBW))))%1)
+
+END
+
+EXIT 0
+
+/*
+ -------------------------------------------------------------
+  Again, keep this part intact, as this is the error handler.
+ -------------------------------------------------------------
+ */
+ERROR :
+returncode = RC
+IF startedfromcli = 1 THEN DO
+  SAY 'ERROR ' returncode ' on line ' SIGL ': ' RC2
+  PPT_TO_BACK
+END
+ELSE
+    SHOWERROR '"'RC2'"' SIGL
+EXIT returncode

@@ -1,0 +1,60 @@
+/*
+    Reload a picture from disk
+
+    $Id: RevertPicture.prx 1.0
+*/
+
+/*-------------------------------------------------------------------*/
+/*  I suggest you use this header as-is and add your own code below  */
+
+OPTIONS RESULTS
+SIGNAL ON ERROR
+IF ADDRESS() = REXX THEN DO
+    startedfromcli = 1
+    ADDRESS PPT
+END
+ELSE DO
+    startedfromcli = 0
+    ADDRESS PPT
+END
+RESULT = 'no result'
+
+/*-------------------------------------------------------------------*/
+/* Add your code here */
+
+PARSE ARG frame
+
+IF DATATYPE(frame) ~= NUM THEN DO
+    RC  = 10
+    RC2 = "No frame selected"
+    SIGNAL ERROR
+END
+
+FRAMEINFO frame STEM frameinfo
+
+ASKREQ '"do you want to reload ' || frameinfo.name || '?"'
+
+IF result == 0 THEN DO
+    DELETEFRAME frame FORCE
+
+    IF RIGHT(frameinfo.path, 1) ~= ':' THEN
+        LOADFRAME '"'frameinfo.path'/'frameinfo.name'"'
+    ELSE
+        LOADFRAME '"'frameinfo.path || frameinfo.name'"'
+END
+
+EXIT 0
+
+/*-------------------------------------------------------------------*/
+/* Again, keep this part intact. This is the error handler. */
+ERROR :
+returncode = RC
+IF startedfromcli = 1 THEN DO
+    SAY 'ERROR ' returncode ' on line ' SIGL ': ' RC2
+    PPT_TO_BACK
+END
+ELSE
+    SHOWERROR '"'RC2'"' SIGL
+EXIT returncode
+
+

@@ -1,0 +1,131 @@
+/*
+    This is a script to convert AdPro Convolution bitmaps to
+    PPT-Format.
+
+    $VER: Convert_AdPro-Conv.prx 1.0 (26.09.98) Andreas Boerner
+
+    $Id: Convert_AdPro-Conv.prx,v 1.1 2000/09/05 08:42:19 jalkanen Exp $
+*/
+
+/*-------------------------------------------------------------------*/
+/*  I suggest you use this header as-is and add your own code below  */
+
+OPTIONS RESULTS
+SIGNAL ON ERROR
+IF ADDRESS() = REXX THEN DO
+    startedfromcli = 1
+    ADDRESS PPT
+END
+ELSE DO
+    startedfromcli = 0
+    ADDRESS PPT
+END
+RESULT = 'no result'
+
+/*-------------------------------------------------------------------*/
+/* Add your code here */
+
+nl="10"X
+
+IF Exists("libs:rexxsupport.library") THEN
+  CALL AddLib('rexxsupport.library',0,-30,0)
+ELSE DO
+  'SHOWERROR "RexxSupport-Library not found!"'
+  EXIT 5
+END
+
+'ASKFILE TITLE "Choose AdPro Conv. Dir" Pos OK ID AdPro:Convolutions'
+
+sdir=RESULT
+dummy=LastPos("/",sdir)
+IF dummy=0 THEN
+  dummy=LastPos(":",sdir)
+
+IF dummy>0 THEN
+  sdir=Left(sdir,dummy)
+
+'ASKFILE TITLE "Choose PPT-Conv. Dir" Pos OK ID modules/convolutions SAVE'
+
+ddir=RESULT
+dummy=LastPos("/",ddir)
+IF dummy=0 THEN
+  dummy=LastPos(":",ddir)
+
+IF dummy>0 THEN
+  ddir=Left(ddir,dummy)
+
+str.type="STRING"
+str.maxchars=30
+str.initialstring="AP_*.conv"
+
+'ASKREQ TEXT "Choose Name Pattern:*N*NThe asterisk represents the old Name*Nof the Adpro Convolution map.*NOnly one asterisk is allowed!" Pos Convert NEG Cancel STR'
+
+ok=Close(stdout)
+ok=Open(stdout,"con://///Close/WAIT")
+
+IF RESULT=0 THEN DO
+  pat=str.value
+  dummy=Pos("*",pat)
+  IF dummy=0 THEN DO
+    'SHOWERROR "No asterisk found!"'
+    EXIT 5
+  END
+
+  pat=Left(pat,dummy)Compress(SubStr(pat,dummy+1),"*")
+
+  sfiles=ShowDir(sdir)
+  DO a=1 TO Words(sfiles)
+    sfile=Word(sfiles,a)
+
+    SAY "Convert" sfile "("a"/"Words(sfiles)")"
+
+    IF ~open(read,sdir||sfile) THEN DO
+      'SHOWERROR "Cannot Open file 'sdir||sfile'!"'
+      EXIT 5
+    END
+
+    dfile=Left(pat,dummy-1)sfile||SubStr(pat,dummy+1)
+    IF ~open(writ,ddir||dfile,"w") THEN DO
+      'SHOWERROR "Cannot Open file 'ddir||dfile'!"'
+      EXIT 5
+    END
+
+    CALL WriteLn(writ,"; PPT Convolution file")
+    CALL WriteLn(writ,"; $VER: AdPro->PPT-Convolution-Converter 1.0 (26.09.98) Converted AdPro convolution bitmap")
+    CALL WriteLn(writ,"3")
+    CALL WriteLn(writ,"0")
+    CALL WriteLn(writ,"1")
+
+    CALL ReadCh(read)
+    CALL WriteLn(writ,"0 0 0 0 0 0 0")
+    DO FOR 5
+      cl="0"
+      DO FOR 5
+        cl=cl C2D(ReadCh(read,4))
+      END
+      cl=cl "0"
+      CALL WriteLn(writ,cl)
+    END
+    CALL WriteLn(writ,"0 0 0 0 0 0 0")
+
+    CALL Close(read)
+    CALL Close(writ)
+  END
+END
+
+EXIT 0
+
+/*-------------------------------------------------------------------*/
+/* Again, keep this part intact. This is the error handler. */
+ERROR :
+returncode = RC
+IF startedfromcli = 1 THEN DO
+    SAY 'ERROR ' returncode ' on line ' SIGL ': ' RC2
+    PPT_TO_BACK
+END
+ELSE
+    SHOWERROR '"'RC2'"' SIGL
+EXIT returncode
+
+Andreas
+
