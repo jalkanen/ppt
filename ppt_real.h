@@ -2,9 +2,9 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 4.9 $
-        $Date: 1998/09/05 11:31:35 $
-      $Author: jj $
+    $Revision: 4.10 $
+        $Date: 1998/10/14 20:31:42 $
+      $Author: nobody $
 
     Main definitions for PPT.
 
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 4.9 1998/09/05 11:31:35 jj Exp $
+    $Id: ppt_real.h,v 4.10 1998/10/14 20:31:42 nobody Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -129,7 +129,7 @@ typedef void Pixel;                 /* Use only as Pixel * */
 #define MAXPATTERNLEN       80      /* The maximum length for PPTX_PostFixPattern */
 /*!!PRIVATE*/
 #define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
-#define SCRTITLELEN         80      /* Length of the screen title buffer in DISPLAY */
+#define SCRTITLELEN        180      /* Length of the screen title buffer in DISPLAY */
 #define MAXSCRTITLENAMELEN  40      /* Max length of file name when shown on screen title */
 #define MAXPIXELSIZE         4      /* Maximum size of a pizel in bytes */
 
@@ -940,13 +940,17 @@ struct Extension {
 #define EXTNAME_DATE        "Date"
 
 /* Flags for en_Flags.  As usual, all unused bits should be set
-   to 0. */
+   to 0.  Note that some of the flags are mutually exclusive,
+   as a datatype cannot be a text string or a value at the same
+   time. */
 
 #define EXTF_PRIVATE        0x00 /* Private type. PPT will not attempt
                                     to parse this. */
 #define EXTF_CSTRING        0x01 /* This extension is a standard C
-                                    string. */
-
+                                    string with ASCII codeset */
+#define EXTF_LONG           0x02 /* The value is a signed long */
+#define EXTF_FLOAT          0x03 /* The value is an IEEE floating point
+                                    number */
 /*!!PRIVATE*/
 
 /*------------------------------------------------------------------*/
