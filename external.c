@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE:  external.c
 
-    $Id: external.c,v 1.6 1996/09/22 18:09:24 jj Exp $
+    $Id: external.c,v 1.7 1996/09/30 02:48:18 jj Exp $
 
     This contains necessary routines to operate on external modules,
     ie loaders and effects.
@@ -37,7 +37,7 @@
 Prototype int           AddExtEntries( EXTBASE *, struct Window *, Object *, UBYTE, ULONG );
 Prototype void          ShowExtInfo( EXTBASE *, EXTERNAL *, struct Window * );
 Prototype int           PurgeExternal( EXTERNAL *, BOOL );
-Prototype PERROR        OpenExternal( const char * );
+Prototype PERROR        OpenExternal( const char *, UBYTE );
 Prototype void          RelExtBase( EXTBASE * );
 Prototype EXTBASE       *NewExtBase( BOOL );
 
@@ -140,6 +140,9 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
         case NT_LOADER:
             cn = globals->loaders.lh_Head;
             break;
+        case NT_SCRIPT:
+            cn = globals->scripts.lh_Head;
+            break;
         default:
             return 0; /* Unknown node type */
     }
@@ -151,22 +154,33 @@ SAVEDS int AddExtEntries( EXTBASE *xd, struct Window *win, Object *lv, UBYTE typ
         ext = (EXTERNAL *)cn;
         add = FALSE;
 
-        if( flags & AEE_SAVECM && !add) {
-            if( GetTagData(PPTX_SaveColorMapped, NULL, ext->tags))
-                add = TRUE;
-        }
+        switch( type ) {
+            case NT_LOADER:
+                if( flags & AEE_SAVECM && !add) {
+                    if( GetTagData(PPTX_SaveColorMapped, NULL, ext->tags))
+                        add = TRUE;
+                }
 
-        if( flags & AEE_SAVETC && !add) {
-            if( GetTagData(PPTX_SaveTrueColor, NULL, ext->tags))
-                add = TRUE;
-        }
+                if( flags & AEE_SAVETC && !add) {
+                    if( GetTagData(PPTX_SaveTrueColor, NULL, ext->tags))
+                        add = TRUE;
+                }
 
-        if( flags & AEE_LOAD && !add) {
-            if( GetTagData(PPTX_Load, NULL, ext->tags))
-                add = TRUE;
-        }
+                if( flags & AEE_LOAD && !add) {
+                    if( GetTagData(PPTX_Load, NULL, ext->tags))
+                        add = TRUE;
+                }
 
-        if( type == NT_EFFECT ) add = TRUE; /* These are always added */
+                break;
+
+            case NT_EFFECT:
+                add = TRUE; /* These are always added */
+                break;
+
+            case NT_SCRIPT:
+                add = TRUE;
+                break;
+        }
 
         if(add) {
             AddEntry( NULL,lv,cn->ln_Name,LVAP_TAIL );
@@ -231,10 +245,14 @@ SAVEDS VOID ShowNewExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 
 VOID ShowExtInfo( EXTBASE *xd, EXTERNAL *x, struct Window *win )
 {
-    if(x->islibrary)
-        ShowNewExtInfo( xd, x, win );
-    else
-        ShowOldExtInfo( xd, x, win );
+    if( x->nd.ln_Type == NT_SCRIPT ) {
+        Req(NEGNUL,NULL,"Scripts not supported yet");
+    } else {
+        if(x->islibrary)
+            ShowNewExtInfo( xd, x, win );
+        else
+            ShowOldExtInfo( xd, x, win );
+    }
 }
 
 
@@ -281,15 +299,17 @@ PERROR PurgeNewExternal( EXTERNAL *who, BOOL force )
     Remove( (struct Node *)who );
     UNLOCKGLOB();
 
-    if( globals->userprefs->expungelibs )
-        FlushLibrary( who->diskname, globxd );
+    if( who->nd.ln_Type != NT_SCRIPT ) {
+        if( globals->userprefs->expungelibs )
+            FlushLibrary( who->diskname, globxd );
+    }
 
     pfree(who);
 }
 
 PERROR PurgeExternal( EXTERNAL *w, BOOL f )
 {
-    if( w->islibrary )
+    if( w->islibrary || w->nd.ln_Type == NT_SCRIPT )
         return PurgeNewExternal( w, f );
     else
         return PurgeOldExternal( w, f );
@@ -393,6 +413,34 @@ PERROR InitOldExternal( const char *who )
 }
 
 /*
+    Initializes a script.
+*/
+
+PERROR InitScript( const char *who )
+{
+    EXTERNAL *x;
+
+    x = pmalloc( sizeof(SCRIPT) );
+    x->seglist    = 0L;
+    x->tags       = NULL;
+    x->islibrary  = FALSE;
+    x->usecount   = 0;
+    x->nd.ln_Type = NT_SCRIPT;
+    x->nd.ln_Name = x->realname;
+    x->nd.ln_Pri  = 0;
+    strncpy( x->diskname, who, 39 );
+    strncpy( x->realname, FilePart(who), 39 );
+
+    LOCKGLOB();
+    Enqueue( &globals->scripts, (struct Node *)x );
+    UNLOCKGLOB();
+
+    D(bug("\tOpened script OK.\n"));
+
+    return PERR_OK;
+}
+
+/*
     Open new style external
 */
 PERROR InitNewExternal( const char *who )
@@ -480,8 +528,11 @@ nogood:
     return res;
 }
 
-PERROR OpenExternal( const char *who )
+PERROR OpenExternal( const char *who, UBYTE type )
 {
+    if( type == NT_SCRIPT )
+        return InitScript( who );
+
     return InitNewExternal( who );
 }
 
