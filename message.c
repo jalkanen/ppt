@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : message.c
 
-    $Id: message.c,v 2.0 1997/01/06 18:34:15 jj Exp $
+    $Id: message.c,v 2.1 1997/05/27 22:24:43 jj Exp $
 
     This module contains code about message handling routines.
 */
@@ -387,6 +387,8 @@ VOID StopInput( REG(a0) FRAME *frame, REG(a6) EXTBASE *ExtBase )
     struct PPTMessage *pmsg;
 
     D(bug("StopInput(frame=%08X)\n",frame));
+
+    if(!CheckPtr(frame,"StopInput(): Invalid frame")) return;
 
     pmsg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
 
