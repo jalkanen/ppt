@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.56 1998/12/07 13:46:27 jj Exp $
+    $Id: gui.c,v 1.57 1998/12/07 20:23:59 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1067,7 +1067,7 @@ Local UBYTE *onopen_labels[] = { "do not show the image", "show smallest",
                                  "show as 25% of screen size",
                                  "show as 50% of screen size",
                                  "show largest possible", NULL };
-Local UBYTE *preview_sizes[] = {"Off", "Small", "Medium", "Large", NULL };
+Local UBYTE *preview_sizes[] = {"Off", "Small", "Medium", "Large", "Huge", NULL };
 
 /*
     Open the preferences window.
