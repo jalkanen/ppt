@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 6.2 1999/10/02 16:33:07 jj Exp $
+    $Id: frame.c,v 6.3 1999/11/28 18:19:38 jj Exp $
 
     This contains frame handling routines
 
@@ -451,6 +451,7 @@ void DeleteFrame( FRAME *f )
          */
 
         if( f->selection.vertices ) sfree( f->selection.vertices );
+        if( f->selection.mask ) RemFrame( f->selection.mask, globxd );
 
         /*
          *  Remove the structure himself
