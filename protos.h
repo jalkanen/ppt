@@ -1,7 +1,7 @@
 /*
     Hand - made prototypes for PPT
 
-    $Id: protos.h,v 1.19 1998/11/08 00:30:12 jj Exp $
+    $Id: protos.h,v 1.20 1998/12/20 19:10:55 jj Exp $
 */
 
 #ifndef PROTOS_H
@@ -55,7 +55,7 @@ extern struct PrefsWindow   prefsw;
 extern struct SelectWindow  selectw;
 extern struct PPTFileRequester gvLoadFileReq, gvPaletteOpenReq, gvPaletteSaveReq;
 
-extern Class                *DropAreaClass, *PaletteClass, *RenderAreaClass;
+extern Class                *DropAreaClass, *PaletteClass, *RenderAreaClass, *ToolbarClass;
 
 extern BOOL                 MasterQuit;
 
@@ -67,5 +67,7 @@ extern AMIGAGUIDECONTEXT    helphandle;
 extern const UBYTE *        ColorSpaceNames[];
 
 extern FRAME                *clipframe;
+
+extern struct ToolbarItem   PPTToolbar[];
 
 #endif /* PROTOS_H */
