@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.28 1998/12/15 23:16:35 jj Exp $
+    $Id: defs.h,v 1.29 1999/02/21 20:31:32 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -188,6 +188,8 @@ enum DebugFile_T {
 #define DEFAULT_MAXUNDO     4
 #define DEFAULT_MODULEPATH  "modules"
 #define DEFAULT_REXXPATH    "rexx"
+
+#define DEFAULT_TOOLBARDIR  "PROGDIR:GUI/toolbar/standard"
 
 #ifdef  DEBUG_MODE
 #define DEFAULT_STARTUPDIR  "Data:Gfx/Pics"
