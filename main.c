@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : main.c
 
-    $Id: main.c,v 1.105 1999/02/20 22:38:31 jj Exp $
+    $Id: main.c,v 1.106 1999/02/21 20:33:23 jj Exp $
 
     Main PPT code for GUI handling.
 */
@@ -1586,7 +1586,7 @@ int HandlePrefsIDCMP( ULONG rc )
     extern PREFS tmpprefs;
     extern DISPLAY tmpdisp;
     ULONG tmp,m;
-    UBYTE *tmp2, buffer[NAMELEN+1];
+    UBYTE *tmp2, buffer[MAXPATHLEN+1];
     PERROR res = PERR_OK;
     BOOL   closed = FALSE;
     APTR   entry;
@@ -1597,11 +1597,13 @@ int HandlePrefsIDCMP( ULONG rc )
 
         case GID_PW_TOOLBARLIST:
             if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
-                if(ti = FindInToolbarName(PPTToolbar, entry) ) {
+                if(ti = FindToolbarName(ToolbarList, entry) ) {
                     SetGadgetAttrs( GAD(prefsw.ToolItemType), prefsw.win, NULL,
                                     MX_Active, ti->ti_Type, TAG_DONE );
                     SetGadgetAttrs( GAD(prefsw.ToolItemFile), prefsw.win, NULL,
-                                    STRINGA_TextVal, ti->ti_FileName, NULL );
+                                    STRINGA_TextVal, ti->ti_FileName ? ti->ti_FileName : (STRPTR)"",
+                                    TAG_DONE );
+
                 } else {
                     InternalError( "Toolbar out of sync!" );
                 }
@@ -1611,10 +1613,13 @@ int HandlePrefsIDCMP( ULONG rc )
 
         case GID_PW_TOTOOLBAR:
             if( entry = (APTR)FirstSelected( prefsw.AvailButtons ) ) {
-                struct NewMenu *nm;
+                if( ti = FindToolbarName( ToolbarList, entry ) ) {
+                    APTR preventry;
 
-                if( nm = FindNewMenuItemName( PPTMenus, entry ) ) {
-                    InsertToolItem( PPTToolbar, NULL, nm );
+                    preventry = (APTR)FirstSelected(prefsw.ToolbarList);
+                    InsertEntrySelect( prefsw.win, prefsw.ToolbarList,
+                                       entry, preventry );
+
                     RemoveSelected( prefsw.win, prefsw.AvailButtons );
                     toolbarchanged = TRUE;
                 }
@@ -1623,15 +1628,64 @@ int HandlePrefsIDCMP( ULONG rc )
 
         case GID_PW_FROMTOOLBAR:
             if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
-                if(ti = FindInToolbarName(PPTToolbar, entry) ) {
-                    RemoveToolItem( PPTToolbar, ti );
-                    RemoveSelected( prefsw.win, prefsw.ToolbarList );
+                if(ti = FindToolbarName(ToolbarList, entry) ) {
                     AddEntrySelect( prefsw.win, prefsw.AvailButtons, entry, LVAP_SORTED );
+                    RemoveSelected( prefsw.win, prefsw.ToolbarList );
                     RefreshList( prefsw.win, prefsw.ToolbarList );
                 } else {
                     InternalError( "Toolbar out of sync!" );
                 }
                 toolbarchanged = TRUE;
+            }
+            break;
+
+        case GID_PW_TOOLITEMTYPE:
+            if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
+                if( ti = FindToolbarName( ToolbarList, entry ) ) {
+                    GetAttr( MX_Active, prefsw.ToolItemType, &tmp );
+                    ti->ti_Type = tmp;
+                    toolbarchanged = TRUE;
+                }
+            }
+            break;
+
+        case GID_PW_TOOLITEMFILE:
+            if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
+                if( ti = FindToolbarName( ToolbarList, entry ) ) {
+                    GetAttr( STRINGA_TextVal, prefsw.ToolItemFile, &tmp );
+                    PutFileNameToolItem( ti, NULL, (STRPTR) tmp );
+                    toolbarchanged = TRUE;
+                }
+            }
+            break;
+
+        case GID_PW_GETTOOLITEMFILE:
+            if( entry = (APTR)FirstSelected( prefsw.ToolbarList ) ) {
+                if( ti = FindToolbarName( ToolbarList, entry ) ) {
+                    /*
+                     *  If, for some reason, a name does not exist, we'll
+                     *  create it here
+                     */
+
+                    if( !ti->ti_FileName ) {
+                        PutFileNameToolItem( ti, DEFAULT_TOOLBARDIR, "" );
+                    }
+                    strncpy( buffer, ti->ti_FileName, MAXPATHLEN );
+                    tmp2 = PathPart(buffer); *tmp2 = '\0';
+                    BusyAllWindows(globxd);
+                    if( AslRequestTags( filereq,
+                                        ASLFR_InitialDrawer, buffer,
+                                        ASLFR_InitialFile,   FilePart( ti->ti_FileName ),
+                                        ASLFR_Screen,        MAINSCR,
+                                        TAG_DONE ) )
+                    {
+                        PutFileNameToolItem( ti, filereq->fr_Drawer, filereq->fr_File );
+                        SetGadgetAttrs( GAD(prefsw.ToolItemFile), prefsw.win, NULL,
+                                        STRINGA_TextVal, ti->ti_FileName, TAG_DONE );
+                    }
+                    toolbarchanged = TRUE;
+                    AwakenAllWindows(globxd);
+                }
             }
             break;
 
@@ -1805,24 +1859,7 @@ int HandlePrefsIDCMP( ULONG rc )
                  *  Toolbar handling.  BUG: Horrible kludge!
                  */
 
-                if( entry = (APTR)DoMethod( prefsw.ToolbarList, LVM_FIRSTENTRY, NULL, 0L ) ) {
-                    int item = 0;
-                    struct NewMenu *nm;
-
-                    do {
-                        nm = FindNewMenuItemName( PPTMenus, entry );
-                        if( entry ) {
-                            PPTToolbar[item].ti_Type = TIT_TEXT;
-                            PPTToolbar[item].ti_GadgetID = (ULONG)nm->nm_UserData;
-                            PPTToolbar[item].ti_FileName = NULL;
-                            PPTToolbar[item].ti_Label = nm->nm_Label;
-                            PPTToolbar[item].ti_Gadget = NULL;
-                            item++;
-                        }
-                        entry = (APTR)DoMethod( prefsw.ToolbarList, LVM_NEXTENTRY, entry, 0L );
-                    } while( entry );
-                    PPTToolbar[item].ti_Type = TIT_END;
-                }
+                RebuildToolbarFromListview( prefsw.ToolbarList );
 
                 if( toolbarchanged ) {
                     DisposeObject( toolw.Win );
@@ -2107,6 +2144,8 @@ int HandleExtInfoIDCMP( struct ExtInfoWin *ei, ULONG rc )
 
 ///
 
+/// VOID ReorientSelbox( struct Rectangle *r )
+
 /*
     This function turns the box around so that the top left
     co-ordinates are the smallest ones.
@@ -2129,6 +2168,9 @@ VOID ReorientSelbox( struct Rectangle *r )
         r->MinY = t;
     }
 }
+///
+
+/// BOOL CalcMouseCoords( FRAME *frame, WORD mousex, WORD mousey, WORD *x, WORD *y )
 
 /*
     This function calculates where the current mouse coordinates are
@@ -2161,7 +2203,7 @@ BOOL CalcMouseCoords( FRAME *frame, WORD mousex, WORD mousey, WORD *x, WORD *y )
 
     return isin;
 }
-
+///
 
 /// HandleQDispWinIDCMP()
 
@@ -2586,6 +2628,8 @@ int HandlePaletteWindowIDCMP( FRAME *frame, ULONG rc )
 
 ///
 
+/// VOID UpdateDispPrefsWindow( FRAME *frame )
+
 /*
     BUG: Should set the maxcolors amount for future rendering, when we have a
          ham/ham8/ehb display
@@ -2634,6 +2678,7 @@ VOID UpdateDispPrefsWindow( FRAME *frame )
 
     }
 }
+///
 
 /*
     BUG: This could be cleaned somewhat, since the display prefs have
@@ -3528,7 +3573,7 @@ restart_window:
          */
 
         if( sig & appiconmask ) {
-            while( apm = GetMsg( AppIconPort ) ) {
+            while( apm = (struct AppMessage *)GetMsg( AppIconPort ) ) {
                 HandleAppMsg( apm );
                 ReplyMsg( (struct Message *)apm );
             }
