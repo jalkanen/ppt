@@ -5,7 +5,7 @@
 
     PPT and this file are (C) Janne Jalkanen 1995-1998.
 
-    $Id: embedfile.c,v 1.1 1998/01/10 20:33:39 jj Exp $
+    $Id: embedfile.c,v 1.2 1998/02/26 19:46:27 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -81,6 +81,7 @@
 
 #include "sha.h"
 #include "stegano.h"
+#include "d3des.h"
 
 /*----------------------------------------------------------------------*/
 /* Defines */
@@ -92,12 +93,12 @@
 
 #define MYNAME      "EmbedFile"
 
+#define DESBLOCKSIZE 24 /* For 3-des */
 
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
 
-extern ASM FRAME *LIBEffectExec( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a5) EXTBASE * );
-extern ASM ULONG LIBEffectInquire( REG(d0) ULONG, REG(a5) EXTBASE * );
+VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, EXTBASE *ExtBase );
 
 
 /*----------------------------------------------------------------------*/
@@ -144,6 +145,9 @@ const struct TagItem MyTagArray[] = {
 struct Values {
     char filename[256];
 };
+
+UBYTE desBuffer[DESBLOCKSIZE];
+int desCounter;
 
 /*----------------------------------------------------------------------*/
 /* Code */
@@ -211,6 +215,79 @@ INLINE UBYTE EncodePixel( UBYTE p, int bit )
     return (UBYTE)( (p & 0xFE) | bit );
 }
 
+BOOL EncryptInit( char *passphrase )
+{
+    UBYTE key[DESBLOCKSIZE];
+
+    desCounter = 0;
+    make3key( passphrase, key );
+    des3key( key, EN0 );
+    return TRUE;
+}
+
+VOID EncryptFinish( FRAME *frame, EXTBASE *ExtBase )
+{
+    ULONG key[96] = {0};
+
+    OutputBuffer( frame, desBuffer, desCounter, ExtBase );
+    use3key( key ); /* Make sure the key is deleted */
+    return;
+}
+
+/*
+ *  Writes the encrypted data out
+ */
+
+VOID OutputBuffer( FRAME *frame, UBYTE *buf, int bytes, EXTBASE *ExtBase )
+{
+    int i, byte;
+    ULONG row, col;
+    UBYTE *cp, comps = frame->pix->components, v;
+
+    for( byte = 0; byte < bytes; byte++ ) {
+        UBYTE b;
+
+        b = buf[byte];
+
+        D(bug("Writing: %02X (%c)\n",b,isprint(b) ? b : '?'));
+
+        for( i = 0; i < 8; i++ ) {
+            int bit;
+
+            bit = (b >> (7-i)) & 1;
+
+            NextBitLoc( &col, &row, frame->pix->bytes_per_row, frame->pix->height );
+
+            cp = GetPixel( frame, (WORD)row, (WORD)(col/comps) );
+
+            v = *(cp + (col%comps) );
+
+            D(bug("\t(%3d,%3d): %d : %02X ->",row,col/comps,bit,v));
+
+            v = EncodePixel(v, bit);
+            *(cp + (col%comps)) = v;
+
+            D(bug(" %02X\n",v));
+            PutPixel( frame, (WORD)row, (WORD)(col/comps), cp );
+        }
+    }
+}
+
+PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
+{
+    UBYTE tmpbuffer[DESBLOCKSIZE];
+    desBuffer[desCounter++] = b;
+
+    if( desCounter == DESBLOCKSIZE ) {
+        D3des( desBuffer, tmpbuffer );
+        // bcopy( desBuffer, tmpbuffer, DESBLOCKSIZE );
+        OutputBuffer( frame, tmpbuffer, DESBLOCKSIZE, ExtBase );
+        desCounter = 0;
+    }
+    return PERR_OK;
+}
+
+#if 0
 /*
  *  BUG: This assumes all components are 8 bit wide
  */
@@ -245,6 +322,7 @@ PERROR PutByte( FRAME *frame, UBYTE b, EXTBASE *ExtBase )
 
     return PERR_OK;
 }
+#endif
 
 PERROR PutString( FRAME *frame, STRPTR s, EXTBASE *ExtBase )
 {
@@ -273,11 +351,13 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
     BPTR fh, lock;
     FRAME *res = frame;
-    LONG c, msgsize, coversize;
+    LONG c, msgsize, coversize, filesize;
     struct FileInfoBlock *fib;
 
     if(MakeKeyMaterial( frame, passphrase, ExtBase ) != PERR_OK)
         return NULL;
+
+    EncryptInit( passphrase );
 
     if(fib = (struct FileInfoBlock *)AllocDosObject( DOS_FIB, NULL )) {
 
@@ -287,7 +367,9 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
                 if( Examine( lock, fib ) ) {
                     LONG count = 0;
 
-                    msgsize = fib->fib_Size + strlen(v->filename) + 8;
+                    filesize = fib->fib_Size;
+
+                    msgsize = filesize + strlen(v->filename) + 8;
                     coversize = frame->pix->width * frame->pix->height * frame->pix->components;
                     if( msgsize < coversize / 8) {
 
@@ -338,13 +420,15 @@ FRAME *EmbedFile( FRAME *frame, struct Values *v, UBYTE *passphrase, EXTBASE *Ex
         res = NULL;
     }
 
+    EncryptFinish( frame, ExtBase );
+
     if( res ) {
         Req( ExtBase, "OK", "\n"ISEQ_C ISEQ_B"Embedding information:\n\n"
                             ISEQ_N ISEQ_L
                             "File length:     %lu bytes\n"
                             "Cover size:      %lu bytes\n"
                             "Cover bits used: %lu %%\n\n",
-                            fib->fib_Size,
+                            filesize,
                             coversize,
                             8 * 100 * msgsize/coversize);
     }
