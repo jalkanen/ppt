@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : EFFECT.c
 
-    $Id: filter.c,v 1.25 1998/06/29 22:31:28 jj Exp $
+    $Id: filter.c,v 1.26 1998/11/08 00:43:58 jj Exp $
 
     Code containing effects stuff.
 
@@ -546,7 +546,7 @@ FRAME *ExecFilter( EXTBASE *ExtBase, FRAME *frame, EFFECT *effect, char *args, B
     if( (colorspaces & (1 << frame->pix->colorspace)) == 0) {
         XReq( NEGNUL, NULL, XGetStr(mEFFECT_DOESNT_SUPPORT_CSPACE),
                             effect->info.nd.ln_Name,
-                            ColorSpaceNames[frame->pix->colorspace]);
+                            ColorSpaceName(frame->pix->colorspace) );
         if(EffectBase) CloseModule(EffectBase,ExtBase);
         return NULL;
     }
