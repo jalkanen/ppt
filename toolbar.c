@@ -7,7 +7,7 @@
 
     PPT is (C) Janne Jalkanen 1998.
 
-    $Id: toolbar.c,v 1.2 1998/12/07 13:47:56 jj Exp $
+    $Id: toolbar.c,v 1.3 1998/12/16 22:41:03 jj Exp $
 
  */
 
@@ -207,8 +207,11 @@ Object *CreateToolbar(VOID)
                     tags[c].ti_Tag   = GROUP_Member;
                     tags[c].ti_Data  = (ULONG)ButtonObject,
                                           UScoreLabel( nm->nm_Label, '_' ),
-                                          GA_ID, tooldata[item].ti_GadgetID,
+                                          GA_ID,        tooldata[item].ti_GadgetID,
                                           XenFrame,
+                                          BT_ToolTip,   nm->nm_Label,
+                                          BT_HelpHook,  &HelpHook,
+                                          BT_HelpNode,  "PPT.guide/Toolbar",
                                        EndObject;
                     c++;
                     tags[c].ti_Tag   = TAG_END;
