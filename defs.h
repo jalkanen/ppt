@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.25 1998/08/19 23:08:56 jj Exp $
+    $Id: defs.h,v 1.26 1998/08/23 23:13:53 nobody Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -139,6 +139,7 @@
 
 #define GFXV39              ( GfxBase->LibNode.lib_Version >= 39 )
 #define IS_AGA              (((struct GfxBase *)GfxBase)->ChipRevBits0 & GFXF_AA_ALICE)
+#define SYSV39              ( SysBase->LibNode.lib_Version >= 39 )
 
 /*------------------------------------------------------------------*/
 /* Internal type definitions, which are not in ppt.h */
