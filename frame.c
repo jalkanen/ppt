@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 4.17 1999/06/15 12:50:04 jj Exp $
+    $Id: frame.c,v 4.18 1999/08/01 16:46:27 jj Exp $
 
     This contains frame handling routines
 
@@ -39,8 +39,6 @@ Prototype FRAME         *UndoFrame( FRAME * );
 Prototype BOOL          ChangeBusyStatus( FRAME *, ULONG );
 Prototype VOID          UpdateFrameInfo( FRAME * );
 Prototype VOID          RefreshFrameInfo( FRAME *, EXTBASE * );
-Prototype VOID          SelectWholeImage( FRAME * );
-Prototype VOID          UnselectImage( FRAME * );
 Prototype BOOL          IsFrameBusy( FRAME * );
 
 Local PERROR            SetBuffers( FRAME *frame, EXTBASE *xd );
@@ -753,7 +751,7 @@ PERROR ReplaceFrame( FRAME *old, FRAME *new )
     return PERR_OK;
 }
 ///
-/// MakeUnfoFrame()
+/// MakeUndoFrame()
 /*
     Put a frame into undo state.
 */
@@ -786,8 +784,8 @@ PERROR MakeUndoFrame( FRAME *frame )
     frame->currproc  = NULL;
     frame->busy      = BUSY_NOT;
     frame->busycount = 0;
-    ClearFrameInput( frame ); // Just in case.
-    frame->selection.selstatus = 0;
+    //ClearFrameInput( frame ); // Just in case.
+    //frame->selection.selstatus = 0;
 
     UNLOCK( frame );
     return PERR_OK;
@@ -1045,43 +1043,6 @@ VOID RefreshFrameInfo( FRAME *f, EXTBASE *ExtBase )
 }
 ///
 
-/// SelectWholeImage()
-/*
-    This routine will mark the entire image as selected.
-*/
-
-VOID SelectWholeImage( FRAME *frame )
-{
-    frame->selbox.MinX = 0;
-    frame->selbox.MinY = 0;
-    frame->selbox.MaxX = frame->pix->width;
-    frame->selbox.MaxY = frame->pix->height;
-}
-///
-/// UnselectImage()
-/*
-    This routine unselects the entire image
-    Note: must not have LOCK.
-*/
-
-VOID UnselectImage( FRAME *frame )
-{
-    frame->selbox.MinX = frame->selbox.MinY = ~0;
-}
-///
-/// IsAreaSelected()
-/*
- *  This routine returns TRUE, if an area has been
- *  selected in an image.
- */
-
-Prototype BOOL IsAreaSelected( FRAME * );
-
-BOOL IsAreaSelected( FRAME *frame )
-{
-    return (BOOL)(frame->selbox.MinX != ~0);
-}
-///
 
 /// IsAttached()
 /*
