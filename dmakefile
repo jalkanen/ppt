@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 6.5 1999/12/27 21:57:23 jj Exp $
+#       $Id: dmakefile,v 6.6 2000/04/16 22:08:12 jj Exp $
 #
 #####################################################################
 #
@@ -513,15 +513,13 @@ refreshcatalogs:
 # This will reconstruct the developer docs.
 
 docs:
-        adoc -I -c $(SRCS) linklib/debug/debug.c \
-             linklib/support/pgeta4.a linklib/support/execa4.a > docs/support_all.doc
+        adoc -I -c $(SRCS) linklib/debug/debug.c > docs/support_all.doc
         adoc -I -c $(EXAMPLES) > docs/externals.doc
         Delete dme.refs
         autorefs dme.refs docs/support_all.doc docs/externals.doc
 
 devdocs:
-        adoc --yank-type "u" -I -c $(SRCS) linklib/debug/debug.c \
-             linklib/support/pgeta4.a linklib/support/execa4.a > docs/support.doc
+        adoc --yank-type "u" -I -c $(SRCS) linklib/debug/debug.c > docs/support.doc
         adoc -I -c $(EXAMPLES) > docs/externals.doc
 
 #
