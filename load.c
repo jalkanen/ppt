@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.13 1998/11/08 00:46:06 jj Exp $
+    $Id: load.c,v 2.14 1999/03/13 18:01:42 jj Exp $
 
     Code for loaders...
 */
@@ -214,12 +214,10 @@ LONG CheckOne( BPTR fh, LOADER *ld, UBYTE *init_bytes, EXTBASE *ExtBase )
 /*
     This routine goes through all the loaders and does a Check() for
     every one that has a PPTX_PostFixPattern defined.
-
-    BUG:  Does not call IOCheck()!
 */
 
 Local
-LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
+LOADER *CheckFilePattern( BPTR fh, STRPTR filename, UBYTE *init_bytes, EXTBASE *ExtBase )
 {
     struct Node *cn;
     struct DosLibrary *DOSBase = ExtBase->lb_DOS;
@@ -238,7 +236,12 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
             if(ParsePatternNoCase( ld->postfixpat, pattbuf, MAXPATTERNLEN*2+2 ) >= 0 ) {
                 if( MatchPatternNoCase(pattbuf, filename) ) {
                     D(bug("\t\tProbable match found by %s\n", ld->info.realname ));
-                    return ld;
+
+                    if( CheckOne( fh, ld, init_bytes, ExtBase ) > 0 ) {
+                        return ld;
+                    } else {
+                        D(bug("\t\tbut it was not recognized...\n"));
+                    }
                 }
             } else {
                 InternalError("Pattern overflow!");
@@ -258,30 +261,11 @@ LOADER *CheckFilePattern( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
  */
 
 Local
-LOADER *CheckFileH( EXTBASE *ExtBase, BPTR fh )
+LOADER *CheckFileH( EXTBASE *ExtBase, UBYTE *init_bytes, BPTR fh )
 {
     struct Node *cn;
-    APTR DOSBase = ExtBase->lb_DOS;
-    UBYTE init_bytes[INIT_BYTES+2]; // buffer space
-    LONG err;
 
     D(bug("CheckFileH( %08X )\n",fh));
-
-    /*
-     *  Read the INIT_BYTES bytes from the file into memory
-     *  so that IOCheck()-routine can do the faster check.
-     */
-
-    SetIoErr(0L);
-    FRead( fh, init_bytes, INIT_BYTES, 1 );
-    if((err = IoErr()) > 0) {
-        char buf[80];
-
-        Fault(err, "Error while checking:", buf, 79 );
-        D(bug(buf));
-
-        return NULL;
-    }
 
     for( cn = globals->loaders.lh_Head; cn->ln_Succ; cn = cn->ln_Succ ) {
 
@@ -301,20 +285,40 @@ Local
 LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
 {
     LOADER *ld;
+    APTR DOSBase = ExtBase->lb_DOS;
+    UBYTE init_bytes[INIT_BYTES+2]; // buffer space
+    LONG err;
+
+    /*
+     *  Read the INIT_BYTES bytes from the file into memory
+     *  so that IOCheck()-routine can do the faster check.
+     */
+
+    SetIoErr(0L);
+    FRead( fh, init_bytes, INIT_BYTES, 1 );
+    if((err = IoErr()) > 0) {
+        char buf[80];
+
+        Fault(err, "Error while checking:", buf, 79 );
+        D(bug(buf));
+
+        return NULL;
+    }
 
     /*
      *  First, do the postfix pattern based check
      *  Then,  go through each of the loaders and make the check.
      */
 
-    if(!(ld = CheckFilePattern(fh, filename, ExtBase))) {
-        ld = CheckFileH(ExtBase, fh);
+    if(!(ld = CheckFilePattern(fh, filename, init_bytes, ExtBase))) {
+        ld = CheckFileH(ExtBase, init_bytes, fh);
     }
 
     return ld;
 }
 ///
 
+/// LoadPicture()
 /*
     This is just a simple front-end to the loader routines.
 */
@@ -382,6 +386,9 @@ errorexit:
 
     if(xd) RelExtBase(xd);
 }
+///
+
+/// PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername, BOOL rexx )
 
 /*
     This routine takes care of all picture loading, etc. Name and path must
@@ -601,6 +608,10 @@ errexit:
     return res;
 }
 
+///
+
+/// PERROR FetchExternals(const char *path, UBYTE type)
+
 /*
     This routine loads external modules to the system. You should give it
     a pointer to the path and a const telling which type should be loaded
@@ -687,6 +698,8 @@ PERROR FetchExternals(const char *path, UBYTE type)
     UnLock(lock);
     return PERR_OK;
 }
+///
+
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
 /*----------------------------------------------------------------------*/
