@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : askreq.c
 
-    $Id: askreq.c,v 1.23 1997/10/24 18:30:28 jj Exp $
+    $Id: askreq.c,v 1.24 1998/01/04 16:32:48 jj Exp $
 
     This module contains the GUI management code for external modules.
 
@@ -56,7 +56,10 @@
 #include "renderareaclass.h"
 #endif
 
+#include "floatgadget/bguifloat_pragmas.h"
+
 #include <sprof.h>
+#include <math.h>
 
 #define GID_AR_RENDERAREA (GID_START+MAX_AROBJECTS+0xB5)
 
@@ -184,6 +187,37 @@ Prototype ASM int      AskReqA( REG(a0) FRAME *, REG(a1) struct TagItem *, REG(a
 *
 *           The AROBJ_Value is set upon return to the currently active
 *           selection.
+*
+*       AR_FloatObject - Creates a string gadget which accepts only
+*           floating point values.  It also attaches a slider next to it.
+*           Available attributes are:
+*
+*           ARFLOAT_Min (LONG) - The minimum allowed value for the gadget.
+*               Default is -100 (-1.0).
+*
+*           ARFLOAT_Max (LONG) - The maximum allowed value for the gadget.
+*               Default is 100 (1.0).
+*
+*           ARFLOAT_Default (LONG) - The startup value.  Default is 0.
+*
+*           ARFLOAT_FormatString (STRPTR) - How the string gadget's contents
+*               should be formatted.  See printf(1) for more information.
+*               Default is ".3f".
+*
+*           ARFLOAT_Divisor (LONG) - The divisor by which all values will
+*               be divided.  Default is 100.
+*
+*           The float gadget uses long integers instead of floats because
+*           the values are passed in a tag array.  To simplify casting
+*           problems, I adopted this methodology.
+*
+*           The result is a long, which should be divided by the divisor
+*           before acting on it.  Note that the divisor also defines
+*           the minimum value by which the knob of the slider can be moved
+*           and also the minimum resolution of the gadget.
+*
+*           NB: If you use too large values, you'll get into the roundoff
+*           error hell.  Try to keep your numbers below 65535.
 *
 *       You may also specify these common attributes for any objects:
 *
@@ -353,6 +387,73 @@ Object *GetARObject( struct TagItem *tag, ULONG id,
             break;
         }
 
+        case AR_FloatObject: {
+            Object *Slider, *Float;
+            LONG min,max,level,div,mcv;
+            STRPTR format;
+            char tmpbuf[20];
+
+            if(!xd->FloatClass) {
+                D(bug("No float class available\n"));
+                return NULL;
+            }
+
+            min     = (LONG)GetTagData( ARFLOAT_Min, -100, list );
+            max     = (LONG)GetTagData( ARFLOAT_Max, 100, list );
+            level   = (LONG)GetTagData( ARFLOAT_Default, 0, list );
+            div     = (LONG)GetTagData( ARFLOAT_Divisor, 1, list );
+            format  = (STRPTR)GetTagData( ARFLOAT_FormatString, (ULONG)"%.3f", list );
+
+            sprintf(tmpbuf,format,PI);
+            mcv = strlen(tmpbuf);
+
+            obj = MyHGroupObject, Spacing(4),
+                GROUP_EqualHeight, TRUE,
+                StartMember,
+                    Slider = MySliderObject, GA_ID, id,
+                        Label( (STRPTR)GetTagData( AROBJ_Label, NULL, list ) ), Place( PLACE_LEFT ),
+                        SLIDER_Min, min,
+                        SLIDER_Max, max,
+                        SLIDER_Level,level,
+                        helptext ? TAG_IGNORE : TAG_SKIP,1,
+                            BT_HelpText, helptext,
+                        helpnode ? TAG_IGNORE : TAG_SKIP,2,
+                            BT_HelpHook, &HelpHook,
+                            BT_HelpNode, helpnode,
+                    EndObject,
+                EndMember,
+                StartMember,
+                    Float = NewObject( xd->FloatClass, NULL,
+                        GA_ID, 1000+id, /* BUG */
+                        RidgeFrame,
+                        STRINGA_MinCharsVisible,mcv+2,
+                        STRINGA_MaxChars,       12, /* BUG: Should adjust according to the max/min values. */
+                        FLOAT_LongValue,        level,
+                        FLOAT_LongMin,          min,
+                        FLOAT_LongMax,          max,
+                        FLOAT_Divisor,          div,
+                        FLOAT_Format,           format,
+                        STRINGA_Justification,  STRINGRIGHT,
+                        helptext ? TAG_IGNORE : TAG_SKIP,1,
+                            BT_HelpText, helptext,
+                        helpnode ? TAG_IGNORE : TAG_SKIP,2,
+                            BT_HelpHook, &HelpHook,
+                            BT_HelpNode, helpnode,
+                    EndObject, Weight(1),
+                EndMember,
+            EndObject;
+
+            if(obj) { /* If either of the gagdets did not open, the group didn't either. */
+
+                AddMap( Slider, Float,  dpcol_sl2fl );
+                AddMap( Float,  Slider, dpcol_fl2sl );
+                realobject->obj = Float; /* The real gadget */
+                D(bug("\tAdded float object\n"));
+            }
+
+            break;
+        }
+
         case AR_StringObject:
             obj = MyStringObject, GA_ID, id,
                 Label( (STRPTR) GetTagData( AROBJ_Label, NULL, list )), Place( PLACE_LEFT ),
@@ -462,6 +563,10 @@ void FetchARGadgetValue( struct RealObject *who, ULONG *where, EXTBASE *ExtBase 
 
             case AR_CycleObject:
                 GetAttr( CYC_Active, (APTR)who->obj, where );
+                break;
+
+            case AR_FloatObject:
+                GetAttr( FLOAT_LongValue, (APTR)who->obj, where );
                 break;
 
             default:
@@ -784,8 +889,18 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
     struct ARRenderMsg arm = {0};
     struct ARArgs ar = {0};
     struct RealObject RealObjs[MAX_AROBJECTS] = {0};
+    struct Library *BGUIFloatBase;
 
     D(bug("AskReqA()\n"));
+
+    /*
+     *  Attempt to open libs
+     */
+
+    if(BGUIFloatBase = OpenLibrary( "Gadgets/bgui_float.gadget", 0L ) ) {
+        D(bug("\tOpened BGUI float gadget\n"));
+        ExtBase->FloatClass = GetFloatClassPtr();
+    }
 
     /*
      *  Setting up auto variables
@@ -962,6 +1077,8 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
      *  Finish up
      */
 
+    if( BGUIFloatBase ) CloseLibrary( BGUIFloatBase );
+
     return res;
 }
 
@@ -970,7 +1087,7 @@ SAVEDS ASM PERROR AskReqA( REG(a0) FRAME *frame, REG(a1) struct TagItem *list, R
 
 #pragma msg 186 ignore
 
-LONG foo2, foo1, foo3;
+LONG foo2, foo1, foo3, foo4;
 char foostring[81];
 struct Hook testhook = { 0 };
 
@@ -982,6 +1099,16 @@ struct TagItem myslider[] = {
 //    AROBJ_PreviewHook, &testhook,
     AROBJ_HelpNode, "PPT.guide/Main",
     TAG_END
+};
+
+struct TagItem myfloat[] = {
+    ARFLOAT_Min, -100,
+    ARFLOAT_Max, 100,
+    ARFLOAT_Divisor, 100,
+    ARFLOAT_Default, 20,
+    ARFLOAT_FormatString, "%.2f",
+    AROBJ_Value, &foo4,
+    TAG_DONE
 };
 
 struct TagItem mystring[] = {
@@ -1023,6 +1150,7 @@ struct TagItem mywindow[] = {
     AR_StringObject, mystring,
     AR_CheckBoxObject, mycheckbox,
     AR_CycleObject, mycycle,
+    AR_FloatObject, myfloat,
     TAG_END
 };
 
@@ -1046,6 +1174,7 @@ void TestAR(void)
         D(bug("Checkbox value @ %08X is %ld\n",&foo1,foo1));
         D(bug("String value @ %08X is '%s'\n", foostring, foostring ));
         D(bug("Cycle value @ %08X is %ld\n",&foo3, foo3 ));
+        D(bug("Float value @ %08X is %ld\n",&foo4, foo4 ));
     } else {
         D(bug("User cancelled or some other mistake\n"));
     }
