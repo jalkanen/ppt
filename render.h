@@ -1,5 +1,12 @@
 /*
-    $Id: render.h,v 4.1 1999/03/31 13:24:06 jj Exp $
+    PROJECT: PPT
+    MODULE:  rendermod.h
+
+    $Id: render.h,v 4.2 1999/10/02 16:36:31 jj Exp $
+
+    This module and PPT are (C) Copyright Janne Jalkanen 1999.
+
+    Rendering module support headers.
 */
 
 #ifndef RENDER_H
@@ -59,7 +66,7 @@ typedef enum { RED, GREEN, BLUE } color_type;
 
 struct RenderObject {
     FRAME *     frame;
-    EXTBASE *   ExtBase;
+    struct PPTBase *PPTBase;
     ROWPTR      cp; /* Current row ptr */
     UBYTE *     buffer; /* Chunky buffer, which contains data in byte form */
     UWORD       currentrow, /* Check these to see where we're going... */
