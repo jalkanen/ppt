@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 6.2 2000/02/06 19:24:15 jj Exp $
+    $Id: support.c,v 6.3 2000/04/16 22:11:15 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -957,7 +957,7 @@ UWORD SAVEDS ASM GetNPixelRows( REGPARAM(a0,FRAME *,frame),  REGPARAM(a1,ROWPTR,
 
 /// GetPixel()
 
-/****i* pptsupport/GetPixel ******************************************
+/****u* pptsupport/GetPixel ******************************************
 *
 *   NAME
 *       GetPixel -- Get data for one pixel only.
@@ -966,18 +966,27 @@ UWORD SAVEDS ASM GetNPixelRows( REGPARAM(a0,FRAME *,frame),  REGPARAM(a1,ROWPTR,
 *       ptr = GetPixel( frame, row, column );
 *       D0              A0     D0   D1
 *
+*       APTR GetPixel( FRAME *, WORD, WORD )
+*
 *   FUNCTION
+*       Returns the pixel value for a single pixel entry.
 *
 *   INPUTS
+*       frame - Frame pointer.
+*       row   - row number (zero is top row)
+*       column - Column number (zero is the leftmost)
 *
 *   RESULT
+*       A pointer to the pixel in question.  You must cast
+*       the pointer according to frame->pix->colorspace.
 *
 *   EXAMPLE
 *
 *   NOTES
+*       Please use GetPixelRow() for access - it's a lot
+*       faster.
 *
 *   BUGS
-*       This entry still very incomplete.
 *
 *   SEE ALSO
 *       PutPixel(), GetPixelRow().
@@ -1002,27 +1011,37 @@ APTR SAVEDS ASM GetPixel( REGPARAM(a0,FRAME *,f), REGPARAM(d0,WORD,row),
 }
 ///
 /// PutPixel()
-/****i* pptsupport/PutPixel ******************************************
+/****u* pptsupport/PutPixel ******************************************
 *
 *   NAME
 *       PutPixel -- Put one modified pixel only.
 *
 *   SYNOPSIS
-*       PutPixel( frame, row, column, item );
+*       PutPixel( frame, row, column, pixel );
 *                 A0     D0   D1      A1
 *
+*       VOID PutPixel( FRAME *, WORD, WORD, APTR );
+*
 *   FUNCTION
+*       Writes a pixel into the frame.  The pixel must
+*       contain the data in the correct format (see
+*       frame->pix->colorspace).
 *
 *   INPUTS
+*       frame - frame pointer.
+*       row   - Row.
+*       column - Column.
+*       pixel - The pixel pointer.
 *
 *   RESULT
 *
 *   EXAMPLE
 *
 *   NOTES
+*       This is very slow - please see example code on how to modify
+*       the data directly.
 *
 *   BUGS
-*       This entry still very incomplete.
 *
 *   SEE ALSO
 *       GetPixel(), PutPixelRow().
@@ -1053,7 +1072,7 @@ VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
 ///
 
 /// GetBitMapRow()
-/****i* pptsupport/GetBitMapRow ******************************************
+/****u* pptsupport/GetBitMapRow ******************************************
 *
 *   NAME
 *       GetBitMapRow -- get a pointer to a rendered image
@@ -1065,13 +1084,15 @@ VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
 *       UBYTE *GetBitMapRow( FRAME *, WORD );
 *
 *   FUNCTION
+*       Returns a single bitmapped row in chunky pixel format from
+*       a rendered image.
 *
 *   INPUTS
 *       frame - easy.
 *       row - The row you wish to have data from
 *
 *   RESULT
-*       ptr - A pointer to bitmapped data or NULL, if something failed.
+*       ptr - A pointer to chunky data or NULL, if something failed.
 *           Don't forget to check it!
 *
 *   EXAMPLE
@@ -1079,8 +1100,6 @@ VOID SAVEDS ASM PutPixel( REGPARAM(a0,FRAME *,f),
 *   NOTES
 *
 *   BUGS
-*       This routine is currently under development, do not assume the
-*       interface would stay the same.
 *
 *   SEE ALSO
 *       GetPixelRow().
@@ -1435,7 +1454,7 @@ VOID SAVEDS ASM FinishProgress( REGPARAM(a0,FRAME *,frame),
 }
 ///
 /// CloseProgress()
-/****i* pptsupport/CloseProgress ******************************************
+/****u* pptsupport/CloseProgress ******************************************
 *
 *   NAME
 *       CloseProgress -- closes progress display (V5)
@@ -1447,16 +1466,18 @@ VOID SAVEDS ASM FinishProgress( REGPARAM(a0,FRAME *,frame),
 *       VOID CloseProgress( FRAME * );
 *
 *   FUNCTION
-*       TBA
+*       Closes the progress display window.
 *
 *   INPUTS
 *       frame - As usual.
 *
 *   RESULT
+*       N/A.
 *
 *   EXAMPLE
 *
 *   NOTES
+*       Please do not use, unless you really know what you're doing.
 *
 *   BUGS
 *
