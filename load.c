@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.2 1997/02/22 21:44:33 jj Exp $
+    $Id: load.c,v 2.3 1997/02/23 14:47:11 jj Exp $
 
     Code for loaders...
 */
@@ -60,7 +60,7 @@ Prototype UBYTE *        AskFile( EXTBASE *, STRPTR );
    patterns, change PPNCBUFSIZE */
 
 const char *external_patterns[] = {
-    "#?.(loader|iomod)","#?.effect","#?."REXX_EXTENSION
+    "#?.iomod","#?.effect","#?."REXX_EXTENSION
 };
 
 
