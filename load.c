@@ -2,9 +2,11 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.14 1999/03/13 18:01:42 jj Exp $
+    $Id: load.c,v 2.15 1999/03/17 23:07:32 jj Exp $
 
     Code for loaders...
+
+    This code is executed in multiple threads.
 */
 
 #include "defs.h"
@@ -42,9 +44,7 @@
 
 Local     PERROR         DoTheLoad( FRAME *, EXTBASE *, char *, char *, char *, BOOL );
 Prototype PERROR         FetchExternals(const char *path, UBYTE type);
-Prototype ASM PERROR     BeginLoad( REG(a0) FRAME *,  REG(a6) EXTBASE * );
-Prototype ASM VOID       EndLoad( REG(a0) FRAME *, REG(a6) EXTBASE * );
-Prototype ASM VOID       LoadPicture( REG(a0) UBYTE * );
+Prototype VOID ASM       LoadPicture( REGDECL(a0,UBYTE *) );
 Prototype FRAME *        RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr );
 
 /*---------------------------------------------------------------------*/
@@ -147,7 +147,7 @@ FRAME *RunLoad( char *fullname, UBYTE *loader, UBYTE *argstr )
 #endif
 
     if(!p) {
-        Req(NEGNUL,NULL,"Couldn't spawn a new process");
+        Req(NEGNUL,NULL,GetStr(MSG_PERR_NO_NEW_PROCESS));
         DeleteInfoWindow( frame->mywin,globxd );
         ReleaseFrame( frame );
         RemFrame(frame,globxd);
@@ -322,9 +322,9 @@ LOADER *CheckFileType( BPTR fh, STRPTR filename, EXTBASE *ExtBase )
 /*
     This is just a simple front-end to the loader routines.
 */
-SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
+VOID SAVEDS ASM LoadPicture( REGPARAM(a0,UBYTE *,argstr) )
 {
-    EXTBASE *xd;
+    EXTBASE *ExtBase;
     APTR DOSBase;
     struct PPTMessage *msg;
     FRAME *frame = NULL;
@@ -335,7 +335,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
 
     D(bug("LoadPicture(%s)\n",argstr));
 
-    if( (xd = NewExtBase(TRUE)) == NULL) {
+    if( (ExtBase = NewExtBase(TRUE)) == NULL) {
         D(bug("LIB BASE ALLOCATION FAILED\n"));
         goto errorexit;
     }
@@ -344,7 +344,7 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
      *  Read possible REXX commands
      */
 
-    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K,REXX/S", xd ) ) {
+    if(optarray = ParseDOSArgs( argstr, "FRAME/A/N,PATH/K,ARGS/K,LOADER/K,NAME/K,REXX/S", ExtBase ) ) {
         frame = (FRAME *) *( (ULONG *)optarray[0]) ;
         if(optarray[1]) /* A path was given */
             path = (UBYTE *)optarray[1];
@@ -362,33 +362,33 @@ SAVEDS ASM VOID LoadPicture( REG(a0) UBYTE *argstr )
         goto errorexit;
     }
 
-    if(NewTaskProlog(frame,xd) != PERR_OK) goto errorexit;
+    if(NewTaskProlog(frame,ExtBase) != PERR_OK) goto errorexit;
 
-    DOSBase = xd->lb_DOS;
+    DOSBase = ExtBase->lb_DOS;
 
-    res = DoTheLoad( frame, xd, path, name, loadername, rexx );
+    res = DoTheLoad( frame, ExtBase, path, name, loadername, rexx );
 
 errorexit:
     if(optarray)
-        FreeDOSArgs( optarray, xd );
+        FreeDOSArgs( optarray, ExtBase );
 
-    msg = AllocPPTMsg( sizeof(struct PPTMessage), xd );
+    msg = AllocPPTMsg( sizeof(struct PPTMessage), ExtBase );
     msg->frame = frame;
     msg->code = PPTMSG_LOADDONE;
     msg->data = (APTR)res;
 
     /* Send the message */
-    SendPPTMsg( globals->mport, msg, xd );
+    SendPPTMsg( globals->mport, msg, ExtBase );
 
-    WaitDeathMessage( xd );
+    WaitDeathMessage( ExtBase );
 
-    EmptyMsgPort( xd->mport, xd );
+    EmptyMsgPort( ExtBase->mport, ExtBase );
 
-    if(xd) RelExtBase(xd);
+    if(ExtBase) RelExtBase(ExtBase);
 }
 ///
 
-/// PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername, BOOL rexx )
+/// PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *loadername, BOOL rexx )
 
 /*
     This routine takes care of all picture loading, etc. Name and path must
@@ -396,9 +396,9 @@ errorexit:
 */
 
 Local
-PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loadername, BOOL rexx )
+PERROR DoTheLoad( FRAME *frame, EXTBASE *ExtBase, char *path, char *name, char *loadername, BOOL rexx )
 {
-    APTR DOSBase = xd->lb_DOS, UtilityBase = xd->lb_Utility, SysBase = xd->lb_Sys;
+    APTR DOSBase = ExtBase->lb_DOS, UtilityBase = ExtBase->lb_Utility, SysBase = ExtBase->lb_Sys;
     BPTR fh = NULL;
     struct Library *IOModuleBase = NULL;
     LOADER *ld = NULL;
@@ -429,10 +429,10 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
     if( ld == NULL ) {
         nofile = FALSE; /* We're gonna need the file anyway */
     } else {
-        IOModuleBase = OpenModule( ld, xd );
+        IOModuleBase = OpenModule( ld, ExtBase );
         if(IOModuleBase) {
-            nofile = IOInquire( PPTX_NoFile, xd );
-            CloseModule(IOModuleBase,xd);
+            nofile = IOInquire( PPTX_NoFile, ExtBase );
+            CloseModule(IOModuleBase,ExtBase);
         } else {
             InternalError("Invalid module detected!");
         }
@@ -462,18 +462,14 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                     SetErrorCode( frame, PERR_FILEOPEN );
                 } else {
                     XReq(NEGNUL,NULL,
-                        ISEQ_C ISEQ_HIGHLIGHT "ERROR!" ISEQ_TEXT
-                        "\nFailed to open file\n"
-                        "'%s'\n"
-                        "due to:\nError %ld %s", fullname, errcode, ec );
+                         XGetStr(mLOAD_CANNOT_OPEN_FILE), fullname, errcode, ec );
                 }
                 res = PERR_FILEOPEN;
                 goto errexit;
             }
             D(bug("\tOpened file\n"));
         } else {
-            XReq(NEGNUL,NULL,
-                 ISEQ_C "\nYou did not specify a file!\n" );
+            XReq(NEGNUL,NULL,XGetStr(mLOAD_NO_FILE_SPECIFIED) );
             return PERR_FAILED;
         }
     } else {
@@ -493,11 +489,11 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
          */
 
         if( !ld ) {
-            UpdateProgress(frame,"Checking file type...",0L, xd);
-            OpenInfoWindow(frame->mywin,xd);
+            UpdateProgress(frame,XGetStr(mLOAD_CHECKING_FILETYPE),0L, ExtBase);
+            OpenInfoWindow(frame->mywin,ExtBase);
 
             if( fh ) {
-                ld = CheckFileType( fh, name, xd );
+                ld = CheckFileType( fh, name, ExtBase );
             } else {
                 InternalError("No file or loader specified!");
                 res = PERR_FAILED;
@@ -508,7 +504,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
 
             D(bug("\tRecognised file type, now loading...\n"));
 
-            IOModuleBase = OpenModule( ld, xd );
+            IOModuleBase = OpenModule( ld, ExtBase );
 
             if(IOModuleBase) {
                 D(APTR foo);
@@ -520,7 +516,7 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
                 D(foo=StartBench());
 
-                errcode = IOLoad( fh, frame, loadertags, xd );
+                errcode = IOLoad( fh, frame, loadertags, ExtBase );
 
                 D(StopBench(foo));
                 D(bug("*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*==*\n"));
@@ -539,13 +535,9 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                          *  Display an error message.
                          */
 
-                        a = XReq( NEGNUL, "Keep It|Discard",
-                              ISEQ_C ISEQ_HIGHLIGHT"WARNING!\n\n" ISEQ_TEXT
-                              "A non-fatal error occurred during loading file\n\n"
-                              "'%s'\n\n"
-                              "and the image may be corrupted. What should I do?\n\n"
-                              ISEQ_I"%s\n",
-                              fullname, GetErrorMsg(frame,xd) );
+                        a = XReq( NEGNUL, XGetStr(MSG_KEEP_DISCARD_GAD),
+                                  XGetStr(mWARNING_FROM_LOADER),
+                                  fullname, GetErrorMsg(frame,ExtBase) );
 
                         if( a == 0 ) {
                             res = PERR_FAILED;
@@ -567,12 +559,9 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                         if( frame->doerror && frame->errorcode != PERR_CANCELED
                             && frame->errorcode != PERR_BREAK && !rexx) {
 
-                                XReq(NEGNUL,NULL,
-                                    ISEQ_C ISEQ_HIGHLIGHT "ERROR WHILE LOADING!\n\n" ISEQ_TEXT
-                                    "Loader %s reports error while reading file\n"
-                                    "'%s':\n\n"
-                                    ISEQ_I"%s",
-                                    ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,xd) );
+                                XReq(NEGNUL,XGetStr(mUNDERSTOOD),
+                                     XGetStr(mERROR_FROM_LOADER),
+                                     ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,ExtBase) );
 
                                 ClearError( frame );
                             }
@@ -587,23 +576,23 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                 res = PERR_FAILED;
             }
         } else {
-            XReq(NEGNUL, NULL, ISEQ_C "\nCannot recognize file\n'%s'\n", fullname );
+            XReq(NEGNUL, NULL, XGetStr(mLOAD_COULDNT_RECOGNIZE), fullname );
             res = PERR_FAILED;
         }
     }
 
 errexit:
 
-    if( IOModuleBase ) CloseModule( IOModuleBase, xd );
+    if( IOModuleBase ) CloseModule( IOModuleBase, ExtBase );
 
     if( fh ) {
         Close(fh);
         D(bug("Closed file\n"));
     }
 
-    CloseInfoWindow( frame->mywin, xd );
+    CloseInfoWindow( frame->mywin, ExtBase );
 
-    ClearProgress( frame, xd );
+    ClearProgress( frame, ExtBase );
 
     return res;
 }
