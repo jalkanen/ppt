@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : initexit.c
 
-    $Id: initexit.c,v 1.43 1999/04/01 23:06:11 jj Exp $
+    $Id: initexit.c,v 1.44 1999/07/11 23:22:48 jj Exp $
 
     Initialization and exit code.
 */
@@ -323,6 +323,7 @@ VOID CloseStartupWindow(VOID)
  */
 
 Local struct LocaleString *tips[] = {
+    mTIP_WELCOME,
     mTIP_HOWTOSTART,
     mTIP_ANNOYINGTIPS,
     mTIP_PREFERENCES,
@@ -718,6 +719,7 @@ int Initialize( void )
         ASLFR_InitialPattern, "#?",
         ASLFR_DoPatterns,   TRUE,
         ASLREQ_Bounds,      &gvLoadFileReq.prefs.initialpos,
+        ASLFR_DoMultiSelect,TRUE,
     EndObject;
 
     gvPaletteOpenReq.Req = FileReqObject,
