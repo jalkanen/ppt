@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : load.c
 
-    $Id: load.c,v 2.12 1997/08/30 21:35:14 jj Exp $
+    $Id: load.c,v 2.13 1998/11/08 00:46:06 jj Exp $
 
     Code for loaders...
 */
@@ -540,11 +540,12 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                               ISEQ_I"%s\n",
                               fullname, GetErrorMsg(frame,xd) );
 
-                        if( a == 0 )
+                        if( a == 0 ) {
                             res = PERR_FAILED;
-                        else
+                        } else {
                             res = PERR_OK;
-
+                            ClearError( frame );
+                        }
                         break;
 
                     case PERR_BREAK:
@@ -566,14 +567,13 @@ PERROR DoTheLoad( FRAME *frame, EXTBASE *xd, char *path, char *name, char *loade
                                     ISEQ_I"%s",
                                     ld->info.nd.ln_Name, fullname, GetErrorMsg(frame,xd) );
 
+                                ClearError( frame );
                             }
 
                         res = PERR_FAILED;
                         break;
 
                 } /* switch */
-
-                ClearError( frame );
 
             } else {
                 XReq(NEGNUL,NULL,"\nLoader %s cannot load?!?\n",ld->info.nd.ln_Name);
