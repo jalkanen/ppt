@@ -1,7 +1,7 @@
 
 NON-FREE extensions to PPT.
 ===========================
-$Id: README_NONFREE,v 1.1 1998/09/05 13:20:41 nobody Exp $
+$Id: README_NONFREE,v 1.2 1998/09/05 13:24:13 nobody Exp $
 
 This archive contains stuff that falls under the UNISYS LZW patent, which
 is why you may not wish to use it.  Also, distributing this archive on any
@@ -10,6 +10,17 @@ license fees to UNISYS, so you might not want to do it.
 
 So, if you use them, use them on your own responsibility.  It might even
 be illegal in your country.
+
+INSTALLATION
+============
+
+Just dearchive the contents of this archive directly to the PPT main
+directory.  For example, if you have installed ppt to USR:Graphics/PPT
+you could just say
+
+lha x PPT_nonfree.lha USR:Graphics/PPT/
+
+Have fun!
 
 /Janne
 
