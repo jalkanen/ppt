@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 6.0 $
-        $Date: 1999/09/05 02:19:28 $
+    $Revision: 6.1 $
+        $Date: 1999/11/28 18:15:52 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 6.0 1999/09/05 02:19:28 jj Exp $
+    $Id: ppt_real.h,v 6.1 1999/11/28 18:15:52 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -132,6 +132,16 @@ typedef void Pixel;                 /* Use only as Pixel * */
 #define MAXPATHLEN          256     /* Std AmigaDOS path len */
 #define NAMELEN             40      /* Maximum length of frame name */
 #define MAXPATTERNLEN       80      /* The maximum length for PPTX_PostFixPattern */
+
+/*
+ *  Maximum image dimensions - current internal limit.
+ *  Do not rely on these.  They may grow bigger, but not
+ *  smaller.
+ */
+
+#define MAX_WIDTH           16383
+#define MAX_HEIGHT          16383
+
 /*!!PRIVATE*/
 #define WINTITLELEN         80      /* Length of a window title buffer in DISPLAY */
 #define SCRTITLELEN        180      /* Length of the screen title buffer in DISPLAY */
@@ -478,9 +488,6 @@ struct Selection {
     ULONG           selectmethod;
     UBYTE           selstatus;      /* see defs.h */
 
-    Point           *vertices;
-    LONG            nVertices;
-
     struct MsgPort  *selectport;    /* Where the messages should be sent */
 
     /*
@@ -515,6 +522,15 @@ struct Selection {
 
     ULONG           cachedmethod;   /* Used during Start/StopInput to return
                                        previous method back to life. */
+
+    /*
+     *  GINP_LASSO_FREE
+     */
+
+    struct Frame_t  *mask;
+    Point           *vertices;
+    LONG            nVertices;
+
 };
 
 /*!!PUBLIC*/
@@ -587,6 +603,9 @@ typedef struct Frame_t {
     struct PreviewFrame preview;
 
     struct Selection selection;     /* See above for definition */
+
+    BOOL            istemporary;    /* Only used when the frame is just a temporary
+                                       frame and may be released by GetArgs() */
 
 #ifdef DEBUG_MODE
     BPTR            debug_handle;   /* The debug output of this task */
@@ -870,6 +889,7 @@ struct LocaleString {
 #define PPTX_ColorSpaces        ( GTAGBASE + 11) /* ULONG */
 #define PPTX_RexxTemplate       ( GTAGBASE + 12) /* STRPTR */
 #define PPTX_Priority           ( GTAGBASE + 13) /* BYTE */
+#define PPTX_SupportsGetArgs    ( GTAGBASE + 14) /* BOOL */
 
 
 /*
@@ -896,6 +916,7 @@ struct LocaleString {
 
 #define PPTX_RexxArgs           ( GTAGBASE + 1005 ) /* ULONG * */
 #define PPTX_FileName           ( GTAGBASE + 1006 ) /* STRPTR */
+#define PPTX_ArgBuffer          ( GTAGBASE + 1007 ) /* STRPTR (V6) */
 
 /*
  *  The following tags have been reserved for the ObtainPreviewFrame()
@@ -939,6 +960,7 @@ struct LocaleString {
 #define PERR_NOTINIMAGE    17 /* An out-of-bounds error happened when
                                  indexing an image */
 #define PERR_UNKNOWNCOLORSPACE 18 /* An unsupported colorspace was met */
+
 /*!!PRIVATE*/
 #define PERR_UNKNOWNCPU    1000 /* This CPU is not supported */
 
