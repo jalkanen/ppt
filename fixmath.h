@@ -3,7 +3,7 @@
  *  It can be easily configured to run on any precision,
  *  just change the defines below.
  *
- *  $Id: fixmath.h,v 1.1 1996/05/06 21:44:53 jj Exp $
+ *  $Id: fixmath.h,v 1.2 1996/05/06 22:29:39 jj Exp $
  *
  *  The fixed point type is always signed. Must be 32 bits.
  */
@@ -12,6 +12,7 @@
 #define FIXMATH_H
 
 typedef signed long fixed;
+
 
 /*
  *  This define tells how much bits accuracy we should use.
@@ -33,6 +34,7 @@ typedef signed long fixed;
  */
 
 #define FIX_INTEGERBITS     (31-FIX_DECIMALBITS)
+#define FIX_INTMASK         (0xFFFFFFFF << FIX_DECIMALBITS)
 
 #define FIX_MAX             ((1 << FIX_INTEGERBITS) - 1)
 #define FIX_MIN             (-(1 << FIX_INTEGERBITS))
@@ -48,6 +50,8 @@ typedef signed long fixed;
 #define FIX_ONE             (1 << FIX_SHIFT)
 #define FIX_HALF            (FIX_ONE >> 1)
 
+#define FIX_EPSILON         1
+
 /*
  *  Fixed point calculations:
  *
@@ -60,6 +64,15 @@ typedef signed long fixed;
 
 #define FIXMUL(a,b)         ((a*b) >> FIX_SHIFT)
 #define FIXDIV(a,b)         ((a/b) << FIX_SHIFT)
+
+
+/*
+ *  Some mathematical operations
+ */
+
+#define FIXFRAC(a)          ( a & FIX_INTMASK )
+#define FIXFLOOR(a)         ( a & ~FIX_INTMASK )
+#define FIXCEIL(a)          ( (a+FIX_ONE-FIX_EPSILON) & ~FIX_INTMASK )
 
 /*
  *  Type conversions
