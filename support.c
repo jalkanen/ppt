@@ -5,7 +5,7 @@
 
     Support functions.
 
-    $Id: support.c,v 3.3 1997/02/23 14:45:27 jj Exp $
+    $Id: support.c,v 3.4 1997/05/06 00:09:27 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -463,23 +463,27 @@ PERROR GetBackgroundColor( REG(a0) FRAME *frame, REG(a1) ROWPTR pixel,
 *
 *****************************************************************************
 *
-*  BUG: Does not do locking.
-*       What would it lock?  it's only reading PIXINFO...
 */
 
 SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBASE *xd )
 {
     ULONG offset;
-    PIXINFO *p = f->pix;
-    VMHANDLE *vmh = p->vmh;
+    PIXINFO *p;
+    VMHANDLE *vmh;
     ROWPTR source;
 
     // D(bug("GetPixelRow(%08X,%d)\n",f,row));
 
-    if(!vmh) return NULL;
+    LOCK(f);
+    p = f->pix;
+    vmh = p->vmh;
 
-    if(row < 0 || row >= p->height)
+    if(!p || !vmh) { UNLOCK(f); return NULL; }
+
+    if(row < 0 || row >= p->height) {
+        UNLOCK(f);
         return NULL;
+    }
 
     offset = row * ROWLEN(p); /* Beginning of line */
 
@@ -511,8 +515,10 @@ SAVEDS ASM ROWPTR GetPixelRow( REG(a0) FRAME *f, REG(d0) WORD row, REG(a6) EXTBA
 
     memcpy( p->tmpbuf, source, p->bytes_per_row );
 
+    UNLOCK(f);
     return( p->tmpbuf );
 #else
+    UNLOCK(f);
     return source;
 #endif
 }
