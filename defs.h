@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.30 1999/03/31 13:22:53 jj Exp $
+    $Id: defs.h,v 1.31 1999/05/30 18:11:09 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -272,7 +272,8 @@ enum DebugFile_T {
     frame->selstatus flag definitions. Should probably be named
     frame->flags.
 */
-#define SELF_RECTANGLE      0x01
+#define SELF_DRAWN          0x01
+#define SELF_RECTANGLE      SELF_DRAWN /* BUG: obsolete */
 #define SELF_BUTTONDOWN     0x02
 #define SELF_CONTROLDOWN    0x04
 
