@@ -3,7 +3,7 @@
     PROJECT: PPT
     MODULE : gui.c
 
-    $Id: gui.c,v 1.68 1999/06/18 23:26:12 jj Exp $
+    $Id: gui.c,v 6.0 1999/09/05 02:20:22 jj Exp $
 
     This module contains most of the routines for GUI creation.
 
@@ -1545,6 +1545,16 @@ Object *GimmePrefsWindow( VOID )
                                                         BT_HelpNode, "PPT.guide/MiscSettings",
                                                     EndObject, FixMinSize,
                                                 EndMember,
+                                                StartMember,
+                                                    prefsw.ShowSplash = CheckBoxObject, GA_ID, GID_PW_SHOWSPLASH,
+                                                        ULabel("Show splash screen?"),
+                                                        GA_Selected, globals->userprefs->splash,
+                                                        ButtonFrame,
+                                                        BT_HelpHook, &HelpHook,
+                                                        BT_HelpNode, "PPT.guide/MiscSettings",
+                                                    EndObject, FixMinSize,
+                                                EndMember,
+
         #ifdef DEBUG_MODE
                                                 StartMember,
                                                     CycleObject, GA_ID, GID_PW_ONOPEN,
@@ -1830,11 +1840,11 @@ PERROR GimmeSelectWindow(VOID)
         WINDOW_Bounds,      &ibox,
         WINDOW_MasterGroup,
             VGroupObject,
-#ifdef DEBUG_MODE
+
                 StartMember,
                     c = Tabs( NULL, Selectpages, 0, GID_SELECT_PAGE ),
                 EndMember,
-#endif
+
                 StartMember,
                     selectw.Page = PageObject,
                         // GA_ID, GID_SELECT_PAGE,
@@ -2007,9 +2017,7 @@ PERROR GimmeSelectWindow(VOID)
         EndObject;
 
     if( selectw.Win ) {
-#ifdef DEBUG_MODE
         AddMap(c,selectw.Page,Cyc2Page);
-#endif
         res = PERR_OK;
     }
 
