@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : prefs.c
 
-    $Id: prefs.c,v 1.26 1998/12/07 13:47:08 jj Exp $
+    $Id: prefs.c,v 1.27 1998/12/07 20:24:25 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -726,17 +726,21 @@ VOID SetPreviewSize( PREFS *p )
         case PWMODE_OFF:
             p->previewheight = p->previewwidth = 0;
             break;
-        case PWMODE_SMALL:
+        case PWMODE_SMALL: /* 2700 pixels */
             p->previewheight = 45;
             p->previewwidth = 60;
             break;
-        case PWMODE_MEDIUM:
-            p->previewheight = 60;
-            p->previewwidth = 80;
-            break;
-        case PWMODE_LARGE:
+        case PWMODE_MEDIUM: /* 7500 pixels */
             p->previewheight = 75;
             p->previewwidth = 100;
+            break;
+        case PWMODE_LARGE: /* 19200 pixels */
+            p->previewheight = 120;
+            p->previewwidth = 160;
+            break;
+        case PWMODE_HUGE: /* 76800 pixels */
+            p->previewheight = 240;
+            p->previewwidth  = 320;
             break;
     }
 }
