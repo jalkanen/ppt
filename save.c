@@ -4,7 +4,9 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.16 1999/03/14 20:59:46 jj Exp $
+    $Id: save.c,v 2.17 1999/03/17 23:09:36 jj Exp $
+
+    This code is executed in multiple threads.
 */
 
 #include "defs.h"
@@ -17,20 +19,13 @@
 #include <libraries/asl.h>
 #include <dos/dostags.h>
 
-#include <proto/utility.h>
-#include <proto/intuition.h>
-#include <proto/graphics.h>
-
-#include <clib/bgui_protos.h>
 #include <clib/alib_protos.h>
-
-#include <pragmas/bgui_pragmas.h>
 
 #include <proto/iomod.h>
 
 #include <stdlib.h>
 
-extern    ASM VOID  SavePicture( REG(a0) UBYTE *, REG(d0) ULONG );
+extern    VOID ASM  SavePicture( REGDECL(a0,UBYTE *), REGDECL(d0,ULONG) );
 Prototype PERROR    RunSave( FRAME *, UBYTE * );
 
 /*----------------------------------------------------------------------*/
@@ -89,7 +84,7 @@ PERROR RunSave( FRAME *frame, UBYTE *argstr )
                            NP_StackSize, globals->userprefs->extstacksize, TAG_END );
 #endif
     if(!p) {
-        Req( GetFrameWin( frame ),NULL,"Couldn't spawn a new process");
+        Req( GetFrameWin( frame ),NULL,GetStr(MSG_PERR_NO_NEW_PROCESS) );
         ReleaseFrame( frame );
         frame->selstatus = 0;
         return PERR_INITFAILED;
@@ -143,9 +138,8 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
 
         Close(fh);
 
-        r = XReq( GetFrameWin(frame), "Save|Cancel",
-                  ISEQ_C"\nThere is already a file by that name.\n"
-                  "Are you sure you wish to save?\n" );
+        r = XReq( GetFrameWin(frame), XGetStr(mSAVE_CANCEL_GAD),
+                  XGetStr(mSURE_ABOUT_SAVE) );
         if( r == 0 ) {
             return PERR_CANCELED;
         }
@@ -200,8 +194,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
     } else {
         if( ld->saveformats & CSF_LUT ) {
             if(frame->renderobject == NULL) {
-                XReq( GetFrameWin(frame), NULL, "\nYou do not have a rendered image.\n"
-                                                "Set the correct format in Render Options Menu.\n" );
+                XReq( GetFrameWin(frame), NULL, XGetStr( mSAVE_NO_RENDERED_IMAGE ) );
                 delete = TRUE;
                 goto errexit;
             }
@@ -217,7 +210,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
 
     fh = Open( filename, MODE_NEWFILE );
     if(!fh) {
-        SetErrorMsg(frame, "Unable to open write file" );
+        SetErrorMsg(frame, XGetStr(MSG_PERR_FILEOPEN) );
         res = PERR_FILEOPEN;
         goto errexit;
     }
@@ -227,8 +220,7 @@ PERROR DoTheSave( FRAME *frame, LOADER *ld, UBYTE mode, STRPTR argstr, EXTBASE *
     } else {
         char errorbuf[MAXPATHLEN];
         D(bug("Colorspace diff: is %lu, should be %lu\n",(1<<frame->pix->colorspace),format));
-        sprintf( errorbuf, "Saver module %s does not know how "
-                           "to handle a %s colorspace!",
+        sprintf( errorbuf, XGetStr(mSAVER_CANNOT_HANDLE_CSPACE),
                            ld->info.nd.ln_Name,
                            ColorSpaceName(frame->pix->colorspace));
         SetErrorMsg( frame, errorbuf );
@@ -259,20 +251,14 @@ errexit:
         {
             if( res == PERR_WARNING ) {
                 ULONG r;
-                r = XReq( GetFrameWin(frame), "Ignore|Remove Saved File",
-                          ISEQ_C"\nWARNING!\n"
-                          "While I was attempting to save '%s',\n"
-                          "I got this warning message:\n\n"
-                          ISEQ_I"%s\n",
+                r = XReq( GetFrameWin(frame), XGetStr(mIGNORE_REMOVE_SAVED_FILE),
+                          XGetStr(mWARNING_FROM_SAVER),
                           frame->name, GetErrorMsg( frame, ExtBase ));
 
                 if( r == 0 ) delete = TRUE;
             } else {
-                XReq( GetFrameWin(frame), "Understood",
-                      ISEQ_C"\nERROR!\n"
-                      "While I was attempting to save '%s',\n"
-                      "I got this error message:\n\n"
-                      ISEQ_I"%s\n",
+                XReq( GetFrameWin(frame), XGetStr(mUNDERSTOOD),
+                      XGetStr( mERROR_FROM_SAVER ),
                       frame->name, GetErrorMsg( frame, ExtBase ));
                 delete = TRUE;
             }
@@ -301,7 +287,7 @@ errexit:
     CloseInfoWindow( frame->mywin, ExtBase );
     if(delete) {
         if(DeleteFile( filename ) == FALSE)
-            XReq( GetFrameWin(frame), NULL, "Warning:\n\nUnable to remove file '%s'", filename );
+            XReq( GetFrameWin(frame), NULL, XGetStr(mCANNOT_REMOVE_FILE), filename );
     }
 
     return res;
@@ -492,7 +478,7 @@ HandleSaveIDCMP( FRAME *frame, struct SaveWin *gads, ULONG rc, PERROR *res, EXTB
     BUG: REXX control handling could be prettier.
 */
 
-SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
+SAVEDS ASM VOID SavePicture( REGPARAM(a0,UBYTE *,argvect), REGPARAM(d0,ULONG,len) )
 {
     struct SaveWin gads = {0};
     ULONG sigmask, sig, rc;
