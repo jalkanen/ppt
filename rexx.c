@@ -2,10 +2,10 @@
     PROJECT: ppt
     MODULE : rexx.c
 
-    $Id: rexx.c,v 6.0 1999/10/14 16:21:58 jj Exp $
+    $Id: rexx.c,v 6.1 1999/11/25 23:18:47 jj Exp $
 
-    AREXX interface to PPT. Parts of this code are originally
-    from ArexxBox, by Michael Balzer.
+    AREXX interface to PPT. Based heavily on ArexxBox
+    by Michael Baltzer.
 */
 
 
@@ -75,6 +75,7 @@ Local BOOL DoRexxCommand( struct RexxMsg *, char *, PPTREXXARGS * );
 /*--------------------------------------------------------------------------*/
 /* Variables & other stuff. */
 
+/// Prototypes
 Local void rx_version( PPTREXXARGS *, struct RexxMsg * );
 Local void rx_author( PPTREXXARGS *, struct RexxMsg * );
 Local void rx_process( PPTREXXARGS *, struct RexxMsg * );
@@ -105,10 +106,14 @@ Local void rx_askreq( PPTREXXARGS *, struct RexxMsg * );
 Local void rx_showerror( PPTREXXARGS *, struct RexxMsg * );
 Local void rx_show( PPTREXXARGS *, struct RexxMsg * );
 Local void rx_hide( PPTREXXARGS *, struct RexxMsg * );
+Local void rx_getargs( PPTREXXARGS *, struct RexxMsg * );
+///
 
-
+/// rx_commands[] and other variables
 struct RexxCommand rx_commands[] = {
     "PROCESS",      "FRAME/A/N,EFFECT/A,ARGS/F",rx_process,
+
+    "GETARGS",      "FRAME/N,PLUGIN,ARGS/F",  rx_getargs,
 
     "HIDE",         "FRAME/A/N",                rx_hide,
     "SHOW",         "FRAME/A/N",                rx_show,
@@ -128,7 +133,7 @@ struct RexxCommand rx_commands[] = {
     "FREEFRAME",    "FRAME/A/N",                NULL,
     "LOADFRAME",    "FILE/A",                   rx_load,
     "RENAMEFRAME",  "FRAME/A/N,NAME/A",         rx_renameframe,
-    "COPYFRAME",    "FRAME/A/N",               rx_copyframe,
+    "COPYFRAME",    "FRAME/A/N",                rx_copyframe,
 
     "LISTEFFECTS",  "STEM/A",                   rx_listeffects,
     "LISTIOMODULES","STEM/A,ONLYLOADERS/S,ONLYSAVERS/S",
@@ -191,11 +196,12 @@ const char *ColorSpaceNamesE[] = {
     "Colormapped",
     "ARGB"
 };
-
+///
 
 
 /*--------------------------------------------------------------------------*/
 
+/// AllocRA() FreeRA() RexxVar()
 Local
 PPTREXXARGS *AllocRA(VOID)
 {
@@ -208,6 +214,7 @@ PPTREXXARGS *AllocRA(VOID)
 Local
 VOID FreeRA( PPTREXXARGS *ra )
 {
+    if( ra->result && ra->free_result ) sfree( ra->result );
     if( ra ) sfree( ra );
 }
 
@@ -223,6 +230,7 @@ char *RexxVar( struct RexxMsg *rm, const char *name, const char *def )
 
     return ans;
 }
+///
 
 /// ASKREQ
 
@@ -969,7 +977,7 @@ void rx_effectinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
         ra->rc  = -10;
         ra->rc2 = (long)"Effect not found";
     } else {
-        EffectBase = OpenModule( effect, globxd );
+        EffectBase = OpenModule( effect, 0L, globxd );
         if( !EffectBase ) {
             ra->rc = -10;
             ra->rc2 = (long)"Couldn't open effect";
@@ -981,6 +989,7 @@ void rx_effectinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
             AddStemItem( stem, "AUTHOR", EffectInquire( PPTX_Author, globxd ) , ASI_STRING );
             AddStemItem( stem, "INFOTXT", EffectInquire( PPTX_InfoTxt, globxd ), ASI_STRING );
             AddStemItem( stem, "REXXTEMPLATE", EffectInquire( PPTX_RexxTemplate, globxd), ASI_STRING );
+            AddStemItem( stem, "GETARGS", EffectInquire( PPTX_SupportsGetArgs, globxd), ASI_INT );
             CloseModule( EffectBase, globxd );
         }
 
@@ -1027,7 +1036,7 @@ void rx_loaderinfo( PPTREXXARGS *ra, struct RexxMsg *rm )
         ra->rc  = -10;
         ra->rc2 = (long)"Loader not found";
     } else {
-        IOModuleBase = OpenModule( loader, globxd );
+        IOModuleBase = OpenModule( loader, 0L, globxd );
         if( !IOModuleBase ) {
             ra->rc = -10;
             ra->rc2 = (long)"IO Module not found!";
@@ -1430,6 +1439,59 @@ void rx_process( PPTREXXARGS *ra, struct RexxMsg *rm )
 }
 ///
 
+/*
+    Get the arguments from the external module.
+ */
+
+Local
+void rx_getargs( PPTREXXARGS *ra, struct RexxMsg *rm )
+{
+    EXTERNAL    *module;
+    char        argstr[MAXPATHLEN], *rxargs = NULL;
+    FRAME       *frame;
+
+    D(bug("GETARGS\n"));
+
+    if( !(frame = ra->frame) ) {
+        if( NULL == (frame = NewFrame( 0, 0, 0, globxd ))) {
+            ra->rc = 10; ra->rc2 = (long) "Couldn't allocate a temporary frame";
+            return;
+        }
+
+        frame->istemporary = TRUE;
+    }
+
+    /*
+     *  Allocate room for the argument string, or if it does not exist,
+     *  for the NULL string.
+     */
+
+    if( rxargs = smalloc( (ra->args[2] ? strlen(STR(ra->args[2])) : 0) + 1 ) ) {
+        strcpy( rxargs, ra->args[2] ? STR(ra->args[2]) : (STRPTR)"" );
+    } else {
+        ra->rc = 10; ra->rc2 = PERR_OUTOFMEMORY;
+        ra->proc = NULL;
+        return;
+    }
+
+    if( module = (EXTERNAL *)FindIName( &globals->effects, (UBYTE *)ra->args[1] ) ) {
+        sprintf(argstr,"%lu",rxargs);
+        if( RunGetArgs( frame, module, argstr ) != PERR_OK) {
+            ra->rc = -10; ra->rc2 = (long)"Cannot spawn subtask";
+            ra->proc = NULL;
+        } else {
+            ra->frame = frame;
+            ra->proc  = frame->currproc;
+            ra->process_args = rxargs;
+        }
+    } else if( module = (EXTERNAL *)FindIName( &globals->loaders, (UBYTE *)ra->args[1] )) {
+
+    } else {
+        ra->rc = -10;
+        ra->rc2 = (long)"External not found";
+    }
+}
+
 /// HIDE & SHOW
 
 /*
@@ -1648,6 +1710,7 @@ void HandleRexxCommands( struct RexxHost *host )
 }
 ///
 
+/// SimulateRexxCommand()
 /*
     Use to put a pseudo rexx command into the queue.  This is necessary
     if PPT starts an effect by using its own internal args.
@@ -1682,7 +1745,9 @@ SimulateRexxCommand( FRAME *frame, char *command )
 
     return ra;
 }
+///
 
+/// RexxReply() & ReplyRexxCommand()
 /*
     Master reply interface. Does STEM and possible future VAR
     setting correctly.
@@ -1765,7 +1830,9 @@ void ReplyRexxCommand( struct RexxMsg  *rexxmessage,
     D(bug("\tRC=%ld, RESULT=%ld\n",primary,secondary));
     ReplyMsg( (struct Message *) rexxmessage );
 }
+///
 
+/// FreeRexxCommand()
 /*
     Free REXX command message.
 */
@@ -1785,7 +1852,9 @@ void FreeRexxCommand( struct RexxMsg *rexxmessage )
     DeleteArgstring( (char *) ARG0(rexxmessage) );
     DeleteRexxMsg( rexxmessage );
 }
+///
 
+/// FindRexxWaitItem()
 Prototype PPTREXXARGS *FindRexxWaitItemFrame( FRAME *frame );
 
 PPTREXXARGS *FindRexxWaitItemFrame( FRAME *frame )
@@ -1811,8 +1880,9 @@ PPTREXXARGS *FindRexxWaitItem( struct PPTMessage *pmsg )
 {
     return FindRexxWaitItemFrame( pmsg->frame );
 }
+///
 
-
+/// ReplyRexxWaitItem()
 void ReplyRexxWaitItem( PPTREXXARGS *ra )
 {
     D(bug("ReplyRexxWaitItem(ra=%08X)\n",ra));
@@ -1829,7 +1899,8 @@ void ReplyRexxWaitItem( PPTREXXARGS *ra )
     if( ra->process_args ) sfree( ra->process_args );
     FreeRA(ra);
 }
-
+///
+/// EmptyRexxWaitItemList()
 Local
 VOID EmptyRexxWaitItemList(VOID)
 {
@@ -1850,6 +1921,8 @@ VOID EmptyRexxWaitItemList(VOID)
     }
     UNLOCKGLOB();
 }
+///
+
 /*-------------------------------------------------------------------------*/
 
 /// SetRexxVariable
@@ -1875,7 +1948,7 @@ VOID EmptyRexxWaitItemList(VOID)
 *       value - the string value
 *
 *   RESULT
-*       Returns the same return values as amiga.lib/SetRexxVar(),
+%ld\n",res));  @    }  8    return res;(}-€    ///€   /*è   *
 *       that is, 0 for success, and != 0 for failure.
 *
 *   EXAMPLE
@@ -1916,7 +1989,7 @@ LONG ASM SetRexxVariable( REGPARAM(a0,FRAME *,frame),
 ///
 
 /*-------------------------------------------------------------------------*/
-/// Handling of REXX messages to be sent.
+/// SendRexxCommand()
 
 /*
     Send a script file to be processed by rexxmast.
@@ -2028,6 +2101,8 @@ VOID FreeStemItem( struct StemItem *si )
 /*
     If string == TRUE, then the added value is in reality a pointer
     to a string.
+
+    Strings will be allocated new space and they are copied to the stem.
 
     BUG: No error checking
 */
