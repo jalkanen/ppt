@@ -5,7 +5,7 @@
 
     Virtual memory handling routines.
 
-    $Id: vm.c,v 4.1 1997/12/06 22:53:20 jj Exp $
+    $Id: vm.c,v 4.2 1998/09/05 11:32:13 jj Exp $
 */
 /*----------------------------------------------------------------------*/
 
@@ -243,7 +243,7 @@ PERROR CreateVMData( VMHANDLE *vmh, const ULONG size, EXTBASE *ExtBase )
          *  Pick up a new identification code
          */
 
-        if( UtilityBase->lib_Version >= 41 ) {
+        if( UtilityBase->lib_Version >= 39 ) {
             vmh->vm_id = GetUniqueID();
         } else {
             LOCKGLOB();
