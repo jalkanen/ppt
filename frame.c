@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.5 1997/03/15 23:07:41 jj Exp $
+    $Id: frame.c,v 2.6 1997/05/01 20:25:36 jj Exp $
 
     This contains frame handling routines
 
@@ -230,12 +230,14 @@ BOOL ChangeBusyStatus( FRAME *frame, ULONG mode )
 VOID ResetSharedFrameVars(FRAME *f)
 {
     if( CheckPtr( f, "RSFV(): frame" )) {
+        LOCK(f);
         f->disp         = NULL;
         f->renderobject = f->pw = NULL;
         f->dpw          = NULL;
         f->mywin        = NULL;
         f->parent       = NULL;
         f->editwin      = NULL;
+        UNLOCK(f);
     }
 }
 
@@ -252,8 +254,8 @@ PERROR AddFrame( FRAME *frame )
 
     LOCKGLOB();
     AddTail( &globals->frames, (struct Node *)frame );
+    DoMethod( framew.Frames, LVM_ADDSINGLE, NULL, frame->nd.ln_Name, LVAP_SORTED );
     if(framew.win) {
-        AddEntryVisible( framew.win, framew.Frames, frame->nd.ln_Name, LVAP_SORTED );
         RefreshList( framew.win, framew.Frames );
     }
     UNLOCKGLOB();
@@ -290,7 +292,10 @@ void DeleteFrame( FRAME *f )
             entry = (APTR)NextEntry(framew.Frames, entry);
 
         if(entry) {
-            RemoveEntryVisible( framew.win, framew.Frames, entry );
+            if(framew.win)
+                RemoveEntryVisible( framew.win, framew.Frames, entry );
+            else
+                DoMethod(framew.Frames, LVM_REMENTRY, NULL, entry );
             UpdateMainWindow( NULL ); /* Removes the data */
         }
 
