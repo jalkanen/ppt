@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.7 1996/11/23 01:01:17 jj Exp $
+#       $Id: dmakefile,v 1.8 1996/11/27 22:44:41 jj Exp $
 #
 #####################################################################
 #
@@ -140,11 +140,11 @@ SRCS = initexit.c debug.c load.c edit.c frame.c main.c \
        filter.c others.c message.c memory.c errors.c support.c infowin.c vm.c \
        render.c display.c rendermod.c dither.c dispdevs.c colormap.c palette.c \
        external.c prefs.c save.c palette_edit.c rexx.c areaclass.c \
-       ppt_cat.c askreq.c
+       ppt_cat.c askreq.c gui.c
 
 # These are not compiled with optimization on.
 
-SLOWSRCS = gui.c
+#SLOWSRCS = debug.c
 
 ASSYS = render2.a
 
@@ -161,15 +161,21 @@ HDRS = ppt_real.h defs.h
 MHDRS = defs.h ppt_real.h protos.h machine-protos.h \
         render.h rexx.h ppt_cat.h gui.h include/askreq.h
 
+# These files version on version & gfx information
+
+VSRCS = main.c gui.c prefs.c palette_edit.c askreq.c initexit.c
+
+#
 #   Object files.
+#
 
 COBJS = $(SRCS:"*.c":"$(OD)/*.o")
 AOBJS = $(ASSYS:"*.a":"$(OD)/*.o")
-SLOWOBJS = $(SLOWSRCS:"*.c":"$(OD)/*.o")
+#SLOWOBJS = $(SLOWSRCS:"*.c":"$(OD)/*.o")
+SLOWOBJS =
 
 # Those who depend on version & gfx information
-VOBJS = $(OD)/main.o $(OD)/gui.o $(OD)/prefs.o $(OD)/palette_edit.o $(OD)/askreq.o \
-        $(OD)/initexit.o
+VOBJS  = $(VSRCS:"*.c":"$(OD)/*.o")
 
 # Render objects, depend on render.h
 RENDOBJS = $(OD)/colormap.o $(OD)/palette.o $(OD)/rendermod.o $(OD)/dispdevs.o \
@@ -190,9 +196,10 @@ OBJS   = $(COBJS) $(AOBJS) $(FORTOBJS) $(SLOWOBJS)
 
 RCFLAGS = $(COPTS) $(RCOPTS) $(FORTCOPTS)
 RCOBJS  = $(SRCS:"*.c":"$(ROD)/*.o")
-RSLOWOBJS= $(SLOWSRCS:"*.c":"$(ROD)/*.o")
+#RSLOWOBJS= $(SLOWSRCS:"*.c":"$(ROD)/*.o")
+RSLOWOBJS=
 ROBJS   = $(RCOBJS) $(AOBJS) $(FORTLITEOBJS) $(RSLOWOBJS)
-RVOBJS  = $(ROD)/main.o $(ROD)/gui.o $(ROD)/prefs.o
+RVOBJS  = $(VSRCS:"*.c":"$(ROD)/*.o")
 
 #####################################################################
 #
@@ -221,9 +228,6 @@ $(MAIN) : $(OBJS) $(VOBJS)
 
 $(RMAIN) : $(ROBJS)
         $(LINK) $(ROBJS) $(LINKTO) %(left) $(RLDFLAGS)
-        $(STRIP)
-        Copy $(RMAIN).strip $(RMAIN)
-        Delete $(RMAIN).strip
 
 #
 # Compile phase
@@ -232,8 +236,8 @@ $(RMAIN) : $(ROBJS)
 $(COBJS) : $(SRCS)
         $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
-$(SLOWOBJS) : $(SLOWSRCS)
-        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
+#$(SLOWOBJS) : $(SLOWSRCS)
+#        $(CC) $(CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
 $(AOBJS) : $(ASSYS)
         $(AS) $(ASOPTS) %(right) $(OBJNAME) %(left)
@@ -249,8 +253,8 @@ $(OD)/external.o :: misc.h
 $(RCOBJS) : $(SRCS)
         $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE)
 
-$(RSLOWOBJS) : $(SLOWSRCS)
-        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
+#$(RSLOWOBJS) : $(SLOWSRCS)
+#        $(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) $(SLOWCFLAGS)
 
 $(COBJS) :: $(HDRS)
 
@@ -308,6 +312,9 @@ rcs :
 # This makes a distribution
 
 dist : all release $(DISTDIR) docs
+        $(STRIP)
+        Copy $(RMAIN).strip $(RMAIN)
+        Delete $(RMAIN).strip
         dupdate $(MAINDIR) $(DISTDIR) FORCE
         Cd $(DISTDIR)
         Copy $(MAINDIR)/ppt_dir.info /PPT.info
