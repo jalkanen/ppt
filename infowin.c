@@ -2,7 +2,7 @@
     PROJECT: PPT
     MODULE : infowin.c
 
-    $Id: infowin.c,v 1.8 1996/10/10 19:09:30 jj Exp $
+    $Id: infowin.c,v 1.9 1996/10/25 01:37:09 jj Exp $
 
     This module contains code for handling infowindows.
  */
@@ -111,14 +111,21 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
 
     D(bug("OpenInfoWindow(%08X)\n",iw));
     if( iw ) {
+        Object *Win;
+        struct Window *win;
+
         /*
          *  Are the window object and window pointer OK?
          */
 
         if( !CheckPtr( iw, "Open(): bad iw" ) ) return PERR_FAILED;
 
-        LOCK(iw);
-        if( iw->WO_win && !iw->win ) {
+        SHLOCK(iw);
+        Win = iw->WO_win;
+        win = iw->win;
+        UNLOCK(iw);
+
+        if( Win && !win ) {
 
 #ifndef DO_NOT_OPEN_WINDOW
 
@@ -128,6 +135,7 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
              */
 
             if( FindTask(NULL) == globals->maintask ) {
+                LOCK(iw);
                 UpdateInfoWindow( iw, ExtBase );
 
                 D(bug("\tAttempting open...\n"));
@@ -136,18 +144,21 @@ PERROR OpenInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
                     res = PERR_WINDOWOPEN;
                 }
                 D(bug("\tWindow opened at %08X\n",iw->win));
+                UNLOCK(iw);
             } else {
                 struct PPTMessage *msg;
 
                 msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+                SHLOCK(iw);
                 msg->frame = iw->myframe;
+                UNLOCK(iw);
                 msg->code  = PPTMSG_OPENINFOWINDOW;
                 msg->data  = 0L;
                 SendPPTMsg( globals->mport, msg, ExtBase );
+                WaitForReply( PPTMSG_OPENINFOWINDOW, ExtBase );
             }
 #endif
         }
-        UNLOCK(iw);
     }
     return res;
 }
@@ -170,23 +181,26 @@ VOID CloseInfoWindow( INFOWIN *iw, EXTBASE *ExtBase )
          *  Do the window AND the window object exist?
          */
 
-        LOCK(iw);
 
         if( (struct Process *)FindTask(NULL) == globals->maintask ) {
+            LOCK(iw);
             if( iw->WO_win && iw->win ) {
                 WindowClose( iw->WO_win );
                 iw->win = NULL;
             }
+            UNLOCK(iw);
         } else {
             struct PPTMessage *msg;
 
             msg = AllocPPTMsg( sizeof( struct PPTMessage ), ExtBase );
+            SHLOCK(iw);
             msg->frame = iw->myframe;
+            UNLOCK(iw);
             msg->code  = PPTMSG_CLOSEINFOWINDOW;
             msg->data  = 0L;
             SendPPTMsg( globals->mport, msg, ExtBase );
+            WaitForReply( PPTMSG_CLOSEINFOWINDOW, ExtBase );
         }
-        UNLOCK(iw);
     }
 }
 
