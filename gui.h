@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.31 1998/11/08 00:28:29 jj Exp $
+    $Id: gui.h,v 1.32 1998/12/07 13:43:43 jj Exp $
 */
 
 #ifndef GUI_H
@@ -127,7 +127,7 @@ struct ExtInfoWin {
 struct ToolWindow {
     struct WindowPrefs prefs;
     Object          *Win;
-    Object          *GO_ToolInfo;
+    Object          *GO_ToolInfo, *GO_ToolBar;
     struct Window   *win;
 };
 
