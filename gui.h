@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.27 1998/06/28 23:10:15 jj Exp $
+    $Id: gui.h,v 1.28 1998/06/29 22:33:29 jj Exp $
 */
 
 #ifndef GUI_H
@@ -471,6 +471,7 @@ extern const ULONG dpcol_fl2sl[];
 #define MID_ABOUT           (MENUB + 10)
 #define MID_QUIT            (MENUB + 11)
 #define MID_RENAME          (MENUB + 12)
+#define MID_NEW             (MENUB + 13)
 
 /* Edit Menu */
 #define MID_UNDO            (MENUB + 101)
