@@ -2,7 +2,7 @@
 /*
     GUI definitions.
 
-    $Id: gui.h,v 1.29 1998/06/30 19:58:11 jj Exp $
+    $Id: gui.h,v 1.30 1998/07/01 21:35:19 jj Exp $
 */
 
 #ifndef GUI_H
@@ -75,18 +75,22 @@ struct DispPrefsWindow {
 
 /*
     Palette window. This is usually created once for each frame.
+
+    Note that since the Palette object can only be set during
+    creation, we will save the window position during openings.
 */
 struct PaletteWindow {
-    struct Screen *scr;
-    struct Window *win;
-    COLORMAP *colortable;
-    Object *Win;
-    Object *GradientSlider, *ColorWheel; /* NA */
-    Object *Ok, *Cancel, *Remap;
-    Object *Slider1, *Slider2, *Slider3, *Slider4;
-    Object *Indic1, *Indic2, *Indic3, *Indic4;
-    Object *ColorSpace;
-    Object *Palette;
+    struct Screen   *scr;
+    struct Window   *win;
+    COLORMAP        *colortable;
+    Object          *Win;
+    Object          *GradientSlider, *ColorWheel; /* NA */
+    Object          *Ok, *Cancel, *Remap;
+    Object          *Slider1, *Slider2, *Slider3, *Slider4;
+    Object          *Indic1, *Indic2, *Indic3, *Indic4;
+    Object          *ColorSpace;
+    Object          *Palette;
+    struct IBox     windowpos;
 };
 
 /*
