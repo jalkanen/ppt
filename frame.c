@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : frame.c
 
-    $Id: frame.c,v 2.10 1997/07/12 21:47:50 jj Exp $
+    $Id: frame.c,v 2.11 1997/08/30 21:33:30 jj Exp $
 
     This contains frame handling routines
 
@@ -686,6 +686,12 @@ FRAME *UndoFrame( FRAME *currentframe )
     RemFrame( currentframe, globxd );
 
     UpdateInfoWindow( undoframe->mywin, globxd );
+
+    /*
+     *  Since this is a new frame, we won't have a rectangle drawn for us.
+     */
+
+    undoframe->selstatus &= ~(SELF_RECTANGLE|SELF_BUTTONDOWN);
 
     return undoframe;
 }
