@@ -2,8 +2,8 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 3.3 $
-        $Date: 1997/02/22 21:41:28 $
+    $Revision: 3.4 $
+        $Date: 1997/02/23 14:44:31 $
       $Author: jj $
 
     Main definitions for PPT.
@@ -14,7 +14,7 @@
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 3.3 1997/02/22 21:41:28 jj Exp $
+    $Id: ppt_real.h,v 3.4 1997/02/23 14:44:31 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
@@ -722,6 +722,32 @@ struct LocaleString {
 /* Flags */
 
 #define DFF_COPYDATA        0x01
+
+
+/*------------------------------------------------------------------*/
+/* Extensions.  This also contains the pre-defined names for
+   AddExtension() */
+
+struct Extension {
+    struct Node         en_Node;    /* PRIVATE */
+    STRPTR              en_Name;
+    ULONG               en_Length;
+    ID                  en_FrameID;
+    ULONG               en_Flags;
+    APTR                en_Data;
+
+    /* Nothing but private data down from here */
+};
+
+/* Pre-defined names */
+
+#define EXTNAME_AUTHOR      "Author"
+#define EXTNAME_ANNO        "Annotation"
+#define EXTNAME_DATE        "Date"
+
+/* Flags for en_Flags */
+
+#define EXTF_NOTASTRING     0x01 /* This extension is not a  string */
 
 /*!!PRIVATE*/
 
