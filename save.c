@@ -4,7 +4,7 @@
 
     Code for saving pictures.
 
-    $Id: save.c,v 2.12 1998/01/04 16:35:05 jj Exp $
+    $Id: save.c,v 2.13 1998/06/28 23:25:03 jj Exp $
 */
 
 #include "defs.h"
@@ -481,7 +481,7 @@ SAVEDS ASM VOID SavePicture( REG(a0) UBYTE *argvect, REG(d0) ULONG len )
     if( optarray = ParseDOSArgs( argvect, "FRAME/A/N,PATH/K,FORMAT/K,TYPE/N/K,ARGS/K,NAME/K", ExtBase )) {
         frame = (FRAME *) *( (ULONG *)optarray[0]);
 
-        if( optarray[1] || optarray[5]) { /* PATH or NAME existed */
+        if( optarray[1] || optarray[5] ) { /* PATH or NAME existed */
             dpath = (UBYTE *)optarray[1];
             name  = (UBYTE *)optarray[5];
             loader = (LOADER *) FindIName( &globals->loaders, (UBYTE *)optarray[2] );
