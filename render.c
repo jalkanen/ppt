@@ -3,14 +3,14 @@
    PROJECT: ppt
    MODULE : render.c
 
-   $Id: render.c,v 1.26 1998/10/14 20:36:32 jj Exp $
+   $Id: render.c,v 1.27 1999/02/14 19:40:46 jj Exp $
 
    Additional rendering routines and quickrendering stuff.
 
  */
 /*----------------------------------------------------------------------*/
 
-#define FAST_QUICKMAP           /* Use assembler code in QuickRender()? */
+#undef FAST_QUICKMAP           /* Use assembler code in QuickRender()? */
 
 
 /*----------------------------------------------------------------------*/
@@ -60,11 +60,15 @@
 #define ALPHA_GRAY_LOW      0xA0
 #define ALPHA_GRAY_HIGH     0xE0
 
+#define DITHER_NS           256     /* Number of shades */
+#define DITHER(p,d)         ((UBYTE) (( (((p)+(d))<<4) -(p))>>4) )
+
 struct QuickRenderArgs {
     FRAME *source;
     struct RastPort *dest, *temprp;
     UWORD top, left, winheight, winwidth;       /* Renderarea location */
     UBYTE *pixelrow;
+    UBYTE dither;                   /* Values: see ppt_real.h */
 };
 
 
@@ -73,6 +77,9 @@ struct QuickRenderArgs {
 
 UBYTE QuickRemapTable[QUICKREMAPSIZE];
 UBYTE QuickRemapTable_Color[4096];
+
+int dith_dim, dith_dm2;
+int **dith_mat;
 
 /*----------------------------------------------------------------------*/
 /* Internal prototypes */
@@ -91,6 +98,7 @@ Local VOID DrawSelectCircle( FRAME *, WORD, WORD, WORD );
 /*----------------------------------------------------------------------*/
 /* Code */
 
+/// RemoveSelectBox()
 /*
    Removes the select box, if needed.
  */
@@ -138,7 +146,8 @@ VOID RemoveSelectBox(FRAME * frame)
         break;
     }
 }
-
+///
+/// DrawSelectBox
 /*
     This function draws a select box onto frame display window.  It knows
     automatically what to do, according to the current status.
@@ -177,7 +186,8 @@ VOID DrawSelectBox( FRAME *frame, ULONG flags )
         break;
     }
 }
-
+///
+/// DrawSelectCircle()
 Local
 VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
 {
@@ -221,6 +231,7 @@ VOID DrawSelectCircle( FRAME *frame, WORD x, WORD y, WORD r )
 
     DrawEllipse( win->RPort, x, y, rx, ry );
 }
+///
 
 /// DrawSelectRectangle
 /*
@@ -465,6 +476,67 @@ VOID ReleaseColorTable(FRAME * frame)
 }
 ///
 
+/// Dithering code
+/*
+ *  Builds a global dithering matrix.
+ *  Uses code from the netpbm package.
+ *  ppmdither is (C) 1991 Christos Zoulas
+ */
+
+Local
+int DithValue( int y, int x, int size )
+{
+    int d;
+
+    for( d = 0; size-- > 0; x >>= 1, y >>= 1 ) {
+        d = (d << 2) | (((x & 1) ^ (y & 1)) << 1) | (y & 1);
+    }
+    return d;
+}
+VOID MakeDitherMatrix(int dim)
+{
+    int x, y, *dat;
+
+    D(bug("MakeDitherMatrix(%d)\n",dim));
+
+    dith_dim = (1<<dim);
+    dith_dm2 = dith_dim * dith_dim;
+
+    dith_mat = (int **)smalloc( (dith_dim * sizeof(int *) ) +
+                                (dith_dm2 * sizeof(int)));
+
+    if( dith_mat == NULL ) return; // BUG: no error code
+
+    dat = (int *) &dith_mat[dith_dim];
+    for (y = 0; y < dith_dim; y++)
+        dith_mat[y] = &dat[y * dith_dim];
+
+    for (y = 0; y < dith_dim; y++) {
+        for (x = 0; x < dith_dim; x++) {
+             dith_mat[y][x] = DithValue(y, x, dim);
+
+            D(bug("%4d ",dith_mat[y][x]));
+        }
+        D(bug("\n"));
+    }
+}
+
+Prototype VOID QuickRenderInit( VOID );
+
+VOID QuickRenderInit( VOID )
+{
+    MakeDitherMatrix( 2 );
+}
+
+Prototype VOID QuickRenderExit(VOID);
+
+VOID QuickRenderExit(VOID)
+{
+    if( dith_mat ) sfree( dith_mat );
+}
+///
+
+/// QuickRender_RGB_Gray()
 /*
    From 24bit RGB format to grayscale preview window.
  */
@@ -476,6 +548,8 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
     ULONG res = 0;
     struct IBox *zb = &(source->zoombox);
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    UBYTE *pixelrow = qra->pixelrow;
+    int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -483,7 +557,10 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
     D(bug("\tTRUECOLOR render...\n"));
     for (row = 0; row < qra->winheight; row++) {
         ROWPTR cp;
+        int *m;
+        WORD col;
 
+        m = dith_mat[row & dm];
         cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
@@ -492,15 +569,24 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
         QuickMapRow(cp + MULU16(zb->Left, 3), qra->pixelrow,
                     qra->winwidth, zb->Width, 3);
 #else
-        WORD col;
         for (col = 0; col < qra->winwidth; col++) {
             ULONG offset;
             UBYTE r, g, b;
             offset = MULU16(col, zb->Width) / qra->winwidth + zb->Left;
             offset = offset + offset + offset;
-            r = cp[offset];
-            g = cp[offset + 1];
-            b = cp[offset + 2];
+
+            if( qra->dither == DITHER_NONE ) {
+                r = cp[offset];
+                g = cp[offset + 1];
+                b = cp[offset + 2];
+            } else {
+                int d;
+
+                d = m[col&dm];
+                r = DITHER(cp[offset],d);
+                g = DITHER(cp[offset + 1],d);
+                b = DITHER(cp[offset + 2],d);
+            }
             pixelrow[col] = QuickRemapTable[(UBYTE) ((UWORD) (r + g + b) / (UWORD) 3)];
         }
 #endif
@@ -525,7 +611,8 @@ ULONG QuickRender_RGB_Gray(struct QuickRenderArgs *qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
-
+///
+/// QuickRender_ARGB_Gray()
 /*
    From 32bit ARGB format to grayscale preview window.
  */
@@ -539,6 +626,7 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     UBYTE *pixelrow = qra->pixelrow;
     UBYTE QuickAlphaTable[2];
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -550,7 +638,9 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < qra->winheight; row++) {
         ROWPTR cp;
         WORD col;
+        int *m;
 
+        m = dith_mat[row&dm];
         cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
@@ -561,10 +651,20 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
             offset = MULU16(col, zb->Width) / qra->winwidth + zb->Left;
             offset = offset << 2;
             argb = *((ULONG *) (cp + offset));
-            a = ARGB_A(argb);
-            r = ARGB_R(argb);
-            g = ARGB_G(argb);
-            b = ARGB_B(argb);
+
+            if( qra->dither == DITHER_NONE ) {
+                a = ARGB_A(argb);
+                r = ARGB_R(argb);
+                g = ARGB_G(argb);
+                b = ARGB_B(argb);
+            } else {
+                int d;
+                d = m[col&dm];
+                a = ARGB_A(argb);
+                r = DITHER(ARGB_R(argb),d);
+                g = DITHER(ARGB_G(argb),d);
+                b = DITHER(ARGB_B(argb),d);
+            }
 
             t = QuickAlphaTable[((row >> 3) + (col >> 3)) % 2];
             c = (r+g+b)/3;
@@ -582,7 +682,8 @@ ULONG QuickRender_ARGB_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
-
+///
+/// QuickRender_Gray_Gray()
 /*
    From 8bit Graylevel format to grayscale preview window
  */
@@ -596,6 +697,7 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     UBYTE *pixelrow = qra->pixelrow;
     struct IBox *zb = &(source->zoombox);
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    int dm = dith_dim-1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -605,13 +707,21 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < winheight; row++) {
         ROWPTR cp;
         WORD col;
+        int *m;
 
         cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, ExtBase);
+        m = dith_mat[row&dm];
 
         for (col = 0; col < winwidth; col++) {
             ULONG offset;
             offset = (LONG) MULU16(col, zb->Width) / (WORD) winwidth + zb->Left;
-            pixelrow[col] = QuickRemapTable[cp[offset]];
+            if( qra->dither == DITHER_NONE ) {
+                pixelrow[col] = QuickRemapTable[cp[offset]];
+            } else {
+                int d;
+                d = m[col&dm];
+                pixelrow[col] = QuickRemapTable[DITHER(cp[offset],d)];
+            }
         }
 
         WritePixelLine8(qra->dest, qra->left, row + qra->top,
@@ -634,7 +744,13 @@ ULONG QuickRender_Gray_Gray(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
+///
 
+#define COLOR(r,g,b) QuickRemapTable_Color[(((r) & 0xF0)<<4)|((g) & 0xF0)|((b)>>4)];
+// #define DITHER(p,d)   ((UBYTE) ((15*p/16)+(d)))
+#define LEVELS(s)     (dith_dm2 * ((s) - 1) + 1)
+
+/// QuickRender_RGB_Color()
 ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 {
     WORD row, srcwidth, srcheight;
@@ -643,6 +759,7 @@ ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     struct IBox *zb = &(source->zoombox);
     UBYTE *pixelrow = qra->pixelrow;
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -651,19 +768,33 @@ ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < qra->winheight; row++) {
         ROWPTR cp;
         WORD col;
+        int *m;
 
         cp = GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
+        m = dith_mat[row & dm];
+
         for (col = 0; col < qra->winwidth; col++) {
             ULONG offset;
             UBYTE r, g, b;
+
             offset = MULU16(col, zb->Width) / qra->winwidth + zb->Left;
             offset = offset + offset + offset;
-            r = cp[offset] & 0xF0;
-            g = cp[offset + 1] & 0xF0;
-            b = cp[offset + 2];
-            pixelrow[col] = QuickRemapTable_Color[(r << 4) | g | (b >> 4)];
+
+            if( qra->dither == DITHER_NONE ) {
+                r = cp[offset];
+                g = cp[offset + 1];
+                b = cp[offset + 2];
+            } else {
+                int d;
+
+                d = m[col&dm];
+                r = DITHER(cp[offset],d);
+                g = DITHER(cp[offset + 1],d);
+                b = DITHER(cp[offset + 2],d);
+            }
+            pixelrow[col] = COLOR(r,g,b);
         }
 
         /* Write to display */
@@ -675,7 +806,8 @@ ULONG QuickRender_RGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
-
+///
+/// QuickRender_ARGB_Color()
 ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 {
     WORD row, srcwidth, srcheight;
@@ -685,6 +817,7 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     UBYTE *pixelrow = qra->pixelrow;
     UBYTE QuickAlphaTable[2];
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -696,28 +829,42 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < qra->winheight; row++) {
         ARGBPixel *cp;
         WORD col;
+        int *m;
 
         cp = (ARGBPixel *) GetPixelRow(source, zb->Top + MULU16(row, zb->Height) / qra->winheight, ExtBase);
         // DEBUG("Read pixel line %lu\n",row * srcheight / qra->winheight );
 
+        m = dith_mat[row & dm];
+
         for (col = 0; col < qra->winwidth; col++) {
             ULONG offset, argb;
             UBYTE r, g, b, a, c, t;
+            int d;
+
             offset = MULU16(col, zb->Width) / qra->winwidth + zb->Left;
 
             // offset = offset<<2;
             argb = *((ULONG *) (cp + offset));
-            a = ARGB_A(argb);
-            r = ARGB_R(argb);
-            g = ARGB_G(argb);
-            b = ARGB_B(argb);
+
+            if( qra->dither == DITHER_NONE ) {
+                a = ARGB_A(argb);
+                r = ARGB_R(argb);
+                g = ARGB_G(argb);
+                b = ARGB_B(argb);
+            } else {
+                d = m[col&dm];
+                a = ARGB_A(argb);
+                r = DITHER(ARGB_R(argb),d);
+                g = DITHER(ARGB_G(argb),d);
+                b = DITHER(ARGB_B(argb),d);
+            }
 
             t = QuickAlphaTable[((row >> 3) + (col >> 3)) % 2];
             r = ((255 - (UWORD) a) * r + (UWORD) a * t) >> 8;
             g = ((255 - (UWORD) a) * g + (UWORD) a * t) >> 8;
             b = ((255 - (UWORD) a) * b + (UWORD) a * t) >> 8;
 
-            c = QuickRemapTable_Color[( (r&0xF0) << 4) | (g&0xF0) | (b >> 4)];
+            c = COLOR(r,g,b);
 
             // c = ((255 - (UWORD) a) * c + (UWORD) a * t) >> 8;
 
@@ -733,7 +880,8 @@ ULONG QuickRender_ARGB_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
-
+///
+/// QuickRender_Gray_Color()
 /*
  *  BUG: This could be fastened somewhat by using the knowledge
  *       on which colours have been set by the init routines
@@ -750,6 +898,7 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     UBYTE *pixelrow = qra->pixelrow;
     struct IBox *zb = &(source->zoombox);
     struct GfxBase *GfxBase = ExtBase->lb_Gfx;
+    int dm = dith_dim - 1;
 
     srcwidth = source->pix->width;
     srcheight = source->pix->height;
@@ -759,16 +908,24 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     for (row = 0; row < winheight; row++) {
         ROWPTR cp;
         WORD col;
+        int *m;
 
         cp = GetPixelRow(source, zb->Top + (LONG) MULU16(row, zb->Height) / (WORD) winheight, ExtBase);
+        m = dith_mat[row & dm];
 
         for (col = 0; col < winwidth; col++) {
             ULONG offset;
             UBYTE v;
 
             offset = (LONG) MULU16(col, zb->Width) / (WORD) winwidth + zb->Left;
-            v = cp[offset] & 0xF0;
-            pixelrow[col] = QuickRemapTable_Color[(v << 4) | v | (v >> 4)];
+            if( qra->dither == DITHER_NONE ) {
+                v = cp[offset];
+            } else {
+                int d;
+                d = m[col&dm];
+                v = DITHER(cp[offset],d);
+            }
+            pixelrow[col] = COLOR(v,v,v);
         }
 
         WritePixelLine8(qra->dest, qra->left, row + qra->top,
@@ -779,8 +936,9 @@ ULONG QuickRender_Gray_Color(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
   quit:
     return res;
 }
+///
 
-/// Deep screens
+/// QuickRender_RGB_Deep()
 
 /*
  *  Deep screen system.
@@ -810,8 +968,8 @@ ULONG QuickRender_RGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     return res;
 
 }
-
-
+///
+/// QuickRender_ARGB_Deep()
 ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 {
     WORD row, srcwidth, srcheight;
@@ -867,7 +1025,8 @@ ULONG QuickRender_ARGB_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     return res;
 
 }
-
+///
+/// QuickRender_Gray_Deep()
 ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
 {
     WORD row, srcwidth, srcheight;
@@ -904,9 +1063,9 @@ ULONG QuickRender_Gray_Deep(struct QuickRenderArgs * qra, EXTBASE * ExtBase)
     return res;
 
 }
-
 ///
 
+/// QuickRender()
 /*
    This routine is just for use with the main screen. It will make a quick
    render to the rastport given, using it's color map, which must be preset
@@ -993,6 +1152,11 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
     qra.top = top;
     qra.left = left;
 
+    if( globals->userprefs->ditherpreview )
+        qra.dither = DITHER_ORDERED;
+    else
+        qra.dither = DITHER_NONE;
+
 //    DEBUG("Allocated %lu bytes for %lu pixels / row\n", tempbm.BytesPerRow, winwidth );
 
     /*
@@ -1064,6 +1228,7 @@ PERROR QuickRender(FRAME * source, struct RastPort * dest,
 
     return res;
 }
+///
 
 /*----------------------------------------------------------------------*/
 /*                            END OF CODE                               */
