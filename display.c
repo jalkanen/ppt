@@ -3,7 +3,7 @@
     PROJECT: ppt
     MODULE : display.c
 
-    $Id: display.c,v 1.53 1998/06/30 19:59:35 jj Exp $
+    $Id: display.c,v 1.54 1998/08/14 19:28:41 jj Exp $
 
     Contains display routines.
 
@@ -217,7 +217,7 @@ void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtB
     if(frame->disp->dispid & EXTRAHALFBRITE_KEY)
         depth++; /* EHB is not used with depths > 5 */
 
-    if( GfxBase->LibNode.lib_Version >= 39) {
+    if( GFXV39 ) {
         ida[2].ti_Data = depth;
         id = BestModeIDA( ida );
         D(bug("\t\tBestModeIDA() suggests modeid %08X for this display\n",id));
@@ -242,7 +242,7 @@ void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtB
     }
 
     if(ModeNotAvailable( id ) != NULL)
-        id = 0L; /* Use PAL */
+        id = DEFAULT_MONITOR_ID; /* Use PAL or NTSC, as required */
 
     id &= ~(EXTRAHALFBRITE_KEY);
 
@@ -250,7 +250,7 @@ void GuessModeAndDepth( FRAME *frame, ULONG *Modeid, UBYTE *Depth, EXTBASE *ExtB
      *  Check for AGA, which allows all display modes to have depths upto 8
      */
 
-    if( ((struct GfxBase *)GfxBase)->ChipRevBits0 & GFXF_AA_ALICE) {
+    if( IS_AGA ) {
         if(depth > 8)
             depth = 8;
     } else {
@@ -337,7 +337,7 @@ VOID SetRGB8( struct ViewPort *vp, ULONG n, UBYTE r, UBYTE g, UBYTE b, EXTBASE *
 
     if(vp == NULL) return;
 
-    if( GfxBase->LibNode.lib_Version >= 39 ) {
+    if( GFXV39 ) {
         SetRGB32(vp, n, r*0x01010101, g*0x01010101, b*0x01010101 );
     } else {
         SetRGB4(vp, n, (((UWORD)r)+9)/17, (((UWORD)g)+9)/17, (((UWORD)b)+9)/17 );
@@ -364,7 +364,7 @@ void LoadRGB8( struct ViewPort *vp, COLORMAP *ct, long ncolors, EXTBASE *xb )
 
     D(bug("LoadRGB8(%lu colors)\n",ncolors));
 
-    if( GfxBase->LibNode.lib_Version >= 39 ) {
+    if( GFXV39 ) {
         ULONG *ct32;
 
         if( NULL == (ct32 = (ULONG *)pmalloc( (ncolors*3+2) * 4 )))
@@ -471,7 +471,7 @@ VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
     extern UBYTE QuickRemapTable_Color[];
     struct ColorMap *cmp = NULL;
 
-    if( scr && GfxBase->LibNode.lib_Version >= 39 )
+    if( scr && GFXV39 )
         cmp = scr->ViewPort.ColorMap;
 
     D(bug("BuildQuickColorColormap()\n"));
@@ -615,7 +615,7 @@ VOID BuildQuickColorColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
 
     D(bench = StartBench());
 
-    if( scr && GfxBase->LibNode.lib_Version >= 39 )
+    if( scr && GFXV39 )
         cmp = scr->ViewPort.ColorMap;
 
     for( i = 0; i < nColors; i++ ) {
@@ -684,7 +684,7 @@ void BuildQuickColormap( struct Screen *scr, UBYTE depth, COLORMAP *cm )
 
     D(bug("BuildQuickColormap()\n"));
 
-    if( scr && GfxBase->LibNode.lib_Version >= 39 )
+    if( scr && GFXV39 )
         cmp = scr->ViewPort.ColorMap;
 
     ncolors = (1<<depth);
@@ -1405,10 +1405,11 @@ struct Screen *OpenMainScreen( DISPLAY *d )
 
         globals->maindisp->colortable = pmalloc((1<<d->depth)*sizeof(COLORMAP));
 
-        if( (globals->userprefs->colorpreview) && (d->depth > 5) ) {
+        if( (globals->userprefs->colorpreview) && (d->depth >= 5) ) {
             BuildQuickColorColormap( MAINSCR, d->depth, globals->maindisp->colortable );
         } else {
             BuildQuickColormap( MAINSCR, d->depth, globals->maindisp->colortable );
+            globals->userprefs->colorpreview = FALSE;
         }
     }
 
