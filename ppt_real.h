@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Id: ppt_real.h,v 1.4 1995/09/06 23:41:01 jj Exp $
+    $Id: ppt_real.h,v 1.5 1995/09/17 23:01:53 jj Exp $
 
     Main definitions for PPT.
 
@@ -314,6 +314,7 @@ typedef struct Frame_t {
     ULONG           ID;             /* Frame ID, an unique code that will last.*/
     struct DispPrefsWindow *dpw;    /* Display prefs window. May be NULL */
     INFOWIN         *mywin;         /* This frame's infowindow. NULL, if not yet created */
+    APTR            renderobject;   /* see render.h */
     UBYTE           selstatus;      /* 0 if not visible, 1 if visible */
     UBYTE           reserved[3];    /* Unused */
     struct Frame_t  *lastframe;     /* The last before modifications. Undo frame. */
