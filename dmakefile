@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 6.2 1999/09/08 22:46:47 jj Exp $
+#       $Id: dmakefile,v 6.3 1999/10/02 15:37:28 jj Exp $
 #
 #####################################################################
 #
@@ -335,9 +335,9 @@ $(RCOBJS) : $(SRCS)
 $(RPROFOBJS) : $(PROFSRCS)
         @$(CC) $(RCFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
-$(COBJS) :: $(HDRS)
+$(COBJS) $(PROFOBJS) :: $(HDRS)
 
-$(RCOBJS) :: $(HDRS)
+$(RCOBJS) $(RPROFOBJS) :: $(HDRS)
 
 $(RVOBJS) :: version.h gui.h
 
@@ -358,7 +358,7 @@ $(R2PROFOBJS) : $(PROFSRCS)
         @echo "Compiling" %(right)
         @$(CC) $(R2CFLAGS) %(right) $(OBJNAME) %(left) $(COMPILE) PROFILE
 
-$(R2COBJS) :: $(HDRS)
+$(R2COBJS) $(R2PROFOBJS) :: $(HDRS)
 
 $(R2VOBJS) :: version.h gui.h
 
