@@ -5,7 +5,7 @@
 #       This makefile is meant to be used with Matthew Dillon's
 #       DMAKE utility.
 #
-#       $Id: dmakefile,v 1.9 1996/12/08 20:37:39 jj Exp $
+#       $Id: dmakefile,v 1.10 1997/01/12 00:19:50 jj Exp $
 #
 #####################################################################
 #
@@ -105,7 +105,7 @@ LDFLAGS = $(LINKOPTS) $(FORTLOPTS) ADDSYM
 #
 #RCOPTS = -ms -mi -proto -H$(RMFILE)=defs.h
 RCOPTS  = cpu=68000 UTILLIB OPT OPTSCHED DEBUG=LINE STRCON PARMS=R UTILLIB \
-          GST=include:all.gst
+          GST=include:all.gst OPTINLOCAL
 RLDFLAGS= $(LINKOPTS) $(FORTLOPTS)
 STRIP   = SLINK $(RMAIN) TO $(RMAIN).strip STRIPDEBUG NOICONS
 
@@ -333,12 +333,14 @@ linklib:
         @beep
 
 # Use this to make a new pragma library
+#  MODE=3 => #ifndef PRAGMAS_XXX_PRAGMAS_H ... #endif
 
 pragmas:
         cd include
-        fd2pragma SAS pragmas/pptsupp_pragmas.h fd/pptsupp_lib.fd
-        fd2pragma SAS pragmas/module_pragmas.h fd/module_lib.fd
-        fd2pragma SAS pragmas/effect_pragmas.h fd/effect_lib.fd
+        fd2pragma fd/pptsupp_lib.fd TO pragmas/pptsupp_pragmas.h MODE=3
+        fd2pragma fd/module_lib.fd  TO pragmas/module_pragmas.h  MODE=3
+        fd2pragma fd/effect_lib.fd  TO pragmas/effect_pragmas.h  MODE=3
+        fd2pragma fd/iomod_lib.fd   TO pragmas/iomod_pragmas.h   MODE=3
 
 # This will build the ppt catalog strings
 
@@ -389,6 +391,7 @@ touch :
 #
 
 ppt.h : ppt_real.h
-        extract ppt_real.h include/ppt.h
-
+        extract ppt_real.h    include/ppt.h
+        extract pptmessage.h  include/pptmessage.h
+        touch externals
 
