@@ -1,20 +1,9 @@
 ;
 ;  PPT Installer script
 ;
-;  $Revision: 1.6 $
-;      $Date: 1998/06/28 23:26:00 $
+;  $Revision: 1.7 $
+;      $Date: 1998/09/20 21:33:40 $
 ;
-
-;(message "\n"
-;         "IMPORTANT!\n"
-;         "\n"
-;         "This is a pre-release version of PPT and\n"
-;         "\n"
-;         "NOT TO BE DISTRIBUTED\n"
-;         "\n"
-;         "without the written permission of the author"
-;         (all)
-;         )
 
 (welcome "This is the PPT Installation utility."
          "Thank you for choosing to test PPT.")
@@ -41,7 +30,6 @@
           (prompt "\n"
                   "Do you wish to use the 68020+ optimized\n"
                   "versions of the BGUI library and PPT?")
-;                  "version of PPT?")
           (help   (cat "It might be a good idea to install the version "
                        "that best suits your Amiga's processor." ))
           (default ##use020)
@@ -113,12 +101,6 @@
     (help @copyfiles-help)
 )
 
-(copyfiles
-    (prompt "Installing icon")
-    (source "ppt.info")
-    (dest   @default-dest)
-    (help   @copyfiles-help)
-)
 
 ;; Copy docs
 
@@ -135,6 +117,23 @@
     (infos)
     (confirm)
 )
+
+;; Copying image files
+
+(complete 45)
+
+(copyfiles
+    (prompt "Installing image files")
+    (source "Images")
+    (dest (tackon @default-dest "Images") )
+    (help (cat "Choose which images you wish to install. "
+               "You don't have to install them, if you don't want to.\n\n"
+               @copyfiles-help) )
+    (all)
+    (infos)
+    (confirm)
+)
+
 
 (complete 50)
 
@@ -194,14 +193,23 @@
 ;    (help   @copyfiles-help)
 ;)
 
-
 (copyfiles
     (prompt "Installing icons")
+    (source "")
+    (pattern "(PPT|README|Docs|ReleaseNotes|rexx|Images).info")
+    (dest   @default-dest)
+    (help   @copyfiles-help)
+    (infos)
+)
+
+(copyfiles
+    (prompt "Installing drawer icon")
     (source "/PPT.info")
     (dest   (tackon @default-dest "/"))
     (help   @copyfiles-help)
     (infos)
 )
+
 
 ;
 ;   Install libraries
@@ -233,11 +241,6 @@
     (dest   "SYS:Classes/Gadgets")
     (help   @copylib-help)
 )
-
-
-;(message "\n\n\nNow make sure you have BGUI 41.8 installed.  Also, do not "
-;         "forget to install the BGUI palette gadget in your SYS:Classes/Gadgets "
-;         "directory!")
 
 ;
 ;   Make assigns
