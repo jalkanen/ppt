@@ -2,7 +2,7 @@
     PROJECT : ppt
     MODULE  : defs.h
 
-    $Id: defs.h,v 1.29 1999/02/21 20:31:32 jj Exp $
+    $Id: defs.h,v 1.30 1999/03/31 13:22:53 jj Exp $
 
     Main include files and some definitions.
     Everything in here should be constant and not subject to much change.
@@ -10,6 +10,42 @@
 
 #ifndef DEFS_H
 #define DEFS_H
+
+/*------------------------------------------------------------------*/
+/* Compatibility stuff */
+
+
+#ifdef _DCC
+#define SAVEDS  __geta4
+#define ASM
+#define REG(x)  __ ## x
+#define FAR     __far
+#define ALIGNED
+#define INLINE
+#else
+#ifdef __GNUC__
+#define SAVEDS  __saveds
+#define ASM
+#define REG(x)  register
+#define GREG(x) __asm( #x )
+#define ALIGNED __aligned
+#define INLINE  __inline
+#define __AMIGADATE__ __DATE__
+#else
+#define SAVEDS  __saveds
+#define ASM     __asm
+#define REG(x)  register __ ## x
+#define GREG(x)
+#define ALIGNED __aligned
+#define INLINE  __inline
+#endif
+#endif
+
+#define REGPARAM( reg, type, name ) REG(reg) type name GREG(reg)
+#define REGDECL( reg, type ) REG(reg) type GREG(reg)
+
+/*------------------------------------------------------------------*/
+/* System includes */
 
 #ifndef EXEC_TYPES_H
 #include <exec/types.h>
@@ -213,6 +249,7 @@ enum DebugFile_T {
 #define DEFAULT_PREVIEWMODE PWMODE_MEDIUM
 
 #define DEFAULT_CONFIRM     TRUE
+#define DEFAULT_TIPNUMBER   0
 
 #define VM_FILENAME         "PPT_VM_FILE"
 #define PPTPUBSCREENNAME    "PPT"
@@ -266,36 +303,6 @@ enum DebugFile_T {
 #define Local               static
 
 /*------------------------------------------------------------------*/
-/* Compatability stuff */
-
-
-#ifdef _DCC
-#define SAVEDS  __geta4
-#define ASM
-#define REG(x)  __ ## x
-#define FAR     __far
-#define ALIGNED
-#define INLINE
-#else
-#ifdef __GNUC__
-#define SAVEDS  __saveds
-#define ASM     __asm
-#define REG(x)
-#define GREG(x) __asm( #x )
-#define ALIGNED __aligned
-#define INLINE  __inline
-#else
-#define SAVEDS  __saveds
-#define ASM     __asm
-#define REG(x)  register __ ## x
-#define GREG(x)
-#define ALIGNED __aligned
-#define INLINE  __inline
-#endif
-#endif
-
-#define REGPARAM( reg, type, name ) REG(reg) type name GREG(reg)
-#define REGDECL( reg, type ) REG(reg) type GREG(reg)
 
 #ifndef PPT_H
 #include "ppt_real.h"
