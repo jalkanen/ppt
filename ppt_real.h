@@ -2,19 +2,19 @@
     PROJECT: ppt
     MODULE : ppt.h
 
-    $Revision: 6.2 $
-        $Date: 1999/12/27 21:59:10 $
+    $Revision: 6.3 $
+        $Date: 2000/01/04 21:38:26 $
       $Author: jj $
 
     Main definitions for PPT.
 
-    This file is (C) Janne Jalkanen 1994-1999.
+    This file is (C) Janne Jalkanen 1994-2000.
 
     Please note that those fields marked PRIVATE in structures truly are
     so. So keep your hands off them, because they will probably change between releases.
 
     !!PRIVATE
-    $Id: ppt_real.h,v 6.2 1999/12/27 21:59:10 jj Exp $
+    $Id: ppt_real.h,v 6.3 2000/01/04 21:38:26 jj Exp $
 
     This file contains also the PRIVATE fields in the structs.
     !!PUBLIC
