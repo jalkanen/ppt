@@ -5,7 +5,7 @@
     This contains the code for different memory allocation schemes
     and stuff.
 
-    $Id: memory.c,v 1.2 1998/02/26 19:51:56 jj Exp $
+    $Id: memory.c,v 1.3 1998/08/23 23:16:06 jj Exp $
 */
 
 #include "defs.h"
@@ -52,7 +52,7 @@ PERROR OpenPool( VOID )
 {
     PERROR res = PERR_OK;
 
-    if( SysBase->LibNode.lib_Version >= 39 ) {
+    if( SYSV39 ) {
         if(!(poolhead = CreatePool( MEMF_PUBLIC, POOL_PUDDLESIZE, POOL_THRESHSIZE )))
             res = PERR_OUTOFMEMORY;
 
@@ -67,7 +67,7 @@ Prototype VOID ClosePool(VOID);
 
 VOID ClosePool( VOID )
 {
-    if( (SysBase->LibNode.lib_Version >= 39) && (poolhead) ) {
+    if( SYSV39 && (poolhead) ) {
         DeletePool( poolhead );
         poolhead = NULL;
     }
@@ -81,7 +81,7 @@ APTR SMalloc( ULONG size )
 
     // D(bug("\tSMalloc(%ld)\n",size));
 
-    if( (SysBase->LibNode.lib_Version >= 39) && (poolhead) ) {
+    if( SYSV39 && (poolhead) ) {
         ObtainSemaphore( &poollock );
         t = (struct SMemBlock *)AllocPooled( poolhead, size + sizeof(struct SMemBlock) );
         ReleaseSemaphore( &poollock );
@@ -102,10 +102,10 @@ VOID SFree( APTR q )
 
     // D(bug("\tSFree()\n"));
 
-    if( (SysBase->LibNode.lib_Version >= 39) && (poolhead) ) {
+    if( SYSV39 && (poolhead) ) {
         t = (struct SMemBlock *) ((UBYTE *)q - sizeof( struct SMemBlock ));
         ObtainSemaphore( &poollock );
-        FreePooled( poolhead, t, t->size );
+        FreePooled( poolhead, t, t->size + sizeof(struct SMemBlock) );
         ReleaseSemaphore( &poollock );
     } else {
         pfree( q );
