@@ -2,7 +2,7 @@
     PROJECT: ppt
     MODULE : dither.c
 
-    $Id: dither.c,v 1.9 1997/01/12 00:20:28 jj Exp $
+    $Id: dither.c,v 1.10 1997/08/31 20:54:17 jj Exp $
 
     This contains the dither initialization, destruction and
     execution functions. The following dither modes are enabled:
@@ -58,22 +58,26 @@ PERROR Dither_None( struct RenderObject *rdo )
     ROWPTR cp = rdo->cp;
     UBYTE *dcp = rdo->buffer;
     UBYTE colorspace = rdo->frame->pix->colorspace;
+    DISPLAY *d = rdo->frame->disp;
 
     // D(bug("\tDither_None(width=%d)\n",width));
 
     for( col = 0; col < width; col++ ) {
         UWORD pixcode;
-        UBYTE red,green,blue;
+        UBYTE red,green,blue, ialpha = 255;
 
         rdo->currentcolumn = col;
 
-        if( colorspace == CS_ARGB ) cp++; /* Skip Alpha */
+        if( colorspace == CS_ARGB ) ialpha = 255 - *cp++; /* Skip Alpha */
 
         red   = *cp++;
         green = *cp++;
         blue  = *cp++;
 
-        pixcode = (*rdo->GetColor)( rdo, red, green, blue );
+        if( d->drawalpha )
+            pixcode = (*rdo->GetColor)( rdo, (red*ialpha)>>8, (green*ialpha)>>8, (blue*ialpha)>>8 );
+        else
+            pixcode = (*rdo->GetColor)( rdo, red, green, blue );
 
         dcp[col] = (UBYTE)pixcode;
     }
@@ -227,7 +231,8 @@ PERROR Dither_FS( struct RenderObject *rdo )
     ROWPTR cp = rdo->cp;
     WORD width = rdo->frame->pix->width;
     WORD col;
-    UBYTE *dcp = rdo->buffer;
+    UBYTE *dcp = rdo->buffer, ialpha = 255; // By default, all pixels are opaque
+    DISPLAY *d = rdo->frame->disp;
 
     fs = (struct FSObject *) rdo->DitherObject;
     error_limit = fs->error_limit;
@@ -236,13 +241,13 @@ PERROR Dither_FS( struct RenderObject *rdo )
     if(fs->odd_row) {
         cp += MULU16((width-1),pixelsize); /* Locate end of row */
         dcp += width-1; /* End of destination pointer */
-        dir = -1; dir3 = -3; dirc = -pixelsize;
+        dir = -1; dir3 = -3; dirc = (pixelsize == 4 ) ? -5 : -3;
         errorptr = fs->fserrors + MULU16((width+1),3);
         fs->odd_row = FALSE;
     } else {
         UBYTE renderq = rdo->frame->disp->renderq;
 
-        dir = 1; dir3 = 3; dirc = pixelsize;
+        dir = 1; dir3 = 3; dirc = 3;
         errorptr = fs->fserrors;
 
         /*
@@ -260,16 +265,11 @@ PERROR Dither_FS( struct RenderObject *rdo )
     belowerr0 = belowerr1 = belowerr2 = 0;
     bpreverr0 = bpreverr1 = bpreverr2 = 0;
 
-    /*
-     *  If this is an ARGB image, skip the Alpha channel
-     *  by shifting the entire row to the right by one
-     *  byte.
-     */
-
-    if( pixelsize == 4 )
-        cp++;
-
     for( col = width; col > 0; col-- ) {
+
+        if( pixelsize == 4 ) {
+            ialpha = 255 - *cp++;
+        }
 
         rdo->currentcolumn = width-col;
 
@@ -293,12 +293,20 @@ PERROR Dither_FS( struct RenderObject *rdo )
         /*
          *  This does the actual color matching. Calculate the error we
          *  just made.
+         *
+         *  If alpha blending is set on, then we will blend it with
+         *  the background color.
+         *  BUG: Currently the background color is black, always.
          *  BUG: Should call the real routine.
          */
 
         {   register UWORD pixcode;
 
-            pixcode = (*rdo->GetColor)( rdo, cur0, cur1, cur2 );
+            if( d->drawalpha )
+                pixcode = (*rdo->GetColor)( rdo, (cur0*ialpha)>>8, (cur1*ialpha)>>8, (cur2*ialpha)>>8 );
+            else
+                pixcode = (*rdo->GetColor)( rdo, cur0, cur1, cur2 );
+
             *dcp = (UBYTE)(pixcode);
             cur0 -= rdo->newr;
             cur1 -= rdo->newg;
