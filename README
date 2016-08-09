@@ -1,3 +1,14 @@
+Due to popular demand (that is, someone asked) I've copied the old PPT CVS archive into Github.
+
+This is probably useful only for those who are really deep into software archeology, or those
+who are interested in seeing how bad a programmer I was in the 1990s.
+
+The original software was compiled using the SAS/C compiler, and does require the Amiga SDKs
+to work.  But hey, if you're the kind of person who is likes to delve into this sort of stuff,
+I'm fairly sure you know what to do with this :-)
+
+License is GPLv2.
+
 Short: A Modular Image Processing Package
 Author: Janne.Jalkanen@iki.fi
 Uploader: Janne.Jalkanen@iki.fi
