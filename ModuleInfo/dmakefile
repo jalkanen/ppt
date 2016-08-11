@@ -1,0 +1,10 @@
+
+all :
+    sc buildprj
+
+install : all
+    SLink moduleinfo TO bin:moduleinfo NODEBUG
+
+rcs :
+    ci -l -f moduleinfo.c
+

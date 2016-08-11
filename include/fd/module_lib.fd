@@ -1,0 +1,8 @@
+* ModuleBase - a generic module for PPT
+* $Id: module_lib.fd 5.0 1998/12/15 23:11:36 jj Exp jj $
+##base _ModuleBase
+##bias 30
+##public
+Inquire(attribute,pptbase)(d0,a3)
+##end
+

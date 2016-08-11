@@ -1,0 +1,95 @@
+*    FD file for the PPT internal support functions.
+*    $Id: pptsupp_lib.fd,v 6.0 1999/09/05 16:19:27 jj Exp jj $
+*
+*    Use ##public to create public funcs
+*    Use ##private to declare private stuff
+##base _PPTBase
+##bias 30
+##public
+*
+*---- Frame handling functions ------
+*
+NewFrame(height,width,components)(d0/d1/d2)
+MakeFrame(frame)(a0)
+InitFrame(frame)(a0)
+RemFrame(frame)(a0)
+DupFrame(frame,flags)(a0,d0)
+FindFrame(id)(D0)
+*
+*---- Pixels and pixelrows -------
+*
+GetPixel(frame,row,col)(A0,D0,D1)
+PutPixel(frame,row,col,data)(A0,D0,D1,A1)
+GetPixelRow(frame,row)(A0,D0)
+PutPixelRow(frame,row,data)(A0,D0,A1)
+GetNPixelRows(frame,buf,row,nRows)(A0/A1,D0/D1)
+PutNPixelRows(frame,buf,row,nRows)(A0/A1,D0/D1)
+GetBitMapRow(frame,row)(A0,D0)
+*
+*----- Progress'O'Meter
+*
+##private
+UpdateProgress(frame,txt,done)(A0/A1,D0)
+##public
+InitProgress(frame,txt,min,max)(A0/A1,D0/D1)
+Progress(frame,done)(A0/D0)
+FinishProgress(frame)(A0)
+ClearProgress(frame)(A0)
+*
+*----- Error settings
+*
+SetErrorCode(frame,error)(A0,D0)
+SetErrorMsg(frame,errorstring)(A0/A1)
+*
+*----- Our GUI builder
+*
+AskReqA(frame,objectlist)(A0/A1)
+*
+*----- Format conversion functions
+*
+PlanarToChunky(source,dest,width,depth)(A0/A1,D0/D1)
+##private
+ChunkyToPlanar()()
+##public
+*
+*----- Miscallaneous support functions
+*
+GetStr(string)(A0)
+TagData(tagvalue,list)(d0/a0)
+*
+*----- Frame input methods
+*
+StartInput(frame,mid,area)(A0,D0,A1)
+StopInput(frame)(A0)
+*
+*----- Gets a background color
+*
+GetBackgroundColor(frame,pixel)(A0/A1)
+*
+*----- Options settings
+*
+GetOptions(name)(A0)
+PutOptions(name,data,len)(A0/A1,D0)
+*
+*----- Extensions
+*
+AddExtension(frame,name,data,len,flags)(A0/A1/A2,D0/D1)
+FindExtension(frame,name)(A0/A1)
+RemoveExtension(frame,name)(A0/A1)
+*
+*----- Previews (V4)
+*
+ObtainPreviewFrameA(frame,tags)(A0,A1)
+ReleasePreviewFrame(frame)(A0)
+RenderFrame(frame,rastport,location,flags)(A0,A1,A2,D0)
+CopyFrameData(src,dest,flags)(A0,A1,D0)
+*
+*----- Start of V5 additions
+*
+CloseProgress(frame)(A0)
+SetRexxVariable(frame,var,value)(A0,A1,A2)
+*
+*----- Start of V6 additions
+*
+SPrintFA(buffer,format,args)(A0,A1,A2)
+##end

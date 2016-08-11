@@ -1,0 +1,14 @@
+* IOModuleBase - A loader/saver for PPT
+* $Id: iomod_lib.fd,v 6.0 1999/11/28 18:50:58 jj Exp jj $
+##base _IOModuleBase
+##bias 30
+##public
+IOInquire(attribute,pptbase)(d0,a3)
+IOCheck(handle,num_bytes,buffer,pptbase)(d0,d1,a0,a3)
+IOLoad(handle,frame,tags,pptbase)(d0,a0,a1,a3)
+IOSave(handle,format,frame,tags,pptbase)(d0,d1,a0,a1,a3)
+* Start of V3 additions for the arguments
+IOGetArgs(format,frame,tags,pptbase)(d1,a0,a1,a3)
+##end
+
+

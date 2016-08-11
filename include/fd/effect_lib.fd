@@ -1,0 +1,12 @@
+* EffectBase - An effect for PPT
+* $Id: effect_lib.fd,v 6.0 1999/11/28 18:50:58 jj Exp jj $
+##base _EffectBase
+##bias 30
+##public
+EffectInquire(attribute,pptbase)(d0,a3)
+EffectExec(frame,tags,pptbase)(a0,a1,a3)
+* Start of V3 additions for the arguments.
+EffectGetArgs(frame,tags,pptbase)(a0,a1,a3)
+##end
+
+
